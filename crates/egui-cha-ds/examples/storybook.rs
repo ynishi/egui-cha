@@ -103,6 +103,9 @@ struct Model {
     bindings_counter: i32,
     bindings_last_action: Option<&'static str>,
     bindings_rebind_mode: bool,
+
+    // Context menu demo
+    context_menu_last_action: Option<&'static str>,
 }
 
 /// Demo action for dynamic bindings showcase
@@ -215,6 +218,11 @@ enum Msg {
     BindingsReset(DemoAction),
     BindingsResetAll,
     BindingsToggleRebindMode,
+
+    // Context menu demo
+    ContextMenuEdit,
+    ContextMenuCopy,
+    ContextMenuDelete,
 }
 
 const CATEGORIES: &[&str] = &["Atoms", "Semantics", "Molecules", "Framework"];
@@ -230,6 +238,7 @@ const ATOMS: &[&str] = &[
     "Link",
     "Code",
     "Tooltip",
+    "Context Menu",
 ];
 
 const SEMANTICS: &[&str] = &[
@@ -578,6 +587,17 @@ impl App for StorybookApp {
             Msg::BindingsToggleRebindMode => {
                 model.bindings_rebind_mode = !model.bindings_rebind_mode;
             }
+
+            // Context menu demo
+            Msg::ContextMenuEdit => {
+                model.context_menu_last_action = Some("Edit");
+            }
+            Msg::ContextMenuCopy => {
+                model.context_menu_last_action = Some("Copy");
+            }
+            Msg::ContextMenuDelete => {
+                model.context_menu_last_action = Some("Delete");
+            }
         }
         Cmd::none()
     }
@@ -890,6 +910,63 @@ fn render_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
                 ctx.ui.button("Native Button").with_tooltip("This works too!");
                 ctx.ui.label("Hover label").with_tooltip("Labels can have tooltips");
             });
+        }
+
+        "Context Menu" => {
+            ctx.ui.heading("Context Menu");
+            ctx.ui.label("Right-click menu via ContextMenuExt trait");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "use egui_cha_ds::prelude::*;  // imports ContextMenuExt\n\n// Works with any egui Response\nButton::primary(\"Right click me\")\n    .show(ctx.ui)\n    .with_context_menu(ctx, [\n        ContextMenuItem::new(\"Edit\", Msg::Edit),\n        ContextMenuItem::new(\"Copy\", Msg::Copy),\n        ContextMenuItem::separator(),\n        ContextMenuItem::danger(\"Delete\", Msg::Delete),\n    ]);"
+            ).show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("With Button:");
+            ctx.ui.add_space(8.0);
+
+            ctx.horizontal(|ctx| {
+                ctx.ui.add(Button::primary("Right click me"))
+                    .with_context_menu(ctx, [
+                        ContextMenuItem::new("Edit", Msg::ContextMenuEdit),
+                        ContextMenuItem::new("Copy", Msg::ContextMenuCopy),
+                        ContextMenuItem::separator(),
+                        ContextMenuItem::danger("Delete", Msg::ContextMenuDelete),
+                    ]);
+            });
+
+            ctx.ui.add_space(16.0);
+
+            ctx.ui.strong("With Label:");
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.label("Right click this text")
+                .with_context_menu(ctx, [
+                    ContextMenuItem::new("Copy text", Msg::ContextMenuCopy),
+                ]);
+
+            ctx.ui.add_space(16.0);
+
+            ctx.ui.strong("With Icon:");
+            ctx.ui.add_space(8.0);
+
+            ctx.horizontal(|ctx| {
+                Icon::gear().size(32.0).show(ctx.ui)
+                    .with_context_menu(ctx, [
+                        ContextMenuItem::new("Settings", Msg::ContextMenuEdit),
+                        ContextMenuItem::separator(),
+                        ContextMenuItem::danger("Reset", Msg::ContextMenuDelete),
+                    ]);
+            });
+
+            if let Some(action) = model.context_menu_last_action {
+                ctx.ui.add_space(16.0);
+                ctx.ui.label(format!("Last action: {}", action));
+                Badge::success(action).show(ctx.ui);
+            }
         }
 
         _ => {
