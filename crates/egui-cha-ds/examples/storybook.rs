@@ -1146,11 +1146,11 @@ fn render_molecule(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
         "Form" => {
             ctx.ui.heading("Form");
-            ctx.ui.label("Combines ValidatedInput atoms into structured forms");
+            ctx.ui.label("Combines ValidatedInput atoms into structured forms (TEA-style)");
             ctx.ui.add_space(8.0);
 
             Code::new(
-                "Form::new()\n    .field(\"Email\", &mut email, &email_state)\n    .password_field(\"Password\", &mut pw, &pw_state)\n    .submit_button(\"Sign Up\")\n    .on_submit(Msg::Submit)\n    .show(ui, &theme)"
+                "Form::new()\n    .field(\"Email\", &model.email, &state, Msg::EmailChanged)\n    .password_field(\"Password\", &model.pw, &state, Msg::PwChanged)\n    .submit_button(\"Sign Up\")\n    .submit_if(model.can_submit())\n    .on_submit(Msg::Submit)\n    .show(ctx)"
             ).show(ctx.ui);
 
             ctx.ui.add_space(16.0);
@@ -1160,20 +1160,21 @@ fn render_molecule(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.strong("Live Demo:");
             ctx.ui.add_space(8.0);
 
-            // Use existing validation fields
-            if let Some(msg) = Form::new()
-                .field("Email", &mut model.email_value.clone(), &model.email_validation)
-                .password_field("Password", &mut model.password_value.clone(), &model.password_validation)
-                .submit_button("Sign Up")
-                .on_submit(Msg::FormSubmit)
-                .show(ctx.ui, &model.theme)
-            {
-                ctx.emit(msg);
-            }
+            // Check if form is valid for submit
+            let can_submit = model.email_validation.is_valid() && model.password_validation.is_valid();
 
-            // Handle input changes manually since Form doesn't emit them
+            Form::new()
+                .field("Email", &model.email_value, &model.email_validation, Msg::EmailChanged)
+                .password_field("Password", &model.password_value, &model.password_validation, Msg::PasswordChanged)
+                .submit_button("Sign Up")
+                .submit_if(can_submit)
+                .on_submit(Msg::FormSubmit)
+                .show(ctx);
+
             ctx.ui.add_space(8.0);
-            ctx.ui.label("(Use the Input demo to see validation in action)");
+            if !can_submit {
+                ctx.ui.label("Fill in valid email and password (8+ chars) to enable submit");
+            }
 
             if model.form_submitted {
                 ctx.ui.add_space(8.0);
