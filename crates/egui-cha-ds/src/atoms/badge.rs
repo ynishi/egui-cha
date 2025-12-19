@@ -65,37 +65,67 @@ impl<'a> Badge<'a> {
         match self.variant {
             BadgeVariant::Default => {
                 if is_dark {
-                    (Color32::from_rgb(55, 65, 81), Color32::from_rgb(209, 213, 219))
+                    (
+                        Color32::from_rgb(55, 65, 81),
+                        Color32::from_rgb(209, 213, 219),
+                    )
                 } else {
-                    (Color32::from_rgb(229, 231, 235), Color32::from_rgb(55, 65, 81))
+                    (
+                        Color32::from_rgb(229, 231, 235),
+                        Color32::from_rgb(55, 65, 81),
+                    )
                 }
             }
             BadgeVariant::Success => {
                 if is_dark {
-                    (Color32::from_rgb(22, 101, 52), Color32::from_rgb(187, 247, 208))
+                    (
+                        Color32::from_rgb(22, 101, 52),
+                        Color32::from_rgb(187, 247, 208),
+                    )
                 } else {
-                    (Color32::from_rgb(220, 252, 231), Color32::from_rgb(22, 101, 52))
+                    (
+                        Color32::from_rgb(220, 252, 231),
+                        Color32::from_rgb(22, 101, 52),
+                    )
                 }
             }
             BadgeVariant::Warning => {
                 if is_dark {
-                    (Color32::from_rgb(133, 77, 14), Color32::from_rgb(254, 240, 138))
+                    (
+                        Color32::from_rgb(133, 77, 14),
+                        Color32::from_rgb(254, 240, 138),
+                    )
                 } else {
-                    (Color32::from_rgb(254, 249, 195), Color32::from_rgb(133, 77, 14))
+                    (
+                        Color32::from_rgb(254, 249, 195),
+                        Color32::from_rgb(133, 77, 14),
+                    )
                 }
             }
             BadgeVariant::Error => {
                 if is_dark {
-                    (Color32::from_rgb(153, 27, 27), Color32::from_rgb(254, 202, 202))
+                    (
+                        Color32::from_rgb(153, 27, 27),
+                        Color32::from_rgb(254, 202, 202),
+                    )
                 } else {
-                    (Color32::from_rgb(254, 226, 226), Color32::from_rgb(153, 27, 27))
+                    (
+                        Color32::from_rgb(254, 226, 226),
+                        Color32::from_rgb(153, 27, 27),
+                    )
                 }
             }
             BadgeVariant::Info => {
                 if is_dark {
-                    (Color32::from_rgb(30, 64, 175), Color32::from_rgb(191, 219, 254))
+                    (
+                        Color32::from_rgb(30, 64, 175),
+                        Color32::from_rgb(191, 219, 254),
+                    )
                 } else {
-                    (Color32::from_rgb(219, 234, 254), Color32::from_rgb(30, 64, 175))
+                    (
+                        Color32::from_rgb(219, 234, 254),
+                        Color32::from_rgb(30, 64, 175),
+                    )
                 }
             }
         }

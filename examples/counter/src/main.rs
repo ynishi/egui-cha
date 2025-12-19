@@ -1,15 +1,13 @@
 //! Counter example demonstrating egui-cha TEA architecture with Router
 
 use egui_cha::prelude::*;
+use egui_cha_ds::cha;
 use egui_cha_ds::prelude::*;
 
 fn main() -> eframe::Result<()> {
     tracing_subscriber::fmt::init();
 
-    egui_cha::run::<CounterApp>(
-        RunConfig::new("egui-cha Router Demo")
-            .with_size(600.0, 500.0),
-    )
+    egui_cha::run::<CounterApp>(RunConfig::new("egui-cha Router Demo").with_size(600.0, 500.0))
 }
 
 // ============================================================
@@ -163,10 +161,8 @@ impl App for CounterApp {
         ctx.ui.separator();
         ctx.horizontal(|ctx| {
             Button::ghost("Toggle Theme").on_click(ctx, Msg::ToggleTheme);
-            ctx.ui.label(format!(
-                "History: {} pages",
-                model.router.history_len()
-            ));
+            ctx.ui
+                .label(format!("History: {} pages", model.router.history_len()));
         });
     }
 }
@@ -176,36 +172,45 @@ impl App for CounterApp {
 // ============================================================
 
 fn home_page(_model: &Model, ctx: &mut ViewCtx<Msg>) {
-    ctx.ui.heading("Welcome to egui-cha!");
-    ctx.ui.add_space(8.0);
-
-    ctx.ui.label("This demo showcases:");
-    ctx.ui.label("  TEA (The Elm Architecture) pattern");
-    ctx.ui.label("  Router with history");
-    ctx.ui.label("  Design System components");
-    ctx.ui.label("  Error handling");
-
-    ctx.ui.add_space(16.0);
-
-    // Icon demo
-    ctx.ui.label("Phosphor Icons:");
-    ctx.horizontal(|ctx| {
-        Icon::house().size(20.0).show(ctx.ui);
-        Icon::gear().size(20.0).show(ctx.ui);
-        Icon::hash().size(20.0).show(ctx.ui);
-        Icon::info().size(20.0).show(ctx.ui);
-        Icon::user().size(20.0).show(ctx.ui);
-        Icon::check().size(20.0).show(ctx.ui);
-        Icon::warning().size(20.0).show(ctx.ui);
-        Icon::plus().size(20.0).show(ctx.ui);
-        Icon::minus().size(20.0).show(ctx.ui);
+    // Demo: using cha! macro for layout
+    cha!(ctx, {
+        Col(spacing: 8.0) {
+            ctx.ui.heading("Welcome to egui-cha!")
+            ctx.ui.label("This demo showcases:")
+            ctx.ui.label("  TEA (The Elm Architecture) pattern")
+            ctx.ui.label("  Router with history")
+            ctx.ui.label("  Design System components")
+            ctx.ui.label("  Error handling")
+        }
     });
 
     ctx.ui.add_space(16.0);
 
-    ctx.horizontal(|ctx| {
-        Button::primary("Go to Counter").on_click(ctx, Msg::Router(RouterMsg::Navigate(Page::Counter)));
-        Button::secondary("Settings").on_click(ctx, Msg::Router(RouterMsg::Navigate(Page::Settings)));
+    // Icon demo - using @icon shorthand
+    cha!(ctx, {
+        Col {
+            ctx.ui.label("Phosphor Icons:")
+            Row {
+                @house(20.0)
+                @gear(20.0)
+                @hash(20.0)
+                @info(20.0)
+                @user(20.0)
+                @check(20.0)
+                @warning(20.0)
+                @plus(20.0)
+                @minus(20.0)
+            }
+        }
+    });
+
+    ctx.ui.add_space(16.0);
+
+    cha!(ctx, {
+        Row {
+            Button::primary("Go to Counter").on_click(ctx, Msg::Router(RouterMsg::Navigate(Page::Counter)))
+            Button::secondary("Settings").on_click(ctx, Msg::Router(RouterMsg::Navigate(Page::Settings)))
+        }
     });
 }
 
@@ -249,14 +254,19 @@ fn counter_page(model: &Model, ctx: &mut ViewCtx<Msg>) {
 fn settings_page(model: &Model, ctx: &mut ViewCtx<Msg>) {
     Card::titled("Settings").show_ctx(ctx, |ctx| {
         ctx.ui.label("Username:");
-        Input::new()
-            .placeholder("Enter username")
-            .show_with(ctx, &model.settings.username, Msg::UsernameChanged);
+        Input::new().placeholder("Enter username").show_with(
+            ctx,
+            &model.settings.username,
+            Msg::UsernameChanged,
+        );
 
         ctx.ui.add_space(8.0);
 
         ctx.horizontal(|ctx| {
-            ctx.ui.checkbox(&mut model.settings.notifications.clone(), "Enable notifications");
+            ctx.ui.checkbox(
+                &mut model.settings.notifications.clone(),
+                "Enable notifications",
+            );
             if ctx.ui.button("Toggle").clicked() {
                 ctx.emit(Msg::ToggleNotifications);
             }
@@ -273,7 +283,8 @@ fn about_page(_model: &Model, ctx: &mut ViewCtx<Msg>) {
     Card::titled("About").show_ctx(ctx, |ctx| {
         ctx.ui.label("egui-cha v0.1.0");
         ctx.ui.add_space(8.0);
-        ctx.ui.label("A TEA (The Elm Architecture) framework for egui.");
+        ctx.ui
+            .label("A TEA (The Elm Architecture) framework for egui.");
         ctx.ui.add_space(8.0);
         ctx.ui.label("Features:");
         ctx.ui.label("• Model-View-Update pattern");

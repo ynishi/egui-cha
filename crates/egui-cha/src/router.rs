@@ -164,8 +164,12 @@ impl<P: Clone + PartialEq> Router<P> {
     pub fn handle(&mut self, msg: RouterMsg<P>) {
         match msg {
             RouterMsg::Navigate(page) => self.navigate(page),
-            RouterMsg::Back => { self.back(); }
-            RouterMsg::Forward => { self.forward(); }
+            RouterMsg::Back => {
+                self.back();
+            }
+            RouterMsg::Forward => {
+                self.forward();
+            }
             RouterMsg::Replace(page) => self.replace(page),
             RouterMsg::ClearHistory => self.clear_history(),
         }
@@ -238,7 +242,8 @@ impl<'a, P: Clone + PartialEq> NavLink<'a, P> {
 
         let response = if self.active_style && is_active {
             // Active style - could customize this more
-            ctx.ui.add(egui::Button::new(self.label).fill(egui::Color32::from_rgb(59, 130, 246)))
+            ctx.ui
+                .add(egui::Button::new(self.label).fill(egui::Color32::from_rgb(59, 130, 246)))
         } else {
             ctx.ui.button(self.label)
         };

@@ -17,14 +17,14 @@ impl NavbarColors {
     fn from_dark_mode(is_dark: bool) -> Self {
         if is_dark {
             Self {
-                bg: Color32::from_rgb(17, 24, 39),           // bg_primary dark
-                text_active: Color32::from_rgb(249, 250, 251), // text_primary dark
+                bg: Color32::from_rgb(17, 24, 39),               // bg_primary dark
+                text_active: Color32::from_rgb(249, 250, 251),   // text_primary dark
                 text_inactive: Color32::from_rgb(156, 163, 175), // text_muted
                 button_active_bg: Color32::from_rgb(55, 65, 81), // bg_tertiary dark
             }
         } else {
             Self {
-                bg: Color32::from_rgb(31, 41, 55),           // dark bar on light theme
+                bg: Color32::from_rgb(31, 41, 55), // dark bar on light theme
                 text_active: Color32::WHITE,
                 text_inactive: Color32::from_rgb(156, 163, 175),
                 button_active_bg: Color32::from_rgb(55, 65, 81),
@@ -80,7 +80,10 @@ impl<'a> Navbar<'a> {
                         let enabled = router.can_back();
                         let back_icon = RichText::new(icons::ARROW_LEFT)
                             .family(egui::FontFamily::Name("icons".into()));
-                        if ui.add_enabled(enabled, egui::Button::new(back_icon)).clicked() {
+                        if ui
+                            .add_enabled(enabled, egui::Button::new(back_icon))
+                            .clicked()
+                        {
                             // Need to emit outside
                         }
                     }
@@ -157,8 +160,8 @@ pub fn navbar<P, Msg>(
     ctx.ui.horizontal(|ui| {
         // Back button
         if router.can_back() {
-            let back_icon = RichText::new(icons::ARROW_LEFT)
-                .family(egui::FontFamily::Name("icons".into()));
+            let back_icon =
+                RichText::new(icons::ARROW_LEFT).family(egui::FontFamily::Name("icons".into()));
             if ui.button(back_icon).clicked() {
                 nav_action = Some(RouterMsg::Back);
             }
@@ -171,10 +174,7 @@ pub fn navbar<P, Msg>(
             let is_active = router.is_at(page);
 
             let response = if is_active {
-                ui.add(
-                    egui::Button::new(RichText::new(*label).color(active_text))
-                        .fill(active_bg)
-                )
+                ui.add(egui::Button::new(RichText::new(*label).color(active_text)).fill(active_bg))
             } else {
                 ui.button(*label)
             };

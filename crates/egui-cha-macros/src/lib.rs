@@ -1,25 +1,26 @@
 //! Procedural macros for egui-cha layout DSL
 //!
-//! Provides a declarative syntax for composing layouts that expands to
-//! the Fluent Builder API.
+//! Provides a declarative syntax for composing layouts that integrates
+//! directly with ViewCtx.
 //!
 //! # Example
 //!
 //! ```ignore
 //! use egui_cha_macros::cha;
 //!
-//! cha! {
-//!     Col(spacing: 8.0) {
-//!         Row {
-//!             [|ui| ui.label("Hello")]
-//!             Spacer
+//! fn view(model: &Model, ctx: &mut ViewCtx<Msg>) {
+//!     cha!(ctx, {
+//!         Col(spacing: 8.0) {
+//!             ctx.ui.heading("Counter")
+//!             Row {
+//!                 @house           // Icon shorthand
+//!                 @gear(20.0)      // Icon with size
+//!             }
+//!             Row {
+//!                 Button::primary("+").on_click(ctx, Msg::Increment)
+//!             }
 //!         }
-//!         Grid(3, gap: 4.0) {
-//!             [|ui| ui.label("A")]
-//!             [|ui| ui.label("B")]
-//!             [|ui| ui.label("C")]
-//!         }
-//!     }
+//!     });
 //! }
 //! ```
 
@@ -27,29 +28,28 @@ use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::{
-    braced, bracketed, parenthesized,
+    braced, parenthesized,
     parse::{Parse, ParseStream},
-    parse_macro_input,
-    Expr, Ident, Result, Token,
+    parse_macro_input, Expr, Ident, Result, Token,
 };
 
-/// Main macro for declarative layout composition
+/// Main macro for declarative layout composition with ViewCtx
 ///
 /// Syntax:
 /// ```ignore
-/// cha! {
-///     Col(spacing: 8.0, padding: 4.0) {
-///         Row(fill_x) {
-///             [closure or expression]
-///             Spacer
+/// cha!(ctx, {
+///     Col(spacing: 8.0) {
+///         Row {
+///             @house           // Icon::house().show_ctx(ctx)
+///             @gear(20.0)      // Icon::gear().size(20.0).show_ctx(ctx)
 ///         }
 ///     }
-/// }
+/// });
 /// ```
 #[proc_macro]
 pub fn cha(input: TokenStream) -> TokenStream {
-    let layout = parse_macro_input!(input as LayoutNode);
-    let expanded = layout.to_tokens();
+    let input = parse_macro_input!(input as ChaInput);
+    let expanded = input.to_tokens();
     TokenStream::from(expanded)
 }
 
@@ -57,150 +57,155 @@ pub fn cha(input: TokenStream) -> TokenStream {
 // AST Nodes
 // ============================================================
 
-/// Root layout node
+/// Top-level input: ctx identifier and body
+struct ChaInput {
+    ctx: Ident,
+    body: LayoutBody,
+}
+
+/// Layout body containing children
+struct LayoutBody {
+    children: Vec<LayoutNode>,
+}
+
+/// Layout node - container, icon shorthand, or expression
 enum LayoutNode {
     Col(LayoutContainer),
     Row(LayoutContainer),
-    Grid(GridContainer),
-    Spacer,
-    Space(Expr),
-    Closure(Expr),
+    Group(LayoutContainer),
+    Icon(IconNode),
     Expr(Expr),
 }
 
-/// Container for Col/Row with optional properties and children
+/// Container with optional properties and children
 struct LayoutContainer {
     props: Vec<LayoutProp>,
     children: Vec<LayoutNode>,
 }
 
-/// Container for Grid with column count, properties, and children
-struct GridContainer {
-    cols: Expr,
-    props: Vec<LayoutProp>,
-    children: Vec<LayoutNode>,
+/// Property like `spacing: 8.0`
+struct LayoutProp {
+    key: Ident,
+    value: Expr,
 }
 
-/// Property like `spacing: 8.0` or `fill_x`
-enum LayoutProp {
-    KeyValue { key: Ident, value: Expr },
-    Flag(Ident),
+/// Icon shorthand: @house or @gear(20.0)
+struct IconNode {
+    name: Ident,
+    size: Option<Expr>,
 }
 
 // ============================================================
 // Parsing
 // ============================================================
 
-impl Parse for LayoutNode {
+impl Parse for ChaInput {
     fn parse(input: ParseStream) -> Result<Self> {
-        // Check for bracketed closure/expression: [expr]
-        if input.peek(syn::token::Bracket) {
-            let content;
-            bracketed!(content in input);
-            let expr: Expr = content.parse()?;
-            return Ok(LayoutNode::Closure(expr));
-        }
+        // Parse: ctx, { ... }
+        let ctx: Ident = input.parse()?;
+        input.parse::<Token![,]>()?;
 
-        // Check for identifier (Col, Row, Grid, Spacer, Space)
-        let ident: Ident = input.parse()?;
-        let name = ident.to_string();
+        let content;
+        braced!(content in input);
+        let body = LayoutBody::parse(&content)?;
 
-        match name.as_str() {
-            "Col" => {
-                let container = parse_layout_container(input)?;
-                Ok(LayoutNode::Col(container))
-            }
-            "Row" => {
-                let container = parse_layout_container(input)?;
-                Ok(LayoutNode::Row(container))
-            }
-            "Grid" => {
-                let grid = parse_grid_container(input)?;
-                Ok(LayoutNode::Grid(grid))
-            }
-            "Spacer" => Ok(LayoutNode::Spacer),
-            "Space" => {
-                let content;
-                parenthesized!(content in input);
-                let size: Expr = content.parse()?;
-                Ok(LayoutNode::Space(size))
-            }
-            _ => {
-                // Treat as expression identifier
-                Ok(LayoutNode::Expr(syn::parse_quote!(#ident)))
-            }
-        }
+        Ok(ChaInput { ctx, body })
     }
 }
 
-fn parse_layout_container(input: ParseStream) -> Result<LayoutContainer> {
+impl LayoutBody {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut children = Vec::new();
+
+        while !input.is_empty() {
+            let node = LayoutNode::parse(input)?;
+            children.push(node);
+        }
+
+        Ok(LayoutBody { children })
+    }
+}
+
+impl LayoutNode {
+    fn parse(input: ParseStream) -> Result<Self> {
+        // Check for @ (icon shorthand)
+        if input.peek(Token![@]) {
+            input.parse::<Token![@]>()?;
+            let name: Ident = input.parse()?;
+
+            // Optional size in parentheses
+            let size = if input.peek(syn::token::Paren) {
+                let content;
+                parenthesized!(content in input);
+                Some(content.parse::<Expr>()?)
+            } else {
+                None
+            };
+
+            return Ok(LayoutNode::Icon(IconNode { name, size }));
+        }
+
+        // Look ahead to determine node type
+        if input.peek(Ident) {
+            let fork = input.fork();
+            let ident: Ident = fork.parse()?;
+            let name = ident.to_string();
+
+            match name.as_str() {
+                "Col" | "Row" | "Group" => {
+                    // Actually consume the identifier
+                    let _: Ident = input.parse()?;
+                    let container = parse_container(input)?;
+
+                    return Ok(match name.as_str() {
+                        "Col" => LayoutNode::Col(container),
+                        "Row" => LayoutNode::Row(container),
+                        "Group" => LayoutNode::Group(container),
+                        _ => unreachable!(),
+                    });
+                }
+                _ => {}
+            }
+        }
+
+        // Parse as expression
+        let expr: Expr = input.parse()?;
+        Ok(LayoutNode::Expr(expr))
+    }
+}
+
+fn parse_container(input: ParseStream) -> Result<LayoutContainer> {
     let mut props = Vec::new();
     let mut children = Vec::new();
 
-    // Parse optional properties in parentheses: (spacing: 8.0, fill_x)
+    // Parse optional properties: (spacing: 8.0, padding: 4.0)
     if input.peek(syn::token::Paren) {
         let content;
         parenthesized!(content in input);
         props = parse_props(&content)?;
     }
 
-    // Parse children in braces: { ... }
+    // Parse children: { ... }
     if input.peek(syn::token::Brace) {
         let content;
         braced!(content in input);
-        children = parse_children(&content)?;
+        while !content.is_empty() {
+            children.push(LayoutNode::parse(&content)?);
+        }
     }
 
     Ok(LayoutContainer { props, children })
-}
-
-fn parse_grid_container(input: ParseStream) -> Result<GridContainer> {
-    let content;
-    parenthesized!(content in input);
-
-    // First argument is column count
-    let cols: Expr = content.parse()?;
-
-    let mut props = Vec::new();
-
-    // Parse remaining properties after comma
-    if content.peek(Token![,]) {
-        content.parse::<Token![,]>()?;
-        props = parse_props(&content)?;
-    }
-
-    // Parse children
-    let mut children = Vec::new();
-    if input.peek(syn::token::Brace) {
-        let brace_content;
-        braced!(brace_content in input);
-        children = parse_children(&brace_content)?;
-    }
-
-    Ok(GridContainer {
-        cols,
-        props,
-        children,
-    })
 }
 
 fn parse_props(input: ParseStream) -> Result<Vec<LayoutProp>> {
     let mut props = Vec::new();
 
     while !input.is_empty() {
-        let ident: Ident = input.parse()?;
+        let key: Ident = input.parse()?;
+        input.parse::<Token![:]>()?;
+        let value: Expr = input.parse()?;
+        props.push(LayoutProp { key, value });
 
-        if input.peek(Token![:]) {
-            // Key-value property: key: value
-            input.parse::<Token![:]>()?;
-            let value: Expr = input.parse()?;
-            props.push(LayoutProp::KeyValue { key: ident, value });
-        } else {
-            // Flag property: fill_x, centered
-            props.push(LayoutProp::Flag(ident));
-        }
-
-        // Optional comma
         if input.peek(Token![,]) {
             input.parse::<Token![,]>()?;
         }
@@ -209,89 +214,100 @@ fn parse_props(input: ParseStream) -> Result<Vec<LayoutProp>> {
     Ok(props)
 }
 
-fn parse_children(input: ParseStream) -> Result<Vec<LayoutNode>> {
-    let mut children = Vec::new();
-
-    while !input.is_empty() {
-        let child: LayoutNode = input.parse()?;
-        children.push(child);
-    }
-
-    Ok(children)
-}
-
 // ============================================================
 // Code Generation
 // ============================================================
 
-impl LayoutNode {
+impl ChaInput {
     fn to_tokens(&self) -> TokenStream2 {
+        let ctx = &self.ctx;
+        let children = self.body.children.iter().map(|c| c.to_tokens(ctx));
+
+        quote! {
+            #(#children)*
+        }
+    }
+}
+
+impl LayoutNode {
+    fn to_tokens(&self, ctx: &Ident) -> TokenStream2 {
         match self {
             LayoutNode::Col(container) => {
-                let props = container.props.iter().map(prop_to_tokens);
-                let children = container.children.iter().map(|c| {
-                    let child_tokens = c.to_tokens();
-                    quote! { .add(#child_tokens) }
-                });
+                let setup = props_to_setup(&container.props, "y");
+                let children = container.children.iter().map(|c| c.to_tokens(ctx));
 
                 quote! {
-                    ::egui_cha_ds::cha::col()
-                        #(#props)*
+                    #ctx.vertical(|#ctx| {
+                        #setup
                         #(#children)*
+                    });
                 }
             }
             LayoutNode::Row(container) => {
-                let props = container.props.iter().map(prop_to_tokens);
-                let children = container.children.iter().map(|c| {
-                    let child_tokens = c.to_tokens();
-                    quote! { .add(#child_tokens) }
-                });
+                let setup = props_to_setup(&container.props, "x");
+                let children = container.children.iter().map(|c| c.to_tokens(ctx));
 
                 quote! {
-                    ::egui_cha_ds::cha::row()
-                        #(#props)*
+                    #ctx.horizontal(|#ctx| {
+                        #setup
                         #(#children)*
+                    });
                 }
             }
-            LayoutNode::Grid(grid) => {
-                let cols = &grid.cols;
-                let props = grid.props.iter().map(prop_to_tokens);
-                let children = grid.children.iter().map(|c| {
-                    let child_tokens = c.to_tokens();
-                    quote! { .add(#child_tokens) }
-                });
+            LayoutNode::Group(container) => {
+                let setup = props_to_setup(&container.props, "y");
+                let children = container.children.iter().map(|c| c.to_tokens(ctx));
 
                 quote! {
-                    ::egui_cha_ds::cha::grid(#cols)
-                        #(#props)*
+                    #ctx.group(|#ctx| {
+                        #setup
                         #(#children)*
+                    });
                 }
             }
-            LayoutNode::Spacer => {
-                quote! { ::egui_cha_ds::cha::spacer() }
-            }
-            LayoutNode::Space(size) => {
-                quote! { ::egui_cha_ds::cha::space(#size) }
-            }
-            LayoutNode::Closure(expr) => {
-                quote! { #expr }
+            LayoutNode::Icon(icon) => {
+                let name = &icon.name;
+                if let Some(size) = &icon.size {
+                    quote! {
+                        ::egui_cha_ds::Icon::#name().size(#size).show_ctx(#ctx);
+                    }
+                } else {
+                    quote! {
+                        ::egui_cha_ds::Icon::#name().show_ctx(#ctx);
+                    }
+                }
             }
             LayoutNode::Expr(expr) => {
-                quote! { #expr }
+                quote! { #expr; }
             }
         }
     }
 }
 
-fn prop_to_tokens(prop: &LayoutProp) -> TokenStream2 {
-    match prop {
-        LayoutProp::KeyValue { key, value } => {
-            quote! { .#key(#value) }
-        }
-        LayoutProp::Flag(flag) => {
-            quote! { .#flag() }
-        }
-    }
+fn props_to_setup(props: &[LayoutProp], axis: &str) -> TokenStream2 {
+    let setups: Vec<TokenStream2> = props
+        .iter()
+        .filter_map(|prop| {
+            let key = prop.key.to_string();
+            let value = &prop.value;
+
+            match key.as_str() {
+                "spacing" => {
+                    if axis == "y" {
+                        Some(quote! { ctx.ui.spacing_mut().item_spacing.y = #value; })
+                    } else {
+                        Some(quote! { ctx.ui.spacing_mut().item_spacing.x = #value; })
+                    }
+                }
+                "padding" => Some(quote! {
+                    ctx.ui.spacing_mut().window_margin = egui::Margin::same(#value);
+                }),
+                _ => None,
+            }
+        })
+        .collect();
+
+    quote! { #(#setups)* }
 }
 
 // ============================================================
@@ -303,51 +319,74 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_parse_simple_col() {
+    fn test_parse_simple() {
         let input: TokenStream2 = quote! {
-            Col {
-                [|ui: &mut egui::Ui| { ui.label("Hello"); }]
+            ctx, {
+                ctx.ui.label("Hello")
             }
         };
-        let node: LayoutNode = syn::parse2(input).unwrap();
-        let _output = node.to_tokens();
+        let parsed: ChaInput = syn::parse2(input).unwrap();
+        let _ = parsed.to_tokens();
+    }
+
+    #[test]
+    fn test_parse_col() {
+        let input: TokenStream2 = quote! {
+            ctx, {
+                Col {
+                    ctx.ui.label("Hello")
+                }
+            }
+        };
+        let parsed: ChaInput = syn::parse2(input).unwrap();
+        let _ = parsed.to_tokens();
     }
 
     #[test]
     fn test_parse_col_with_props() {
         let input: TokenStream2 = quote! {
-            Col(spacing: 8.0, fill_x) {
-                [|ui: &mut egui::Ui| { ui.label("Test"); }]
+            ctx, {
+                Col(spacing: 8.0) {
+                    ctx.ui.label("Hello")
+                }
             }
         };
-        let node: LayoutNode = syn::parse2(input).unwrap();
-        let _output = node.to_tokens();
+        let parsed: ChaInput = syn::parse2(input).unwrap();
+        let _ = parsed.to_tokens();
     }
 
     #[test]
     fn test_parse_nested() {
         let input: TokenStream2 = quote! {
-            Col {
-                Row {
-                    [|ui: &mut egui::Ui| { ui.label("A"); }]
-                    Spacer
+            ctx, {
+                Col(spacing: 8.0) {
+                    Row {
+                        ctx.ui.label("A")
+                        ctx.ui.label("B")
+                    }
                 }
             }
         };
-        let node: LayoutNode = syn::parse2(input).unwrap();
-        let _output = node.to_tokens();
+        let parsed: ChaInput = syn::parse2(input).unwrap();
+        let _ = parsed.to_tokens();
     }
 
     #[test]
-    fn test_parse_grid() {
+    fn test_parse_icon_shorthand() {
         let input: TokenStream2 = quote! {
-            Grid(3, gap: 4.0) {
-                [|ui: &mut egui::Ui| { ui.label("1"); }]
-                [|ui: &mut egui::Ui| { ui.label("2"); }]
-                [|ui: &mut egui::Ui| { ui.label("3"); }]
+            ctx, {
+                Row {
+                    @house
+                    @gear(20.0)
+                }
             }
         };
-        let node: LayoutNode = syn::parse2(input).unwrap();
-        let _output = node.to_tokens();
+        let parsed: ChaInput = syn::parse2(input).unwrap();
+        let tokens = parsed.to_tokens();
+        let code = tokens.to_string();
+        assert!(code.contains("Icon"));
+        assert!(code.contains("house"));
+        assert!(code.contains("gear"));
+        assert!(code.contains("size"));
     }
 }

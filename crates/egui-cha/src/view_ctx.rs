@@ -70,11 +70,7 @@ impl<'a, Msg> ViewCtx<'a, Msg> {
     ///     |err| Msg::ValidationError(err),
     /// );
     /// ```
-    pub fn emit_if_err<T, E>(
-        &mut self,
-        result: Result<T, E>,
-        on_err: impl FnOnce(E) -> Msg,
-    ) {
+    pub fn emit_if_err<T, E>(&mut self, result: Result<T, E>, on_err: impl FnOnce(E) -> Msg) {
         if let Err(err) = result {
             self.emit(on_err(err));
         }
@@ -120,10 +116,13 @@ impl<'a, Msg> ViewCtx<'a, Msg> {
     /// Horizontal layout
     pub fn horizontal<R>(&mut self, f: impl FnOnce(&mut ViewCtx<'_, Msg>) -> R) -> R {
         let mut child_msgs = Vec::new();
-        let result = self.ui.horizontal(|ui| {
-            let mut child_ctx = ViewCtx::new(ui, &mut child_msgs);
-            f(&mut child_ctx)
-        }).inner;
+        let result = self
+            .ui
+            .horizontal(|ui| {
+                let mut child_ctx = ViewCtx::new(ui, &mut child_msgs);
+                f(&mut child_ctx)
+            })
+            .inner;
         self.emitter.extend(child_msgs);
         result
     }
@@ -131,10 +130,13 @@ impl<'a, Msg> ViewCtx<'a, Msg> {
     /// Vertical layout
     pub fn vertical<R>(&mut self, f: impl FnOnce(&mut ViewCtx<'_, Msg>) -> R) -> R {
         let mut child_msgs = Vec::new();
-        let result = self.ui.vertical(|ui| {
-            let mut child_ctx = ViewCtx::new(ui, &mut child_msgs);
-            f(&mut child_ctx)
-        }).inner;
+        let result = self
+            .ui
+            .vertical(|ui| {
+                let mut child_ctx = ViewCtx::new(ui, &mut child_msgs);
+                f(&mut child_ctx)
+            })
+            .inner;
         self.emitter.extend(child_msgs);
         result
     }
@@ -142,10 +144,13 @@ impl<'a, Msg> ViewCtx<'a, Msg> {
     /// Group (framed region)
     pub fn group<R>(&mut self, f: impl FnOnce(&mut ViewCtx<'_, Msg>) -> R) -> R {
         let mut child_msgs = Vec::new();
-        let result = self.ui.group(|ui| {
-            let mut child_ctx = ViewCtx::new(ui, &mut child_msgs);
-            f(&mut child_ctx)
-        }).inner;
+        let result = self
+            .ui
+            .group(|ui| {
+                let mut child_ctx = ViewCtx::new(ui, &mut child_msgs);
+                f(&mut child_ctx)
+            })
+            .inner;
         self.emitter.extend(child_msgs);
         result
     }
@@ -157,10 +162,13 @@ impl<'a, Msg> ViewCtx<'a, Msg> {
         f: impl FnOnce(&mut ViewCtx<'_, Msg>) -> R,
     ) -> Option<R> {
         let mut child_msgs = Vec::new();
-        let result = self.ui.collapsing(heading.into(), |ui| {
-            let mut child_ctx = ViewCtx::new(ui, &mut child_msgs);
-            f(&mut child_ctx)
-        }).body_returned;
+        let result = self
+            .ui
+            .collapsing(heading.into(), |ui| {
+                let mut child_ctx = ViewCtx::new(ui, &mut child_msgs);
+                f(&mut child_ctx)
+            })
+            .body_returned;
         self.emitter.extend(child_msgs);
         result
     }
@@ -168,10 +176,12 @@ impl<'a, Msg> ViewCtx<'a, Msg> {
     /// Scroll area
     pub fn scroll_area<R>(&mut self, f: impl FnOnce(&mut ViewCtx<'_, Msg>) -> R) -> R {
         let mut child_msgs = Vec::new();
-        let result = egui::ScrollArea::vertical().show(self.ui, |ui| {
-            let mut child_ctx = ViewCtx::new(ui, &mut child_msgs);
-            f(&mut child_ctx)
-        }).inner;
+        let result = egui::ScrollArea::vertical()
+            .show(self.ui, |ui| {
+                let mut child_ctx = ViewCtx::new(ui, &mut child_msgs);
+                f(&mut child_ctx)
+            })
+            .inner;
         self.emitter.extend(child_msgs);
         result
     }

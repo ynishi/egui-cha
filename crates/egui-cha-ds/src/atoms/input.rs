@@ -43,8 +43,7 @@ impl<'a> Input<'a> {
     ) {
         let mut current = value.to_string();
 
-        let mut edit = egui::TextEdit::singleline(&mut current)
-            .hint_text(self.placeholder);
+        let mut edit = egui::TextEdit::singleline(&mut current).hint_text(self.placeholder);
 
         if self.password {
             edit = edit.password(true);
@@ -75,8 +74,7 @@ impl<'a> Input<'a> {
 
     /// Show the input (modifies value in place)
     pub fn show(self, ui: &mut Ui, value: &mut String) {
-        let mut edit = egui::TextEdit::singleline(value)
-            .hint_text(self.placeholder);
+        let mut edit = egui::TextEdit::singleline(value).hint_text(self.placeholder);
 
         if self.password {
             edit = edit.password(true);

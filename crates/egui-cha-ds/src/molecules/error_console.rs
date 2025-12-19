@@ -84,7 +84,8 @@ impl ErrorConsoleState {
     pub fn cleanup(&mut self) {
         if let Some(duration) = self.auto_dismiss {
             let now = Instant::now();
-            self.errors.retain(|e| now.duration_since(e.timestamp) < duration);
+            self.errors
+                .retain(|e| now.duration_since(e.timestamp) < duration);
         }
     }
 
@@ -137,23 +138,47 @@ impl ErrorConsole {
         match level {
             ErrorLevel::Error => {
                 if is_dark {
-                    (Color32::from_rgb(153, 27, 27), Color32::from_rgb(254, 202, 202), "✕")
+                    (
+                        Color32::from_rgb(153, 27, 27),
+                        Color32::from_rgb(254, 202, 202),
+                        "✕",
+                    )
                 } else {
-                    (Color32::from_rgb(254, 226, 226), Color32::from_rgb(153, 27, 27), "✕")
+                    (
+                        Color32::from_rgb(254, 226, 226),
+                        Color32::from_rgb(153, 27, 27),
+                        "✕",
+                    )
                 }
             }
             ErrorLevel::Warning => {
                 if is_dark {
-                    (Color32::from_rgb(133, 77, 14), Color32::from_rgb(254, 240, 138), "⚠")
+                    (
+                        Color32::from_rgb(133, 77, 14),
+                        Color32::from_rgb(254, 240, 138),
+                        "⚠",
+                    )
                 } else {
-                    (Color32::from_rgb(254, 249, 195), Color32::from_rgb(133, 77, 14), "⚠")
+                    (
+                        Color32::from_rgb(254, 249, 195),
+                        Color32::from_rgb(133, 77, 14),
+                        "⚠",
+                    )
                 }
             }
             ErrorLevel::Info => {
                 if is_dark {
-                    (Color32::from_rgb(30, 64, 175), Color32::from_rgb(191, 219, 254), "ℹ")
+                    (
+                        Color32::from_rgb(30, 64, 175),
+                        Color32::from_rgb(191, 219, 254),
+                        "ℹ",
+                    )
                 } else {
-                    (Color32::from_rgb(219, 234, 254), Color32::from_rgb(30, 64, 175), "ℹ")
+                    (
+                        Color32::from_rgb(219, 234, 254),
+                        Color32::from_rgb(30, 64, 175),
+                        "ℹ",
+                    )
                 }
             }
         }
@@ -212,11 +237,14 @@ impl ErrorConsole {
                         ui.horizontal(|ui| {
                             ui.label(RichText::new(icon).color(text_color));
                             ui.label(RichText::new(&entry.message).color(text_color));
-                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                if ui.small_button("×").clicked() {
-                                    dismiss_index = Some(index);
-                                }
-                            });
+                            ui.with_layout(
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    if ui.small_button("×").clicked() {
+                                        dismiss_index = Some(index);
+                                    }
+                                },
+                            );
                         });
                     });
 
@@ -267,11 +295,14 @@ impl ErrorConsole {
                         ui.horizontal(|ui| {
                             ui.label(RichText::new(icon).color(text_color));
                             ui.label(RichText::new(&entry.message).color(text_color));
-                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                if ui.small_button("×").clicked() && result.is_none() {
-                                    result = Some(ErrorConsoleMsg::Dismiss(index));
-                                }
-                            });
+                            ui.with_layout(
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    if ui.small_button("×").clicked() && result.is_none() {
+                                        result = Some(ErrorConsoleMsg::Dismiss(index));
+                                    }
+                                },
+                            );
                         });
                     });
 

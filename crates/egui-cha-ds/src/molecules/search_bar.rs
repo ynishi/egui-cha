@@ -69,12 +69,7 @@ impl<'a> SearchBar<'a> {
     }
 
     /// Show search bar with callback on search (legacy - value must be mutable ref)
-    pub fn on_search<Msg, F>(
-        self,
-        ctx: &mut ViewCtx<'_, Msg>,
-        value: &mut String,
-        to_msg: F,
-    )
+    pub fn on_search<Msg, F>(self, ctx: &mut ViewCtx<'_, Msg>, value: &mut String, to_msg: F)
     where
         F: FnOnce(String) -> Msg,
     {

@@ -1,6 +1,7 @@
 //! Icon atom - Phosphor Icons integration
 
 use egui::{Color32, Label, Response, RichText, Ui, Widget};
+use egui_cha::ViewCtx;
 
 /// Phosphor Icons codepoints
 pub mod icons {
@@ -41,18 +42,42 @@ impl Icon {
     }
 
     // Convenience constructors
-    pub fn house() -> Self { Self::new(icons::HOUSE) }
-    pub fn arrow_left() -> Self { Self::new(icons::ARROW_LEFT) }
-    pub fn arrow_right() -> Self { Self::new(icons::ARROW_RIGHT) }
-    pub fn plus() -> Self { Self::new(icons::PLUS) }
-    pub fn minus() -> Self { Self::new(icons::MINUS) }
-    pub fn x() -> Self { Self::new(icons::X) }
-    pub fn check() -> Self { Self::new(icons::CHECK) }
-    pub fn gear() -> Self { Self::new(icons::GEAR) }
-    pub fn info() -> Self { Self::new(icons::INFO) }
-    pub fn warning() -> Self { Self::new(icons::WARNING) }
-    pub fn hash() -> Self { Self::new(icons::HASH) }
-    pub fn user() -> Self { Self::new(icons::USER) }
+    pub fn house() -> Self {
+        Self::new(icons::HOUSE)
+    }
+    pub fn arrow_left() -> Self {
+        Self::new(icons::ARROW_LEFT)
+    }
+    pub fn arrow_right() -> Self {
+        Self::new(icons::ARROW_RIGHT)
+    }
+    pub fn plus() -> Self {
+        Self::new(icons::PLUS)
+    }
+    pub fn minus() -> Self {
+        Self::new(icons::MINUS)
+    }
+    pub fn x() -> Self {
+        Self::new(icons::X)
+    }
+    pub fn check() -> Self {
+        Self::new(icons::CHECK)
+    }
+    pub fn gear() -> Self {
+        Self::new(icons::GEAR)
+    }
+    pub fn info() -> Self {
+        Self::new(icons::INFO)
+    }
+    pub fn warning() -> Self {
+        Self::new(icons::WARNING)
+    }
+    pub fn hash() -> Self {
+        Self::new(icons::HASH)
+    }
+    pub fn user() -> Self {
+        Self::new(icons::USER)
+    }
 
     /// Set icon size
     pub fn size(mut self, size: f32) -> Self {
@@ -69,6 +94,11 @@ impl Icon {
     /// Show the icon
     pub fn show(self, ui: &mut Ui) -> Response {
         ui.add(self)
+    }
+
+    /// Show the icon using ViewCtx
+    pub fn show_ctx<Msg>(self, ctx: &mut ViewCtx<Msg>) -> Response {
+        ctx.ui.add(self)
     }
 }
 

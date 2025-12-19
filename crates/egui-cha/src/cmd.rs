@@ -165,19 +165,31 @@ impl<Msg: std::fmt::Debug> Cmd<Msg> {
     /// Assert this is Cmd::None, panics with debug info otherwise
     #[track_caller]
     pub fn assert_none(&self) {
-        assert!(self.is_none(), "expected Cmd::None, got {:?}", self.variant_name());
+        assert!(
+            self.is_none(),
+            "expected Cmd::None, got {:?}",
+            self.variant_name()
+        );
     }
 
     /// Assert this is Cmd::Task, panics with debug info otherwise
     #[track_caller]
     pub fn assert_task(&self) {
-        assert!(self.is_task(), "expected Cmd::Task, got {:?}", self.variant_name());
+        assert!(
+            self.is_task(),
+            "expected Cmd::Task, got {:?}",
+            self.variant_name()
+        );
     }
 
     /// Assert this is Cmd::Msg, panics with debug info otherwise
     #[track_caller]
     pub fn assert_msg(&self) {
-        assert!(self.is_msg(), "expected Cmd::Msg, got {:?}", self.variant_name());
+        assert!(
+            self.is_msg(),
+            "expected Cmd::Msg, got {:?}",
+            self.variant_name()
+        );
     }
 
     fn variant_name(&self) -> &'static str {
@@ -237,11 +249,7 @@ impl<Msg: Send + 'static> Cmd<Msg> {
     ///     |err| Msg::Error(err.to_string()),
     /// )
     /// ```
-    pub fn from_result<T, E, FnOk, FnErr>(
-        result: Result<T, E>,
-        on_ok: FnOk,
-        on_err: FnErr,
-    ) -> Self
+    pub fn from_result<T, E, FnOk, FnErr>(result: Result<T, E>, on_ok: FnOk, on_err: FnErr) -> Self
     where
         FnOk: FnOnce(T) -> Msg,
         FnErr: FnOnce(E) -> Msg,

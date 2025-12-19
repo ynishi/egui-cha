@@ -34,13 +34,13 @@ pub use view_ctx::ViewCtx;
 
 /// Prelude for convenient imports
 pub mod prelude {
-    pub use crate::router::{Router, RouterMsg, NavLink, BackButton};
+    pub use crate::router::{BackButton, NavLink, Router, RouterMsg};
     pub use crate::{App, Cmd, Component, RunConfig, ViewCtx};
     pub use egui;
 }
 
 /// Testing utilities prelude
 pub mod test_prelude {
-    pub use crate::testing::{TestRunner, CmdRecord, ModelAssert};
+    pub use crate::testing::{CmdRecord, ModelAssert, TestRunner};
     pub use crate::{App, Cmd};
 }
