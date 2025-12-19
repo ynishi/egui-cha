@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/egui-cha",
     "crates/egui-cha-ds",
+    "crates/egui-cha-macros",
     "examples/counter",
 ]
 
@@ -16,6 +17,7 @@ rust-version = "1.75"
 # Internal
 egui-cha = { path = "crates/egui-cha" }
 egui-cha-ds = { path = "crates/egui-cha-ds" }
+egui-cha-macros = { path = "crates/egui-cha-macros" }
 
 # Egui ecosystem
 egui = "0.31"

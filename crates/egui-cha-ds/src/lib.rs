@@ -5,6 +5,29 @@
 //! - Molecules: Combinations of atoms (SearchBar, FormField, etc.)
 //! - Layout: Fluent Builder for composing layouts (col, row, grid)
 //! - Theme: Consistent styling across all components
+//!
+//! # Layout Macro (Sugar Layer)
+//!
+//! With the `macros` feature (enabled by default), you can use the `cha!` macro
+//! for declarative layout composition:
+//!
+//! ```ignore
+//! use egui_cha_ds::cha;
+//!
+//! cha! {
+//!     Col(spacing: 8.0) {
+//!         Row(fill_x) {
+//!             [|ui: &mut egui::Ui| { ui.label("Title"); }]
+//!             Spacer
+//!         }
+//!         Grid(3, gap: 4.0) {
+//!             [|ui: &mut egui::Ui| { ui.label("A"); }]
+//!             [|ui: &mut egui::Ui| { ui.label("B"); }]
+//!             [|ui: &mut egui::Ui| { ui.label("C"); }]
+//!         }
+//!     }
+//! }.show(ui);
+//! ```
 
 mod atoms;
 mod layout;
@@ -14,6 +37,10 @@ mod theme;
 pub use atoms::*;
 pub use molecules::*;
 pub use theme::{Theme, ThemeVariant};
+
+// Re-export macro when feature is enabled
+#[cfg(feature = "macros")]
+pub use egui_cha_macros::cha;
 
 /// Layout builders namespace
 ///

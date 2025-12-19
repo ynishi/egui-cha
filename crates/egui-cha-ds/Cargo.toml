@@ -6,6 +6,11 @@ edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 
+[features]
+default = ["macros"]
+macros = ["dep:egui-cha-macros"]
+
 [dependencies]
 egui-cha.workspace = true
 egui.workspace = true
+egui-cha-macros = { workspace = true, optional = true }
