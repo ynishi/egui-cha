@@ -10,6 +10,7 @@ mod link;
 mod select;
 mod slider;
 mod toggle;
+mod validated_input;
 
 pub use badge::{Badge, BadgeVariant};
 pub use button::{Button, ButtonVariant};
@@ -21,3 +22,4 @@ pub use link::Link;
 pub use select::Select;
 pub use slider::Slider;
 pub use toggle::Toggle;
+pub use validated_input::{ValidatedInput, ValidationState};

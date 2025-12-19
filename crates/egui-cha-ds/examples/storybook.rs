@@ -32,6 +32,12 @@ struct Model {
     input_value: String,
     select_value: usize,
 
+    // Validation demo
+    email_value: String,
+    email_validation: ValidationState,
+    password_value: String,
+    password_validation: ValidationState,
+
     // Modal state
     show_modal: bool,
     show_confirm: bool,
@@ -103,6 +109,10 @@ enum Msg {
 
     // Select
     SelectChanged(usize),
+
+    // Validation
+    EmailChanged(String),
+    PasswordChanged(String),
 
     // Modal
     OpenModal,
@@ -214,6 +224,10 @@ impl App for StorybookApp {
             Model {
                 slider_value: 50.0,
                 input_value: "Hello".to_string(),
+                email_value: String::new(),
+                email_validation: ValidationState::None,
+                password_value: String::new(),
+                password_validation: ValidationState::None,
                 table_data: vec![
                     ("Alice".to_string(), 25, true),
                     ("Bob".to_string(), 30, false),
@@ -249,6 +263,28 @@ impl App for StorybookApp {
             }
             Msg::InputChanged(v) => {
                 model.input_value = v;
+            }
+            Msg::EmailChanged(v) => {
+                // Simple email validation
+                model.email_validation = if v.is_empty() {
+                    ValidationState::None
+                } else if v.contains('@') && v.contains('.') {
+                    ValidationState::Valid
+                } else {
+                    ValidationState::invalid("Please enter a valid email address")
+                };
+                model.email_value = v;
+            }
+            Msg::PasswordChanged(v) => {
+                // Simple password validation
+                model.password_validation = if v.is_empty() {
+                    ValidationState::None
+                } else if v.len() >= 8 {
+                    ValidationState::Valid
+                } else {
+                    ValidationState::invalid("Password must be at least 8 characters")
+                };
+                model.password_value = v;
             }
             Msg::SelectChanged(idx) => {
                 model.select_value = idx;
@@ -590,6 +626,35 @@ fn render_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
             ctx.ui.add_space(8.0);
             ctx.ui.label(format!("Value: {}", model.input_value));
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.heading("Validated Input");
+            ctx.ui.label("Input with validation state (try typing)");
+            ctx.ui.add_space(8.0);
+
+            ValidatedInput::new("Email")
+                .placeholder("user@example.com")
+                .show_with(
+                    &model.email_value,
+                    &model.email_validation,
+                    ctx,
+                    Msg::EmailChanged,
+                );
+
+            ctx.ui.add_space(12.0);
+
+            ValidatedInput::new("Password")
+                .placeholder("Enter password")
+                .password()
+                .show_with(
+                    &model.password_value,
+                    &model.password_validation,
+                    ctx,
+                    Msg::PasswordChanged,
+                );
         }
 
         "Checkbox" => {
