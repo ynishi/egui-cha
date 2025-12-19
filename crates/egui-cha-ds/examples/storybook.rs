@@ -86,6 +86,9 @@ struct Model {
 
     // Toast demo
     toasts: ToastContainer,
+
+    // Form demo
+    form_submitted: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -169,6 +172,9 @@ enum Msg {
     ShowToastWarning,
     ShowToastError,
     DismissToast(ToastId),
+
+    // Form demo
+    FormSubmit,
 }
 
 const CATEGORIES: &[&str] = &["Atoms", "Semantics", "Molecules", "Framework"];
@@ -202,6 +208,7 @@ const MOLECULES: &[&str] = &[
     "Navbar",
     "ErrorConsole",
     "Toast",
+    "Form",
     "Columns",
     "Conditionals",
 ];
@@ -444,6 +451,12 @@ impl App for StorybookApp {
             }
             Msg::DismissToast(id) => {
                 model.toasts.dismiss(id);
+            }
+
+            // Form demo
+            Msg::FormSubmit => {
+                model.form_submitted = true;
+                return model.toasts.success("Form submitted!", Duration::from_secs(3), Msg::DismissToast);
             }
         }
         Cmd::none()
@@ -1129,6 +1142,43 @@ fn render_molecule(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.label("- Manual dismiss via close button");
             ctx.ui.label("- Position: TopRight (default), BottomRight, etc.");
             ctx.ui.label("- Multiple toasts stack vertically");
+        }
+
+        "Form" => {
+            ctx.ui.heading("Form");
+            ctx.ui.label("Combines ValidatedInput atoms into structured forms");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "Form::new()\n    .field(\"Email\", &mut email, &email_state)\n    .password_field(\"Password\", &mut pw, &pw_state)\n    .submit_button(\"Sign Up\")\n    .on_submit(Msg::Submit)\n    .show(ui, &theme)"
+            ).show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Live Demo:");
+            ctx.ui.add_space(8.0);
+
+            // Use existing validation fields
+            if let Some(msg) = Form::new()
+                .field("Email", &mut model.email_value.clone(), &model.email_validation)
+                .password_field("Password", &mut model.password_value.clone(), &model.password_validation)
+                .submit_button("Sign Up")
+                .on_submit(Msg::FormSubmit)
+                .show(ctx.ui, &model.theme)
+            {
+                ctx.emit(msg);
+            }
+
+            // Handle input changes manually since Form doesn't emit them
+            ctx.ui.add_space(8.0);
+            ctx.ui.label("(Use the Input demo to see validation in action)");
+
+            if model.form_submitted {
+                ctx.ui.add_space(8.0);
+                Badge::success("Form was submitted!").show(ctx.ui);
+            }
         }
 
         "Columns" => {
