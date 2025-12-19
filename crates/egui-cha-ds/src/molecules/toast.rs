@@ -42,7 +42,7 @@ use egui::{Align2, Area, Color32, CornerRadius, Frame, Id, Order, RichText, Vec2
 use egui_cha::{Cmd, ViewCtx};
 use std::time::Duration;
 
-use crate::{Theme, ThemeVariant};
+use crate::{icons, Theme, ThemeVariant};
 
 /// Unique identifier for a toast
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -78,7 +78,7 @@ impl ToastVariant {
                 } else {
                     (lighten(theme.info, 0.85), darken(theme.info, 0.3))
                 };
-                (bg, fg, "\u{e2ce}") // info icon
+                (bg, fg, icons::INFO)
             }
             ToastVariant::Success => {
                 let (bg, fg) = if is_dark {
@@ -86,7 +86,7 @@ impl ToastVariant {
                 } else {
                     (lighten(theme.success, 0.85), darken(theme.success, 0.3))
                 };
-                (bg, fg, "\u{e182}") // check icon
+                (bg, fg, icons::CHECK)
             }
             ToastVariant::Warning => {
                 let (bg, fg) = if is_dark {
@@ -94,7 +94,7 @@ impl ToastVariant {
                 } else {
                     (lighten(theme.warning, 0.85), darken(theme.warning, 0.4))
                 };
-                (bg, fg, "\u{e4e0}") // warning icon
+                (bg, fg, icons::WARNING)
             }
             ToastVariant::Error => {
                 let (bg, fg) = if is_dark {
@@ -102,7 +102,7 @@ impl ToastVariant {
                 } else {
                     (lighten(theme.error, 0.85), darken(theme.error, 0.3))
                 };
-                (bg, fg, "\u{e4f6}") // x-circle icon
+                (bg, fg, icons::X)
             }
         }
     }
@@ -304,7 +304,7 @@ impl ToastContainer {
                                 // Close button
                                 let _close_response = ui.add(
                                     egui::Button::new(
-                                        RichText::new("\u{e4f6}")
+                                        RichText::new(icons::X)
                                             .family(egui::FontFamily::Name("icons".into()))
                                             .color(fg)
                                             .size(14.0),

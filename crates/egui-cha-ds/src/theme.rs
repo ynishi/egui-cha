@@ -303,4 +303,132 @@ impl Theme {
 
         ctx.set_style(style);
     }
+
+    /// Pastel theme - soft, modern colors
+    pub fn pastel() -> Self {
+        Self {
+            variant: ThemeVariant::Light,
+
+            // Primary - Soft lavender
+            primary: Color32::from_rgb(167, 139, 250),      // violet-400
+            primary_hover: Color32::from_rgb(139, 92, 246), // violet-500
+            primary_text: Color32::WHITE,
+
+            // Secondary - Soft pink
+            secondary: Color32::from_rgb(244, 114, 182),     // pink-400
+            secondary_hover: Color32::from_rgb(236, 72, 153), // pink-500
+            secondary_text: Color32::WHITE,
+
+            // Background - Cream/off-white
+            bg_primary: Color32::from_rgb(255, 251, 245),    // warm white
+            bg_secondary: Color32::from_rgb(254, 243, 235),  // peach-50
+            bg_tertiary: Color32::from_rgb(253, 235, 223),   // peach-100
+
+            // Text - Soft dark
+            text_primary: Color32::from_rgb(64, 57, 72),     // muted purple-gray
+            text_secondary: Color32::from_rgb(107, 98, 116), // lighter
+            text_muted: Color32::from_rgb(156, 148, 163),    // even lighter
+
+            // Semantic (background) - Pastel versions
+            success: Color32::from_rgb(134, 239, 172),   // green-300
+            warning: Color32::from_rgb(253, 224, 71),    // yellow-300
+            error: Color32::from_rgb(253, 164, 175),     // rose-300
+            info: Color32::from_rgb(147, 197, 253),      // blue-300
+            danger: Color32::from_rgb(253, 164, 175),    // rose-300
+
+            // Semantic text
+            success_text: Color32::from_rgb(22, 101, 52),   // green-800
+            warning_text: Color32::from_rgb(133, 77, 14),   // amber-800
+            error_text: Color32::from_rgb(159, 18, 57),     // rose-800
+            info_text: Color32::from_rgb(30, 64, 175),      // blue-800
+            danger_text: Color32::from_rgb(159, 18, 57),    // rose-800
+
+            // Semantic hover
+            success_hover: Color32::from_rgb(74, 222, 128),  // green-400
+            warning_hover: Color32::from_rgb(250, 204, 21),  // yellow-400
+            error_hover: Color32::from_rgb(251, 113, 133),   // rose-400
+            info_hover: Color32::from_rgb(96, 165, 250),     // blue-400
+            danger_hover: Color32::from_rgb(251, 113, 133),  // rose-400
+
+            // Border - Soft
+            border: Color32::from_rgb(233, 213, 202),        // warm gray
+            border_focus: Color32::from_rgb(167, 139, 250),  // violet-400
+
+            // Spacing (same)
+            spacing_xs: 4.0,
+            spacing_sm: 8.0,
+            spacing_md: 16.0,
+            spacing_lg: 24.0,
+            spacing_xl: 32.0,
+
+            // Radius - More rounded for soft look
+            radius_sm: 6.0,
+            radius_md: 12.0,
+            radius_lg: 16.0,
+        }
+    }
+
+    /// Pastel dark theme - soft colors on dark background
+    pub fn pastel_dark() -> Self {
+        Self {
+            variant: ThemeVariant::Dark,
+
+            // Primary - Soft lavender
+            primary: Color32::from_rgb(196, 181, 253),       // violet-300
+            primary_hover: Color32::from_rgb(167, 139, 250), // violet-400
+            primary_text: Color32::from_rgb(30, 27, 38),     // dark purple
+
+            // Secondary - Soft pink
+            secondary: Color32::from_rgb(249, 168, 212),      // pink-300
+            secondary_hover: Color32::from_rgb(244, 114, 182), // pink-400
+            secondary_text: Color32::from_rgb(30, 27, 38),
+
+            // Background - Deep purple-gray
+            bg_primary: Color32::from_rgb(24, 22, 32),       // deep purple
+            bg_secondary: Color32::from_rgb(32, 29, 43),     // slightly lighter
+            bg_tertiary: Color32::from_rgb(45, 41, 58),      // even lighter
+
+            // Text - Soft light
+            text_primary: Color32::from_rgb(243, 237, 255),  // soft white
+            text_secondary: Color32::from_rgb(196, 189, 210),
+            text_muted: Color32::from_rgb(140, 133, 156),
+
+            // Semantic (background) - Muted pastel on dark
+            success: Color32::from_rgb(74, 222, 128),    // green-400
+            warning: Color32::from_rgb(250, 204, 21),    // yellow-400
+            error: Color32::from_rgb(251, 113, 133),     // rose-400
+            info: Color32::from_rgb(96, 165, 250),       // blue-400
+            danger: Color32::from_rgb(251, 113, 133),    // rose-400
+
+            // Semantic text (dark on light bg)
+            success_text: Color32::from_rgb(20, 30, 25),
+            warning_text: Color32::from_rgb(35, 30, 15),
+            error_text: Color32::from_rgb(35, 20, 25),
+            info_text: Color32::from_rgb(20, 25, 35),
+            danger_text: Color32::from_rgb(35, 20, 25),
+
+            // Semantic hover
+            success_hover: Color32::from_rgb(134, 239, 172),
+            warning_hover: Color32::from_rgb(253, 224, 71),
+            error_hover: Color32::from_rgb(253, 164, 175),
+            info_hover: Color32::from_rgb(147, 197, 253),
+            danger_hover: Color32::from_rgb(253, 164, 175),
+
+            // Border
+            border: Color32::from_rgb(55, 50, 70),
+            border_focus: Color32::from_rgb(196, 181, 253),
+
+            // Spacing (same)
+            spacing_xs: 4.0,
+            spacing_sm: 8.0,
+            spacing_md: 16.0,
+            spacing_lg: 24.0,
+            spacing_xl: 32.0,
+
+            // Radius - More rounded
+            radius_sm: 6.0,
+            radius_md: 12.0,
+            radius_lg: 16.0,
+        }
+    }
 }
