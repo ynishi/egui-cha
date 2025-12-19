@@ -1,6 +1,6 @@
 //! Core App trait - The heart of TEA
 
-use crate::{Cmd, ViewCtx};
+use crate::{sub::Sub, Cmd, ViewCtx};
 
 /// The main application trait following TEA (The Elm Architecture)
 ///
@@ -49,9 +49,22 @@ pub trait App: Sized + 'static {
     /// Render the view - use `ctx.emit()` to dispatch messages
     fn view(model: &Self::Model, ctx: &mut ViewCtx<Self::Msg>);
 
-    /// Called on each frame before view (for subscriptions, timers, etc.)
-    /// Default implementation does nothing
-    fn subscriptions(_model: &Self::Model) -> Cmd<Self::Msg> {
-        Cmd::none()
+    /// Declare subscriptions based on current model state
+    ///
+    /// Called each frame. The runtime manages starting/stopping
+    /// subscriptions as they appear or disappear.
+    ///
+    /// # Example
+    /// ```ignore
+    /// fn subscriptions(model: &Model) -> Sub<Msg> {
+    ///     if model.auto_refresh {
+    ///         Sub::interval("refresh", Duration::from_secs(30), Msg::Refresh)
+    ///     } else {
+    ///         Sub::none()
+    ///     }
+    /// }
+    /// ```
+    fn subscriptions(_model: &Self::Model) -> Sub<Self::Msg> {
+        Sub::none()
     }
 }

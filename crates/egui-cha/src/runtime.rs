@@ -1,8 +1,11 @@
 //! Runtime - Integration with eframe
 
-use crate::{App, Cmd, ViewCtx};
+use crate::{sub::Sub, App, Cmd, ViewCtx};
+use std::collections::{HashMap, HashSet};
 use std::sync::mpsc;
+use std::time::Duration;
 use tokio::runtime::Runtime as TokioRuntime;
+use tokio::task::JoinHandle;
 
 /// Configuration for running the app
 pub struct RunConfig {
@@ -68,6 +71,14 @@ struct TeaRuntime<A: App> {
     msg_receiver: mpsc::Receiver<A::Msg>,
     msg_sender: mpsc::Sender<A::Msg>,
     tokio_runtime: TokioRuntime,
+    /// Active interval subscriptions
+    active_intervals: HashMap<&'static str, IntervalHandle>,
+}
+
+/// Handle for a running interval
+struct IntervalHandle {
+    /// Task handle for cancellation via abort()
+    handle: JoinHandle<()>,
 }
 
 /// Phosphor Icons font (embedded)
@@ -89,6 +100,7 @@ impl<A: App> TeaRuntime<A> {
             msg_receiver,
             msg_sender,
             tokio_runtime,
+            active_intervals: HashMap::new(),
         };
 
         // Execute initial command
@@ -149,6 +161,59 @@ impl<A: App> TeaRuntime<A> {
             self.execute_cmd(cmd);
         }
     }
+
+    /// Process subscription changes
+    fn process_subscriptions(&mut self, sub: Sub<A::Msg>) {
+        // Collect current subscription IDs
+        let mut current_ids = HashSet::new();
+        sub.collect_interval_ids(&mut current_ids);
+
+        // Stop intervals that are no longer in subscriptions
+        let to_stop: Vec<_> = self
+            .active_intervals
+            .keys()
+            .filter(|id| !current_ids.contains(*id))
+            .copied()
+            .collect();
+
+        for id in to_stop {
+            self.stop_interval(id);
+        }
+
+        // Start new intervals
+        for (id, duration, msg) in sub.intervals() {
+            if !self.active_intervals.contains_key(id) {
+                self.start_interval(id, duration, msg);
+            }
+        }
+    }
+
+    /// Start a new interval
+    fn start_interval(&mut self, id: &'static str, duration: Duration, msg: A::Msg) {
+        let sender = self.msg_sender.clone();
+
+        let handle = self.tokio_runtime.spawn(async move {
+            let mut interval = tokio::time::interval(duration);
+            // Skip first tick (fires immediately)
+            interval.tick().await;
+
+            loop {
+                interval.tick().await;
+                if sender.send(msg.clone()).is_err() {
+                    break; // Channel closed, stop interval
+                }
+            }
+        });
+
+        self.active_intervals.insert(id, IntervalHandle { handle });
+    }
+
+    /// Stop an interval by ID
+    fn stop_interval(&mut self, id: &'static str) {
+        if let Some(handle) = self.active_intervals.remove(id) {
+            handle.handle.abort();
+        }
+    }
 }
 
 impl<A: App> eframe::App for TeaRuntime<A> {
@@ -156,9 +221,9 @@ impl<A: App> eframe::App for TeaRuntime<A> {
         // Process any pending messages from commands
         self.process_pending_messages();
 
-        // Execute subscriptions
-        let sub_cmd = A::subscriptions(&self.model);
-        self.execute_cmd(sub_cmd);
+        // Process subscriptions (start/stop intervals based on model state)
+        let sub = A::subscriptions(&self.model);
+        self.process_subscriptions(sub);
 
         // Collect messages from view
         let mut view_msgs = Vec::new();
@@ -171,8 +236,8 @@ impl<A: App> eframe::App for TeaRuntime<A> {
         // Queue view messages for next frame
         self.pending_msgs.extend(view_msgs);
 
-        // Request repaint if there are pending messages or async tasks
-        if !self.pending_msgs.is_empty() {
+        // Request repaint if there are pending messages or active intervals
+        if !self.pending_msgs.is_empty() || !self.active_intervals.is_empty() {
             ctx.request_repaint();
         }
     }

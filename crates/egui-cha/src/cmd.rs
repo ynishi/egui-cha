@@ -259,4 +259,189 @@ impl<Msg: Send + 'static> Cmd<Msg> {
             Err(err) => Cmd::Msg(on_err(err)),
         }
     }
+
+    /// Create an async task with a timeout
+    ///
+    /// If the task completes before the timeout, `on_ok` is called with the result.
+    /// If the timeout expires first, `on_timeout` is returned.
+    ///
+    /// # Example
+    /// ```ignore
+    /// Cmd::with_timeout(
+    ///     Duration::from_secs(5),
+    ///     fetch_user(user_id),
+    ///     |user| Msg::UserLoaded(user),
+    ///     Msg::FetchTimeout,
+    /// )
+    /// ```
+    pub fn with_timeout<F, T>(
+        timeout: std::time::Duration,
+        future: F,
+        on_ok: impl FnOnce(T) -> Msg + Send + 'static,
+        on_timeout: Msg,
+    ) -> Self
+    where
+        F: Future<Output = T> + Send + 'static,
+    {
+        Cmd::task(async move {
+            match tokio::time::timeout(timeout, future).await {
+                Ok(value) => on_ok(value),
+                Err(_elapsed) => on_timeout,
+            }
+        })
+    }
+
+    /// Create an async task with timeout that returns Result
+    ///
+    /// Combines `try_task` with timeout handling.
+    ///
+    /// # Example
+    /// ```ignore
+    /// Cmd::try_with_timeout(
+    ///     Duration::from_secs(5),
+    ///     api::fetch_data(),
+    ///     |data| Msg::DataLoaded(data),
+    ///     |err| Msg::FetchError(err.to_string()),
+    ///     Msg::FetchTimeout,
+    /// )
+    /// ```
+    pub fn try_with_timeout<F, T, E, FnOk, FnErr>(
+        timeout: std::time::Duration,
+        future: F,
+        on_ok: FnOk,
+        on_err: FnErr,
+        on_timeout: Msg,
+    ) -> Self
+    where
+        F: Future<Output = Result<T, E>> + Send + 'static,
+        FnOk: FnOnce(T) -> Msg + Send + 'static,
+        FnErr: FnOnce(E) -> Msg + Send + 'static,
+    {
+        Cmd::task(async move {
+            match tokio::time::timeout(timeout, future).await {
+                Ok(Ok(value)) => on_ok(value),
+                Ok(Err(err)) => on_err(err),
+                Err(_elapsed) => on_timeout,
+            }
+        })
+    }
+
+    /// Retry an async task with exponential backoff
+    ///
+    /// Attempts the task up to `max_attempts` times. On failure, waits with
+    /// exponential backoff (doubling the delay each time) before retrying.
+    ///
+    /// # Arguments
+    /// - `max_attempts`: Maximum number of attempts (must be >= 1)
+    /// - `initial_delay`: Delay before first retry (doubles each retry)
+    /// - `make_future`: Factory function that creates the future for each attempt
+    /// - `on_ok`: Called with the successful result
+    /// - `on_fail`: Called with the last error and total attempt count
+    ///
+    /// # Example
+    /// ```ignore
+    /// Cmd::retry(
+    ///     3, // max 3 attempts
+    ///     Duration::from_millis(100), // start with 100ms delay
+    ///     || api::fetch_data(),
+    ///     |data| Msg::DataLoaded(data),
+    ///     |err, attempts| Msg::FetchFailed(err.to_string(), attempts),
+    /// )
+    /// ```
+    ///
+    /// With 3 attempts and 100ms initial delay:
+    /// - Attempt 1: immediate
+    /// - Attempt 2: after 100ms (if attempt 1 failed)
+    /// - Attempt 3: after 200ms (if attempt 2 failed)
+    pub fn retry<F, Fut, T, E, FnOk, FnFail>(
+        max_attempts: u32,
+        initial_delay: std::time::Duration,
+        make_future: F,
+        on_ok: FnOk,
+        on_fail: FnFail,
+    ) -> Self
+    where
+        F: Fn() -> Fut + Send + 'static,
+        Fut: Future<Output = Result<T, E>> + Send,
+        T: Send + 'static,
+        E: Send + 'static,
+        FnOk: FnOnce(T) -> Msg + Send + 'static,
+        FnFail: FnOnce(E, u32) -> Msg + Send + 'static,
+    {
+        assert!(max_attempts >= 1, "max_attempts must be at least 1");
+
+        Cmd::task(async move {
+            let mut delay = initial_delay;
+            let mut last_err = None;
+
+            for attempt in 1..=max_attempts {
+                match make_future().await {
+                    Ok(value) => return on_ok(value),
+                    Err(err) => {
+                        last_err = Some(err);
+                        if attempt < max_attempts {
+                            tokio::time::sleep(delay).await;
+                            delay *= 2; // exponential backoff
+                        }
+                    }
+                }
+            }
+
+            // All attempts failed
+            on_fail(last_err.unwrap(), max_attempts)
+        })
+    }
+
+    /// Retry with custom backoff strategy
+    ///
+    /// Like `retry`, but allows custom delay calculation.
+    ///
+    /// # Example
+    /// ```ignore
+    /// // Linear backoff: 100ms, 200ms, 300ms, ...
+    /// Cmd::retry_with_backoff(
+    ///     5,
+    ///     |attempt| Duration::from_millis(100 * attempt as u64),
+    ///     || api::fetch_data(),
+    ///     |data| Msg::DataLoaded(data),
+    ///     |err, attempts| Msg::FetchFailed(err.to_string(), attempts),
+    /// )
+    /// ```
+    pub fn retry_with_backoff<F, Fut, T, E, B, FnOk, FnFail>(
+        max_attempts: u32,
+        backoff: B,
+        make_future: F,
+        on_ok: FnOk,
+        on_fail: FnFail,
+    ) -> Self
+    where
+        F: Fn() -> Fut + Send + 'static,
+        Fut: Future<Output = Result<T, E>> + Send,
+        T: Send + 'static,
+        E: Send + 'static,
+        B: Fn(u32) -> std::time::Duration + Send + 'static,
+        FnOk: FnOnce(T) -> Msg + Send + 'static,
+        FnFail: FnOnce(E, u32) -> Msg + Send + 'static,
+    {
+        assert!(max_attempts >= 1, "max_attempts must be at least 1");
+
+        Cmd::task(async move {
+            let mut last_err = None;
+
+            for attempt in 1..=max_attempts {
+                match make_future().await {
+                    Ok(value) => return on_ok(value),
+                    Err(err) => {
+                        last_err = Some(err);
+                        if attempt < max_attempts {
+                            let delay = backoff(attempt);
+                            tokio::time::sleep(delay).await;
+                        }
+                    }
+                }
+            }
+
+            on_fail(last_err.unwrap(), max_attempts)
+        })
+    }
 }

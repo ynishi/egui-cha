@@ -20,8 +20,10 @@
 mod app;
 mod cmd;
 mod component;
+pub mod helpers;
 pub mod router;
 mod runtime;
+pub mod sub;
 pub mod testing;
 mod view_ctx;
 
@@ -30,11 +32,14 @@ pub use cmd::Cmd;
 pub use component::Component;
 pub use router::{Router, RouterMsg};
 pub use runtime::{run, RunConfig};
+pub use sub::Sub;
 pub use view_ctx::ViewCtx;
 
 /// Prelude for convenient imports
 pub mod prelude {
+    pub use crate::helpers::{Debouncer, Throttler, TrailingThrottler};
     pub use crate::router::{BackButton, NavLink, Router, RouterMsg};
+    pub use crate::sub::Sub;
     pub use crate::{App, Cmd, Component, RunConfig, ViewCtx};
     pub use egui;
 }
