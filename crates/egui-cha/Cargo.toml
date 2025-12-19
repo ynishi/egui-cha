@@ -6,9 +6,16 @@ edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 
+[features]
+default = []
+tokio = ["dep:tokio"]
+eframe = ["dep:eframe", "tokio"]
+
 [dependencies]
 egui.workspace = true
-eframe.workspace = true
-tokio.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
+
+# Optional: eframe integration
+eframe = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }

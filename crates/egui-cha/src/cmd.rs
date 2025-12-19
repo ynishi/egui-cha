@@ -204,17 +204,6 @@ impl<Msg: std::fmt::Debug> Cmd<Msg> {
 
 // Utility functions for common patterns
 impl<Msg: Send + 'static> Cmd<Msg> {
-    /// Create a delayed message (timer)
-    pub fn delay(duration: std::time::Duration, msg: Msg) -> Self
-    where
-        Msg: Clone,
-    {
-        Cmd::task(async move {
-            tokio::time::sleep(duration).await;
-            msg
-        })
-    }
-
     /// Create a command from an async task that returns Result
     ///
     /// # Example
@@ -258,6 +247,23 @@ impl<Msg: Send + 'static> Cmd<Msg> {
             Ok(value) => Cmd::Msg(on_ok(value)),
             Err(err) => Cmd::Msg(on_err(err)),
         }
+    }
+}
+
+// Tokio-dependent utility functions
+#[cfg(feature = "tokio")]
+impl<Msg: Send + 'static> Cmd<Msg> {
+    /// Create a delayed message (timer)
+    ///
+    /// Requires the `tokio` feature.
+    pub fn delay(duration: std::time::Duration, msg: Msg) -> Self
+    where
+        Msg: Clone,
+    {
+        Cmd::task(async move {
+            tokio::time::sleep(duration).await;
+            msg
+        })
     }
 
     /// Create an async task with a timeout

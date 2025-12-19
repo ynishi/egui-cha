@@ -305,6 +305,9 @@ impl TrailingThrottler {
     /// - If throttled: schedules trailing edge with `trailing_msg`
     ///
     /// When `trailing_msg` arrives, call `should_fire_trailing()` to check.
+    ///
+    /// Requires the `tokio` feature.
+    #[cfg(feature = "tokio")]
     pub fn run<Msg>(&mut self, interval: Duration, msg: Msg, trailing_msg: Msg) -> Cmd<Msg>
     where
         Msg: Clone + Send + 'static,
@@ -334,6 +337,40 @@ impl TrailingThrottler {
                 Cmd::delay(remaining, trailing_msg)
             } else {
                 Cmd::none()
+            }
+        }
+    }
+
+    /// Mark a run without returning a Cmd (non-tokio version)
+    ///
+    /// Use this when you want to manage the delay yourself.
+    /// Returns `Some(remaining_duration)` if trailing should be scheduled,
+    /// `None` if executed immediately or trailing already scheduled.
+    pub fn mark_run(&mut self, interval: Duration) -> Option<Duration> {
+        let now = Instant::now();
+
+        let should_run = match self.last_run {
+            None => true,
+            Some(last) => now.duration_since(last) >= interval,
+        };
+
+        if should_run {
+            self.last_run = Some(now);
+            self.has_pending = false;
+            self.trailing_scheduled = false;
+            None
+        } else {
+            self.has_pending = true;
+
+            if !self.trailing_scheduled {
+                self.trailing_scheduled = true;
+                let remaining = self
+                    .last_run
+                    .map(|last| interval.saturating_sub(now.duration_since(last)))
+                    .unwrap_or(interval);
+                Some(remaining)
+            } else {
+                None
             }
         }
     }
@@ -434,6 +471,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "tokio")]
     fn test_trailing_throttler_basic() {
         let mut throttler = TrailingThrottler::new();
         let interval = Duration::from_millis(50);

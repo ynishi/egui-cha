@@ -4,6 +4,7 @@
 //! Useful for search inputs, form validation, auto-save, etc.
 
 use super::clock::Clock;
+#[cfg(feature = "tokio")]
 use crate::Cmd;
 use std::time::{Duration, Instant};
 
@@ -79,6 +80,9 @@ impl Debouncer {
     ///
     /// When the delayed message arrives in `update()`, call `should_fire()`
     /// to check if this is the latest trigger.
+    ///
+    /// Requires the `tokio` feature.
+    #[cfg(feature = "tokio")]
     pub fn trigger<Msg>(&mut self, delay: Duration, msg: Msg) -> Cmd<Msg>
     where
         Msg: Clone + Send + 'static,
@@ -86,6 +90,15 @@ impl Debouncer {
         let fire_at = Instant::now() + delay;
         self.pending_until = Some(fire_at);
         Cmd::delay(delay, msg)
+    }
+
+    /// Mark trigger time without returning a Cmd
+    ///
+    /// Use this when you want to manage the delay yourself (e.g., with a different async runtime).
+    /// Call `should_fire()` after the delay to check if it should fire.
+    pub fn mark_trigger(&mut self, delay: Duration) {
+        let fire_at = Instant::now() + delay;
+        self.pending_until = Some(fire_at);
     }
 
     /// Check if the debounced action should fire
@@ -168,6 +181,9 @@ impl<C: Clock> DebouncerWithClock<C> {
     ///
     /// Returns `Cmd::delay` that will deliver the message after the specified delay.
     /// Each call resets the internal timer.
+    ///
+    /// Requires the `tokio` feature.
+    #[cfg(feature = "tokio")]
     pub fn trigger<Msg>(&mut self, delay: Duration, msg: Msg) -> Cmd<Msg>
     where
         Msg: Clone + Send + 'static,
@@ -175,6 +191,15 @@ impl<C: Clock> DebouncerWithClock<C> {
         let fire_at = self.clock.now() + delay;
         self.pending_until = Some(fire_at);
         Cmd::delay(delay, msg)
+    }
+
+    /// Mark trigger time without returning a Cmd
+    ///
+    /// Use this when you want to manage the delay yourself.
+    /// Call `should_fire()` after the delay to check if it should fire.
+    pub fn mark_trigger(&mut self, delay: Duration) {
+        let fire_at = self.clock.now() + delay;
+        self.pending_until = Some(fire_at);
     }
 
     /// Check if the debounced action should fire
@@ -213,6 +238,7 @@ mod tests {
     use std::thread;
 
     #[test]
+    #[cfg(feature = "tokio")]
     fn test_debouncer_basic() {
         let mut debouncer = Debouncer::new();
 
@@ -227,6 +253,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "tokio")]
     fn test_debouncer_reset_on_trigger() {
         let mut debouncer = Debouncer::new();
 
@@ -250,6 +277,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "tokio")]
     fn test_debouncer_cancel() {
         let mut debouncer = Debouncer::new();
 
@@ -261,6 +289,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "tokio")]
     fn test_debouncer_double_fire_protection() {
         let mut debouncer = Debouncer::new();
 
@@ -269,5 +298,30 @@ mod tests {
 
         assert!(debouncer.should_fire()); // First call fires
         assert!(!debouncer.should_fire()); // Second call doesn't
+    }
+
+    // Non-tokio tests using mark_trigger
+    #[test]
+    fn test_debouncer_mark_trigger_basic() {
+        let mut debouncer = Debouncer::new();
+
+        debouncer.mark_trigger(Duration::from_millis(10));
+        assert!(debouncer.is_pending());
+
+        // Wait for delay
+        thread::sleep(Duration::from_millis(15));
+        assert!(debouncer.should_fire());
+        assert!(!debouncer.is_pending());
+    }
+
+    #[test]
+    fn test_debouncer_cancel_without_tokio() {
+        let mut debouncer = Debouncer::new();
+
+        debouncer.mark_trigger(Duration::from_millis(10));
+        debouncer.cancel();
+
+        thread::sleep(Duration::from_millis(15));
+        assert!(!debouncer.should_fire()); // Cancelled
     }
 }

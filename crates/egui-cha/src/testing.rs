@@ -674,6 +674,7 @@ mod tests {
             .expect_cmd_msg_eq(TestMsg::Inc);
     }
 
+    #[cfg(feature = "tokio")]
     fn block_on<F: std::future::Future>(f: F) -> F::Output {
         tokio::runtime::Builder::new_current_thread()
             .enable_all()
@@ -683,6 +684,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "tokio")]
     fn test_process_task() {
         block_on(async {
             let mut runner = TestRunner::<TestApp>::new();
@@ -706,6 +708,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "tokio")]
     fn test_process_tasks() {
         block_on(async {
             let mut runner = TestRunner::<TestApp>::new();
@@ -726,6 +729,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "tokio")]
     fn test_async_expect_chaining() {
         block_on(async {
             let mut runner = TestRunner::<TestApp>::new();
@@ -784,6 +788,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "tokio")]
     fn test_debouncer_with_fake_clock() {
         use crate::helpers::DebouncerWithClock;
 
@@ -810,6 +815,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "tokio")]
     fn test_debouncer_reset_with_fake_clock() {
         use crate::helpers::DebouncerWithClock;
 
@@ -833,6 +839,25 @@ mod tests {
         // Advance 250ms more - now ready
         clock.advance(Duration::from_millis(250));
         assert!(debouncer.should_fire());
+    }
+
+    // Non-tokio tests using mark_trigger
+    #[test]
+    fn test_debouncer_with_fake_clock_mark_trigger() {
+        use crate::helpers::DebouncerWithClock;
+
+        let clock = super::FakeClock::new();
+        let mut debouncer = DebouncerWithClock::new(clock.clone());
+
+        // mark_trigger with 500ms delay
+        debouncer.mark_trigger(Duration::from_millis(500));
+        assert!(debouncer.is_pending());
+        assert!(!debouncer.should_fire());
+
+        // Advance 550ms - now ready
+        clock.advance(Duration::from_millis(550));
+        assert!(debouncer.should_fire());
+        assert!(!debouncer.is_pending());
     }
 
     #[test]
