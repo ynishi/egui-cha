@@ -2,10 +2,15 @@
 //!
 //! Tracks causality: `if ui.button("x").clicked() { state.y = z }`
 //! -> UiFlow { ui: button("x"), action: clicked, mutations: [state.y = z] }
+//!
+//! Also tracks response variable bindings:
+//! `let r = ui.button("x"); if r.clicked() { ... }`
 
 use crate::types::{Action, StateMutation, UiElement, UiFlow};
+use std::collections::HashMap;
 use syn::{
     visit::Visit, BinOp, Expr, ExprBinary, ExprIf, ExprMethodCall, File, Lit,
+    Pat, Stmt,
 };
 
 /// Extract UI flows with scope tracking
@@ -14,6 +19,7 @@ pub fn extract_flows(file_path: &str, syntax_tree: &File) -> Vec<UiFlow> {
         file_path: file_path.to_string(),
         flows: Vec::new(),
         current_function: None,
+        response_bindings: HashMap::new(),
     };
 
     visitor.visit_file(syntax_tree);
@@ -24,26 +30,59 @@ struct FlowVisitor {
     file_path: String,
     flows: Vec<UiFlow>,
     current_function: Option<String>,
+    /// Maps variable names to their UI element bindings
+    /// e.g., "r" -> UiElement { type: "button", label: "Test" }
+    response_bindings: HashMap<String, UiElement>,
 }
 
 impl<'ast> Visit<'ast> for FlowVisitor {
     fn visit_item_fn(&mut self, node: &'ast syn::ItemFn) {
-        let old = self.current_function.clone();
+        let old_function = self.current_function.clone();
+        let old_bindings = std::mem::take(&mut self.response_bindings);
+
         self.current_function = Some(node.sig.ident.to_string());
         syn::visit::visit_item_fn(self, node);
-        self.current_function = old;
+
+        self.current_function = old_function;
+        self.response_bindings = old_bindings;
     }
 
     fn visit_impl_item_fn(&mut self, node: &'ast syn::ImplItemFn) {
-        let old = self.current_function.clone();
+        let old_function = self.current_function.clone();
+        let old_bindings = std::mem::take(&mut self.response_bindings);
+
         self.current_function = Some(node.sig.ident.to_string());
         syn::visit::visit_impl_item_fn(self, node);
-        self.current_function = old;
+
+        self.current_function = old_function;
+        self.response_bindings = old_bindings;
+    }
+
+    fn visit_stmt(&mut self, node: &'ast Stmt) {
+        // Check for `let var = ui.xxx()` bindings
+        if let Stmt::Local(local) = node {
+            if let Some(init) = &local.init {
+                if let Some(ui_element) = try_extract_ui_from_expr(&init.expr, &self.file_path, &self.current_function) {
+                    // Get variable name from pattern
+                    if let Pat::Ident(pat_ident) = &local.pat {
+                        let var_name = pat_ident.ident.to_string();
+                        self.response_bindings.insert(var_name, ui_element);
+                    }
+                }
+            }
+        }
+
+        syn::visit::visit_stmt(self, node);
     }
 
     fn visit_expr_if(&mut self, node: &'ast ExprIf) {
         // Extract triggers from condition (UI + Action pairs)
-        let triggers = extract_triggers_from_condition(&node.cond, &self.file_path, &self.current_function);
+        let triggers = extract_triggers_from_condition(
+            &node.cond,
+            &self.file_path,
+            &self.current_function,
+            &self.response_bindings,
+        );
 
         // Extract state mutations from then block
         let mutations = extract_mutations_from_block(&node.then_branch, &self.file_path, &self.current_function);
@@ -65,14 +104,45 @@ impl<'ast> Visit<'ast> for FlowVisitor {
     }
 }
 
+/// Try to extract UI element from an expression (for let bindings)
+fn try_extract_ui_from_expr(
+    expr: &Expr,
+    file_path: &str,
+    current_function: &Option<String>,
+) -> Option<UiElement> {
+    match expr {
+        Expr::MethodCall(call) => {
+            let method_name = call.method.to_string();
+
+            if UI_METHODS.contains(&method_name.as_str()) {
+                let label = extract_first_string_arg(&call.args);
+                return Some(UiElement {
+                    element_type: method_name,
+                    label,
+                    context: current_function.clone().unwrap_or_default(),
+                    file_path: file_path.to_string(),
+                    line: 0,
+                    response_var: None,
+                });
+            }
+
+            // Recurse into receiver for chained calls
+            try_extract_ui_from_expr(&call.receiver, file_path, current_function)
+        }
+        Expr::Paren(paren) => try_extract_ui_from_expr(&paren.expr, file_path, current_function),
+        _ => None,
+    }
+}
+
 /// Extract (UiElement, Action) pairs from an if condition
 fn extract_triggers_from_condition(
     expr: &Expr,
     file_path: &str,
     current_function: &Option<String>,
+    response_bindings: &HashMap<String, UiElement>,
 ) -> Vec<(UiElement, Action)> {
     let mut triggers = Vec::new();
-    collect_triggers(expr, file_path, current_function, &mut triggers);
+    collect_triggers(expr, file_path, current_function, response_bindings, &mut triggers);
     triggers
 }
 
@@ -80,28 +150,29 @@ fn collect_triggers(
     expr: &Expr,
     file_path: &str,
     current_function: &Option<String>,
+    response_bindings: &HashMap<String, UiElement>,
     triggers: &mut Vec<(UiElement, Action)>,
 ) {
     match expr {
         // Handle || (Or) - multiple conditions
         Expr::Binary(ExprBinary { left, op: BinOp::Or(_), right, .. }) => {
-            collect_triggers(left, file_path, current_function, triggers);
-            collect_triggers(right, file_path, current_function, triggers);
+            collect_triggers(left, file_path, current_function, response_bindings, triggers);
+            collect_triggers(right, file_path, current_function, response_bindings, triggers);
         }
         // Handle && (And) - just recurse
         Expr::Binary(ExprBinary { left, op: BinOp::And(_), right, .. }) => {
-            collect_triggers(left, file_path, current_function, triggers);
-            collect_triggers(right, file_path, current_function, triggers);
+            collect_triggers(left, file_path, current_function, response_bindings, triggers);
+            collect_triggers(right, file_path, current_function, response_bindings, triggers);
         }
         // Handle method call like `.clicked()`, `.changed()`
         Expr::MethodCall(call) => {
-            if let Some(trigger) = extract_trigger_from_method_call(call, file_path, current_function) {
+            if let Some(trigger) = extract_trigger_from_method_call(call, file_path, current_function, response_bindings) {
                 triggers.push(trigger);
             }
         }
         // Handle parenthesized expression
         Expr::Paren(paren) => {
-            collect_triggers(&paren.expr, file_path, current_function, triggers);
+            collect_triggers(&paren.expr, file_path, current_function, response_bindings, triggers);
         }
         _ => {}
     }
@@ -120,6 +191,7 @@ fn extract_trigger_from_method_call(
     call: &ExprMethodCall,
     file_path: &str,
     current_function: &Option<String>,
+    response_bindings: &HashMap<String, UiElement>,
 ) -> Option<(UiElement, Action)> {
     let method_name = call.method.to_string();
 
@@ -136,8 +208,8 @@ fn extract_trigger_from_method_call(
         line: 0,
     };
 
-    // Try to find the UI element in the receiver chain
-    let ui_element = extract_ui_from_chain(&call.receiver, file_path, current_function);
+    // Try to find the UI element in the receiver chain (with variable resolution)
+    let ui_element = extract_ui_from_chain(&call.receiver, file_path, current_function, response_bindings);
 
     Some((ui_element, action))
 }
@@ -151,10 +223,12 @@ const UI_METHODS: &[&str] = &[
 ];
 
 /// Extract UI element from a method call chain (e.g., `ui.button("x")`)
+/// Also resolves response variable bindings (e.g., `let r = ui.button(); r.clicked()`)
 fn extract_ui_from_chain(
     expr: &Expr,
     file_path: &str,
     current_function: &Option<String>,
+    response_bindings: &HashMap<String, UiElement>,
 ) -> UiElement {
     match expr {
         Expr::MethodCall(call) => {
@@ -175,7 +249,7 @@ fn extract_ui_from_chain(
             }
 
             // Recurse into receiver
-            extract_ui_from_chain(&call.receiver, file_path, current_function)
+            extract_ui_from_chain(&call.receiver, file_path, current_function, response_bindings)
         }
         Expr::Path(path) => {
             // Variable reference (e.g., `response`)
@@ -187,6 +261,20 @@ fn extract_ui_from_chain(
                 .collect::<Vec<_>>()
                 .join("::");
 
+            // Try to resolve from bindings first
+            if let Some(bound_ui) = response_bindings.get(&var_name) {
+                // Return the bound UI element with the variable name attached
+                return UiElement {
+                    element_type: bound_ui.element_type.clone(),
+                    label: bound_ui.label.clone(),
+                    context: current_function.clone().unwrap_or_default(),
+                    file_path: file_path.to_string(),
+                    line: 0,
+                    response_var: Some(var_name),
+                };
+            }
+
+            // Fallback: unknown response variable
             UiElement {
                 element_type: "response_var".to_string(),
                 label: Some(var_name.clone()),
@@ -492,5 +580,77 @@ mod tests {
 
         assert_eq!(flows.len(), 1);
         assert_eq!(flows[0].state_mutations[0].mutation_type, "method:push");
+    }
+
+    #[test]
+    fn test_response_variable_resolution() {
+        let code = r#"
+            fn show(ui: &mut egui::Ui, state: &mut AppState) {
+                let response = ui.button("Save");
+                if response.clicked() {
+                    state.saved = true;
+                }
+            }
+        "#;
+
+        let syntax_tree = syn::parse_file(code).unwrap();
+        let flows = extract_flows("test.rs", &syntax_tree);
+
+        assert_eq!(flows.len(), 1);
+        // Should resolve 'response' to the original button
+        assert_eq!(flows[0].ui_element.element_type, "button");
+        assert_eq!(flows[0].ui_element.label, Some("Save".to_string()));
+        assert_eq!(flows[0].ui_element.response_var, Some("response".to_string()));
+        assert_eq!(flows[0].action.action_type, "clicked");
+    }
+
+    #[test]
+    fn test_response_variable_multiple_uses() {
+        let code = r#"
+            fn show(ui: &mut egui::Ui, state: &mut AppState) {
+                let btn = ui.button("Action");
+                if btn.clicked() {
+                    state.action_count += 1;
+                }
+                if btn.hovered() {
+                    state.hover_count += 1;
+                }
+            }
+        "#;
+
+        let syntax_tree = syn::parse_file(code).unwrap();
+        let flows = extract_flows("test.rs", &syntax_tree);
+
+        assert_eq!(flows.len(), 2);
+        // Both flows should resolve to the same button
+        assert_eq!(flows[0].ui_element.element_type, "button");
+        assert_eq!(flows[0].ui_element.label, Some("Action".to_string()));
+        assert_eq!(flows[0].action.action_type, "clicked");
+
+        assert_eq!(flows[1].ui_element.element_type, "button");
+        assert_eq!(flows[1].ui_element.label, Some("Action".to_string()));
+        assert_eq!(flows[1].action.action_type, "hovered");
+    }
+
+    #[test]
+    fn test_response_var_with_or_condition() {
+        let code = r#"
+            fn show(ui: &mut egui::Ui, state: &mut AppState) {
+                let r = ui.button("Multi");
+                if r.clicked() || r.secondary_clicked() {
+                    state.activated = true;
+                }
+            }
+        "#;
+
+        let syntax_tree = syn::parse_file(code).unwrap();
+        let flows = extract_flows("test.rs", &syntax_tree);
+
+        assert_eq!(flows.len(), 2);
+        // Both should resolve to "Multi" button
+        assert_eq!(flows[0].ui_element.label, Some("Multi".to_string()));
+        assert_eq!(flows[1].ui_element.label, Some("Multi".to_string()));
+        assert_eq!(flows[0].action.action_type, "clicked");
+        assert_eq!(flows[1].action.action_type, "secondary_clicked");
     }
 }

@@ -43,10 +43,18 @@ fn show_ui(ui: &mut egui::Ui, state: &mut AppState) {
         state.items.clear();
     }
 
-    if ui.button("Reset All").clicked() {
+    // Response variable pattern
+    let reset_btn = ui.button("Reset All");
+    if reset_btn.clicked() {
         state.counter = 0;
         state.name = String::new();
         state.enabled = false;
+    }
+
+    // Multiple action checks on same response
+    let save_btn = ui.button("Save");
+    if save_btn.clicked() || save_btn.secondary_clicked() {
+        state.items.push("Saved".to_string());
     }
 }
 "#;
