@@ -150,7 +150,7 @@ enum Msg {
     ToggleCondVisible,
 }
 
-const CATEGORIES: &[&str] = &["Atoms", "Molecules", "Framework"];
+const CATEGORIES: &[&str] = &["Atoms", "Semantics", "Molecules", "Framework"];
 
 const ATOMS: &[&str] = &[
     "Button",
@@ -162,6 +162,15 @@ const ATOMS: &[&str] = &[
     "Slider",
     "Link",
     "Code",
+];
+
+const SEMANTICS: &[&str] = &[
+    "Overview",
+    "File Operations",
+    "Actions",
+    "Media",
+    "Navigation",
+    "ButtonStyle",
 ];
 
 const MOLECULES: &[&str] = &[
@@ -414,7 +423,8 @@ impl App for StorybookApp {
                 // Component list
                 let components = match model.active_category {
                     0 => ATOMS,
-                    1 => MOLECULES,
+                    1 => SEMANTICS,
+                    2 => MOLECULES,
                     _ => FRAMEWORK,
                 };
                 for (i, comp) in components.iter().enumerate() {
@@ -433,7 +443,8 @@ impl App for StorybookApp {
                 Card::new().show_ctx(ctx, |ctx| {
                     match model.active_category {
                         0 => render_atom(model, ctx),
-                        1 => render_molecule(model, ctx),
+                        1 => render_semantics(model, ctx),
+                        2 => render_molecule(model, ctx),
                         _ => render_framework(model, ctx),
                     }
                 });
@@ -596,6 +607,286 @@ fn render_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.add_space(8.0);
 
             Code::new("fn main() {\n    println!(\"Hello, world!\");\n}").show(ctx.ui);
+        }
+
+        _ => {
+            ctx.ui.label("Component not implemented");
+        }
+    }
+}
+
+fn render_semantics(model: &Model, ctx: &mut ViewCtx<Msg>) {
+    match SEMANTICS[model.active_component] {
+        "Overview" => {
+            ctx.ui.heading("Semantic Buttons");
+            ctx.ui.add_space(4.0);
+            ctx.ui.label("Buttons with fixed labels and icons for UI consistency.");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "// Atoms: style only, label is your choice\nButton::primary(\"Save\").on_click(ctx, Msg::Save);\nButton::primary(\"保存\").on_click(ctx, Msg::Save);  // inconsistent!\n\n// Semantics: label & icon fixed by framework\nsemantics::save(ButtonStyle::Both).on_click(ctx, Msg::Save);  // Always \"Save\""
+            ).show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.strong("Why Semantics?");
+            ctx.ui.label("• Prevents label inconsistency (Save vs 保存 vs SAVE)");
+            ctx.ui.label("• Icon + color automatically matched to action");
+            ctx.ui.label("• Only display style (Icon/Text/Both) is configurable");
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("All Semantic Buttons:");
+            ctx.ui.add_space(8.0);
+
+            ctx.horizontal(|ctx| {
+                semantics::save(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+                semantics::edit(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+                semantics::delete(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+                semantics::close(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+            });
+            ctx.horizontal(|ctx| {
+                semantics::add(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+                semantics::remove(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+                semantics::search(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+                semantics::refresh(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+            });
+            ctx.horizontal(|ctx| {
+                semantics::play(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+                semantics::pause(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+                semantics::stop(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+                semantics::settings(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+            });
+            ctx.horizontal(|ctx| {
+                semantics::back(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+                semantics::forward(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+                semantics::confirm(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+                semantics::cancel(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+            });
+            ctx.horizontal(|ctx| {
+                semantics::copy(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+            });
+        }
+
+        "File Operations" => {
+            ctx.ui.heading("File Operations");
+            ctx.ui.label("Save, Edit, Delete, Close");
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("save() - Primary style");
+            ctx.horizontal(|ctx| {
+                semantics::save(ButtonStyle::Icon).on_click(ctx, Msg::ButtonClicked);
+                semantics::save(ButtonStyle::Text).on_click(ctx, Msg::ButtonClicked);
+                semantics::save(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+            });
+
+            ctx.ui.add_space(12.0);
+            ctx.ui.strong("edit() - Primary style");
+            ctx.horizontal(|ctx| {
+                semantics::edit(ButtonStyle::Icon).on_click(ctx, Msg::ButtonClicked);
+                semantics::edit(ButtonStyle::Text).on_click(ctx, Msg::ButtonClicked);
+                semantics::edit(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+            });
+
+            ctx.ui.add_space(12.0);
+            ctx.ui.strong("delete() - Danger style");
+            ctx.horizontal(|ctx| {
+                semantics::delete(ButtonStyle::Icon).on_click(ctx, Msg::ButtonClicked);
+                semantics::delete(ButtonStyle::Text).on_click(ctx, Msg::ButtonClicked);
+                semantics::delete(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+            });
+
+            ctx.ui.add_space(12.0);
+            ctx.ui.strong("close() - Secondary style");
+            ctx.horizontal(|ctx| {
+                semantics::close(ButtonStyle::Icon).on_click(ctx, Msg::ButtonClicked);
+                semantics::close(ButtonStyle::Text).on_click(ctx, Msg::ButtonClicked);
+                semantics::close(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+            });
+        }
+
+        "Actions" => {
+            ctx.ui.heading("Common Actions");
+            ctx.ui.label("Add, Remove, Search, Refresh, Settings, Copy");
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("add() - Primary");
+            ctx.horizontal(|ctx| {
+                semantics::add(ButtonStyle::Icon).on_click(ctx, Msg::ButtonClicked);
+                semantics::add(ButtonStyle::Text).on_click(ctx, Msg::ButtonClicked);
+                semantics::add(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+            });
+
+            ctx.ui.add_space(12.0);
+            ctx.ui.strong("remove() - Danger");
+            ctx.horizontal(|ctx| {
+                semantics::remove(ButtonStyle::Icon).on_click(ctx, Msg::ButtonClicked);
+                semantics::remove(ButtonStyle::Text).on_click(ctx, Msg::ButtonClicked);
+                semantics::remove(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+            });
+
+            ctx.ui.add_space(12.0);
+            ctx.ui.strong("search() - Primary");
+            ctx.horizontal(|ctx| {
+                semantics::search(ButtonStyle::Icon).on_click(ctx, Msg::ButtonClicked);
+                semantics::search(ButtonStyle::Text).on_click(ctx, Msg::ButtonClicked);
+                semantics::search(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+            });
+
+            ctx.ui.add_space(12.0);
+            ctx.ui.strong("refresh() - Secondary");
+            ctx.horizontal(|ctx| {
+                semantics::refresh(ButtonStyle::Icon).on_click(ctx, Msg::ButtonClicked);
+                semantics::refresh(ButtonStyle::Text).on_click(ctx, Msg::ButtonClicked);
+                semantics::refresh(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+            });
+
+            ctx.ui.add_space(12.0);
+            ctx.ui.strong("settings() - Secondary");
+            ctx.horizontal(|ctx| {
+                semantics::settings(ButtonStyle::Icon).on_click(ctx, Msg::ButtonClicked);
+                semantics::settings(ButtonStyle::Text).on_click(ctx, Msg::ButtonClicked);
+                semantics::settings(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+            });
+
+            ctx.ui.add_space(12.0);
+            ctx.ui.strong("copy() - Secondary");
+            ctx.horizontal(|ctx| {
+                semantics::copy(ButtonStyle::Icon).on_click(ctx, Msg::ButtonClicked);
+                semantics::copy(ButtonStyle::Text).on_click(ctx, Msg::ButtonClicked);
+                semantics::copy(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+            });
+        }
+
+        "Media" => {
+            ctx.ui.heading("Media Controls");
+            ctx.ui.label("Play, Pause, Stop");
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("play() - Success style");
+            ctx.horizontal(|ctx| {
+                semantics::play(ButtonStyle::Icon).on_click(ctx, Msg::ButtonClicked);
+                semantics::play(ButtonStyle::Text).on_click(ctx, Msg::ButtonClicked);
+                semantics::play(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+            });
+
+            ctx.ui.add_space(12.0);
+            ctx.ui.strong("pause() - Secondary style");
+            ctx.horizontal(|ctx| {
+                semantics::pause(ButtonStyle::Icon).on_click(ctx, Msg::ButtonClicked);
+                semantics::pause(ButtonStyle::Text).on_click(ctx, Msg::ButtonClicked);
+                semantics::pause(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+            });
+
+            ctx.ui.add_space(12.0);
+            ctx.ui.strong("stop() - Danger style");
+            ctx.horizontal(|ctx| {
+                semantics::stop(ButtonStyle::Icon).on_click(ctx, Msg::ButtonClicked);
+                semantics::stop(ButtonStyle::Text).on_click(ctx, Msg::ButtonClicked);
+                semantics::stop(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+            });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Example: Media Player Controls");
+            ctx.horizontal(|ctx| {
+                semantics::back(ButtonStyle::Icon).on_click(ctx, Msg::ButtonClicked);
+                semantics::play(ButtonStyle::Icon).on_click(ctx, Msg::ButtonClicked);
+                semantics::pause(ButtonStyle::Icon).on_click(ctx, Msg::ButtonClicked);
+                semantics::stop(ButtonStyle::Icon).on_click(ctx, Msg::ButtonClicked);
+                semantics::forward(ButtonStyle::Icon).on_click(ctx, Msg::ButtonClicked);
+            });
+        }
+
+        "Navigation" => {
+            ctx.ui.heading("Navigation & Confirmation");
+            ctx.ui.label("Back, Forward, Confirm, Cancel");
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("back() - Secondary");
+            ctx.horizontal(|ctx| {
+                semantics::back(ButtonStyle::Icon).on_click(ctx, Msg::ButtonClicked);
+                semantics::back(ButtonStyle::Text).on_click(ctx, Msg::ButtonClicked);
+                semantics::back(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+            });
+
+            ctx.ui.add_space(12.0);
+            ctx.ui.strong("forward() - Secondary");
+            ctx.horizontal(|ctx| {
+                semantics::forward(ButtonStyle::Icon).on_click(ctx, Msg::ButtonClicked);
+                semantics::forward(ButtonStyle::Text).on_click(ctx, Msg::ButtonClicked);
+                semantics::forward(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+            });
+
+            ctx.ui.add_space(12.0);
+            ctx.ui.strong("confirm() - Success");
+            ctx.horizontal(|ctx| {
+                semantics::confirm(ButtonStyle::Icon).on_click(ctx, Msg::ButtonClicked);
+                semantics::confirm(ButtonStyle::Text).on_click(ctx, Msg::ButtonClicked);
+                semantics::confirm(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+            });
+
+            ctx.ui.add_space(12.0);
+            ctx.ui.strong("cancel() - Secondary");
+            ctx.horizontal(|ctx| {
+                semantics::cancel(ButtonStyle::Icon).on_click(ctx, Msg::ButtonClicked);
+                semantics::cancel(ButtonStyle::Text).on_click(ctx, Msg::ButtonClicked);
+                semantics::cancel(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+            });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Example: Dialog Actions");
+            ctx.horizontal(|ctx| {
+                semantics::cancel(ButtonStyle::Text).on_click(ctx, Msg::ButtonClicked);
+                semantics::confirm(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+            });
+        }
+
+        "ButtonStyle" => {
+            ctx.ui.heading("ButtonStyle Enum");
+            ctx.ui.label("Controls how semantic buttons are displayed");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "pub enum ButtonStyle {\n    Icon,  // Icon only (compact)\n    Text,  // Text label only\n    Both,  // Icon + Text (most explicit)\n}"
+            ).show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+
+            ctx.ui.strong("ButtonStyle::Icon");
+            ctx.ui.label("Compact, icon-only. Good for toolbars.");
+            ctx.horizontal(|ctx| {
+                semantics::save(ButtonStyle::Icon).on_click(ctx, Msg::ButtonClicked);
+                semantics::edit(ButtonStyle::Icon).on_click(ctx, Msg::ButtonClicked);
+                semantics::delete(ButtonStyle::Icon).on_click(ctx, Msg::ButtonClicked);
+                semantics::refresh(ButtonStyle::Icon).on_click(ctx, Msg::ButtonClicked);
+            });
+
+            ctx.ui.add_space(12.0);
+            ctx.ui.strong("ButtonStyle::Text");
+            ctx.ui.label("Text-only. Good for menus or when icons aren't needed.");
+            ctx.horizontal(|ctx| {
+                semantics::save(ButtonStyle::Text).on_click(ctx, Msg::ButtonClicked);
+                semantics::edit(ButtonStyle::Text).on_click(ctx, Msg::ButtonClicked);
+                semantics::delete(ButtonStyle::Text).on_click(ctx, Msg::ButtonClicked);
+                semantics::refresh(ButtonStyle::Text).on_click(ctx, Msg::ButtonClicked);
+            });
+
+            ctx.ui.add_space(12.0);
+            ctx.ui.strong("ButtonStyle::Both");
+            ctx.ui.label("Icon + Text. Most explicit, good for primary actions.");
+            ctx.horizontal(|ctx| {
+                semantics::save(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+                semantics::edit(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+                semantics::delete(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+                semantics::refresh(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
+            });
         }
 
         _ => {

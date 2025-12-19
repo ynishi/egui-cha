@@ -1,9 +1,42 @@
 //! Icon atom - Phosphor Icons integration
+//!
+//! This module provides Phosphor Icons as an embedded font.
+//! Icons are displayed using the `icons` font family registered in the runtime.
+//!
+//! # Available Icons
+//!
+//! Only commonly used icons are pre-defined here. For the full list of 1,500+ icons
+//! and their codepoints, see the official Phosphor Icons resources:
+//!
+//! - **Icon Browser**: <https://phosphoricons.com/>
+//! - **Codepoint Reference**: <https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css>
+//! - **GitHub**: <https://github.com/phosphor-icons/core>
+//!
+//! # Adding Custom Icons
+//!
+//! To use an icon not defined here, find its codepoint from the CSS reference above
+//! and create a constant:
+//!
+//! ```ignore
+//! // From CSS: .ph.ph-alarm::before { content: "\e006"; }
+//! const MY_ALARM: &str = "\u{e006}";
+//!
+//! // Use with Icon component
+//! Icon::new(MY_ALARM).show(ui);
+//! ```
+//!
+//! # Font Family
+//!
+//! Icons must be rendered with `FontFamily::Name("icons")` to display correctly.
+//! The `Icon` component handles this automatically.
 
 use egui::{Color32, Label, Response, RichText, Ui, Widget};
 use egui_cha::ViewCtx;
 
-/// Phosphor Icons codepoints
+/// Phosphor Icons codepoints (Regular weight)
+///
+/// See module documentation for how to add icons not listed here.
+/// Full reference: <https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css>
 pub mod icons {
     // Navigation
     pub const HOUSE: &str = "\u{e2c2}";
@@ -22,6 +55,30 @@ pub mod icons {
     pub const WARNING: &str = "\u{e4e0}";
     pub const HASH: &str = "\u{e2a2}";
     pub const USER: &str = "\u{e4c2}";
+
+    // File operations
+    pub const FLOPPY_DISK: &str = "\u{e248}";
+    pub const TRASH: &str = "\u{e4a6}";
+    pub const PENCIL_SIMPLE: &str = "\u{e3b4}";
+    pub const FOLDER_SIMPLE: &str = "\u{e25a}";
+    pub const FILE: &str = "\u{e230}";
+
+    // Search & Refresh
+    pub const MAGNIFYING_GLASS: &str = "\u{e30c}";
+    pub const ARROWS_CLOCKWISE: &str = "\u{e094}";
+
+    // Media
+    pub const PLAY: &str = "\u{e3d0}";
+    pub const PAUSE: &str = "\u{e39e}";
+    pub const STOP: &str = "\u{e46c}";
+
+    // Misc
+    pub const COPY: &str = "\u{e1ca}";
+    pub const DOWNLOAD_SIMPLE: &str = "\u{e20c}";
+    pub const UPLOAD_SIMPLE: &str = "\u{e4c0}";
+    pub const LINK_SIMPLE: &str = "\u{e2e6}";
+    pub const EYE: &str = "\u{e220}";
+    pub const EYE_SLASH: &str = "\u{e222}";
 }
 
 /// Icon component using Phosphor Icons
