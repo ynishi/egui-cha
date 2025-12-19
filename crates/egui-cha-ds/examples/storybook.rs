@@ -181,106 +181,84 @@ impl App for StorybookApp {
     fn view(model: &Model, ctx: &mut ViewCtx<Msg>) {
         model.theme.apply(ctx.ui.ctx());
 
-        // Header
-        ctx.horizontal(|ctx| {
-            ctx.ui.heading("DS Storybook");
-        });
-        // Theme toggle button (separate to avoid borrow issues)
-        let theme_label = if model.theme.variant == ThemeVariant::Dark { "Light Mode" } else { "Dark Mode" };
-        Button::ghost(theme_label).on_click(ctx, Msg::ToggleTheme);
-        ctx.ui.separator();
+        // Use sidebar_layout for clean two-panel design
+        ctx.sidebar_layout(
+            "storybook_sidebar",
+            220.0,
+            // Sidebar: Navigation
+            |ctx| {
+                ctx.horizontal(|ctx| {
+                    ctx.ui.heading("DS Storybook");
+                });
 
-        // Main layout
-        ctx.ui.columns(2, |columns| {
-            // Left: Navigation
-            columns[0].set_max_width(200.0);
-            columns[0].heading("Components");
-            columns[0].separator();
+                let theme_label = if model.theme.variant == ThemeVariant::Dark { "Light" } else { "Dark" };
+                Button::ghost(theme_label).on_click(ctx, Msg::ToggleTheme);
 
-            // Category tabs
-            for (i, cat) in CATEGORIES.iter().enumerate() {
-                let selected = model.active_category == i;
-                if columns[0].selectable_label(selected, *cat).clicked() {
-                    // Can't emit in columns, will use workaround
+                ctx.ui.separator();
+                ctx.ui.heading("Components");
+                ctx.ui.separator();
+
+                // Category selection
+                for (i, cat) in CATEGORIES.iter().enumerate() {
+                    if model.active_category == i {
+                        Button::primary(*cat).on_click(ctx, Msg::SetCategory(i));
+                    } else {
+                        Button::ghost(*cat).on_click(ctx, Msg::SetCategory(i));
+                    }
                 }
-            }
 
-            columns[0].separator();
+                ctx.ui.separator();
 
-            // Component list
-            let components = if model.active_category == 0 { ATOMS } else { MOLECULES };
-            for (i, comp) in components.iter().enumerate() {
-                let selected = model.active_component == i;
-                if columns[0].selectable_label(selected, format!("  {}", comp)).clicked() {
-                    // Can't emit in columns
+                // Component list
+                let components = if model.active_category == 0 { ATOMS } else { MOLECULES };
+                for (i, comp) in components.iter().enumerate() {
+                    if model.active_component == i {
+                        Button::secondary(*comp).on_click(ctx, Msg::SetComponent(i));
+                    } else {
+                        Button::outline(*comp).on_click(ctx, Msg::SetComponent(i));
+                    }
                 }
-            }
+            },
+            // Main: Component preview
+            |ctx| {
+                ctx.ui.heading("Preview");
+                ctx.ui.separator();
 
-            // Right: Component preview
-            columns[1].heading("Preview");
-            columns[1].separator();
-        });
-
-        // Component selection via ctx (workaround for columns)
-        ctx.ui.add_space(8.0);
-        ctx.horizontal(|ctx| {
-            ctx.ui.label("Category:");
-            for (i, cat) in CATEGORIES.iter().enumerate() {
-                if model.active_category == i {
-                    Button::primary(*cat).on_click(ctx, Msg::SetCategory(i));
-                } else {
-                    Button::ghost(*cat).on_click(ctx, Msg::SetCategory(i));
-                }
-            }
-
-            ctx.ui.add_space(16.0);
-            ctx.ui.label("Component:");
-            let components = if model.active_category == 0 { ATOMS } else { MOLECULES };
-            for (i, comp) in components.iter().enumerate() {
-                if model.active_component == i {
-                    Button::secondary(*comp).on_click(ctx, Msg::SetComponent(i));
-                } else {
-                    Button::outline(*comp).on_click(ctx, Msg::SetComponent(i));
-                }
-            }
-        });
-
-        ctx.ui.separator();
-
-        // Component preview
-        Card::new().show_ctx(ctx, |ctx| {
-            if model.active_category == 0 {
-                render_atom(model, ctx);
-            } else {
-                render_molecule(model, ctx);
-            }
-        });
-
-        // Modals
-        if model.show_modal {
-            let close = Modal::titled("Demo Modal")
-                .show(ctx.ui, true, |ui| {
-                    ui.label("This is a modal dialog.");
-                    ui.label("You can put any content here.");
-                    ui.add_space(16.0);
-                    if ui.button("Close").clicked() {
-                        // handled by close_requested
+                Card::new().show_ctx(ctx, |ctx| {
+                    if model.active_category == 0 {
+                        render_atom(model, ctx);
+                    } else {
+                        render_molecule(model, ctx);
                     }
                 });
-            if close {
-                ctx.emit(Msg::CloseModal);
-            }
-        }
 
-        if model.show_confirm {
-            let result = ConfirmDialog::new("Confirm Action", "Are you sure you want to proceed?")
-                .show(ctx.ui, true);
-            match result {
-                ConfirmResult::Confirmed => ctx.emit(Msg::ConfirmResult(true)),
-                ConfirmResult::Cancelled => ctx.emit(Msg::ConfirmResult(false)),
-                ConfirmResult::None => {}
-            }
-        }
+                // Modals (inside main panel)
+                if model.show_modal {
+                    let close = Modal::titled("Demo Modal")
+                        .show(ctx.ui, true, |ui| {
+                            ui.label("This is a modal dialog.");
+                            ui.label("You can put any content here.");
+                            ui.add_space(16.0);
+                            if ui.button("Close").clicked() {
+                                // handled by close_requested
+                            }
+                        });
+                    if close {
+                        ctx.emit(Msg::CloseModal);
+                    }
+                }
+
+                if model.show_confirm {
+                    let result = ConfirmDialog::new("Confirm Action", "Are you sure you want to proceed?")
+                        .show(ctx.ui, true);
+                    match result {
+                        ConfirmResult::Confirmed => ctx.emit(Msg::ConfirmResult(true)),
+                        ConfirmResult::Cancelled => ctx.emit(Msg::ConfirmResult(false)),
+                        ConfirmResult::None => {}
+                    }
+                }
+            },
+        );
     }
 }
 
