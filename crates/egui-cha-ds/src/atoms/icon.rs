@@ -29,6 +29,35 @@
 //!
 //! Icons must be rendered with `FontFamily::Name("icons")` to display correctly.
 //! The `Icon` component handles this automatically.
+//!
+//! # ⚠️ IMPORTANT: Do NOT Use Emoji for Icons
+//!
+//! **This is a native app, NOT a web browser.**
+//!
+//! Unlike web applications where emoji rendering is relatively consistent,
+//! native apps have critical differences:
+//!
+//! - **OS/Device Dependent**: Emoji appearance varies wildly across macOS, Windows, Linux
+//! - **Missing Glyphs**: Some systems may not render certain emoji at all
+//! - **Version Inconsistency**: Emoji sets differ by OS version
+//! - **No Fallback Control**: Unlike CSS, you cannot specify fallback fonts reliably
+//!
+//! ## Rule: Always Use Icon Fonts
+//!
+//! For critical UI elements like icons, **always use embedded icon fonts**
+//! (Phosphor Icons, Font Awesome, Material Icons, etc.) with explicit `FontFamily`.
+//!
+//! ```ignore
+//! // ✅ CORRECT: Use icon font with explicit FontFamily
+//! RichText::new("\u{e182}")  // Phosphor check icon
+//!     .family(FontFamily::Name("icons".into()))
+//!
+//! // ❌ WRONG: Never use emoji for icons
+//! RichText::new("✅")  // OS-dependent, unreliable
+//! ```
+//!
+//! This principle applies universally - even CSS frameworks (Bootstrap, Tailwind)
+//! use icon fonts (Font Awesome, Heroicons) rather than emoji for reliable icons.
 
 use egui::{Color32, Label, Response, RichText, Ui, Widget};
 use egui_cha::ViewCtx;
