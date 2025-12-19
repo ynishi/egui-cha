@@ -226,40 +226,59 @@ fn home_page(_model: &Model, ctx: &mut ViewCtx<Msg>) {
 }
 
 fn counter_page(model: &Model, ctx: &mut ViewCtx<Msg>) {
-    Card::titled("Counter").show_ctx(ctx, |ctx| {
-        ctx.ui.label(format!("Count: {}", model.counter.count));
+    // Demo: using cha! macro with Card shorthand
+    cha!(ctx, {
+        Card("Counter") {
+            ctx.ui.label(format!("Count: {}", model.counter.count))
 
-        ctx.horizontal(|ctx| {
-            Button::primary("+").on_click(ctx, Msg::Increment);
-            Button::secondary("-").on_click(ctx, Msg::Decrement);
-            Button::outline("Reset").on_click(ctx, Msg::Reset);
-        });
+            Row {
+                Button::primary("+").on_click(ctx, Msg::Increment)
+                Button::secondary("-").on_click(ctx, Msg::Decrement)
+                Button::outline("Reset").on_click(ctx, Msg::Reset)
+            }
 
-        ctx.ui.add_space(8.0);
+            ctx.ui.add_space(8.0)
 
-        ctx.horizontal(|ctx| {
-            Button::ghost("Add to History").on_click(ctx, Msg::AddToHistory);
-            Button::primary("+1 (1s delay)").on_click(ctx, Msg::DelayedIncrement);
-        });
+            Row {
+                Button::ghost("Add to History").on_click(ctx, Msg::AddToHistory)
+                Button::primary("+1 (1s delay)").on_click(ctx, Msg::DelayedIncrement)
+            }
+        }
     });
 
     ctx.ui.add_space(16.0);
 
-    Card::titled("History").show_ctx(ctx, |ctx| {
-        if model.counter.history.is_empty() {
-            ctx.ui.label("No history yet");
-        } else {
-            ctx.horizontal(|ctx| {
-                for &value in &model.counter.history {
-                    if value >= 0 {
-                        Badge::success(&format!("{}", value)).show(ctx.ui);
-                    } else {
-                        Badge::error(&format!("{}", value)).show(ctx.ui);
-                    }
-                }
-            });
+    // Demo: using cha! macro with Card and ScrollH
+    cha!(ctx, {
+        Card("History") {
+            render_history(model, ctx)
         }
     });
+}
+
+fn render_history(model: &Model, ctx: &mut ViewCtx<Msg>) {
+    if model.counter.history.is_empty() {
+        ctx.ui.label("No history yet");
+    } else {
+        // Demo: Scroll with cha! macro
+        cha!(ctx, {
+            ScrollH {
+                Row {
+                    render_badges(model, ctx)
+                }
+            }
+        });
+    }
+}
+
+fn render_badges(model: &Model, ctx: &mut ViewCtx<Msg>) {
+    for &value in &model.counter.history {
+        if value >= 0 {
+            Badge::success(&format!("{}", value)).show(ctx.ui);
+        } else {
+            Badge::error(&format!("{}", value)).show(ctx.ui);
+        }
+    }
 }
 
 fn settings_page(model: &Model, ctx: &mut ViewCtx<Msg>) {

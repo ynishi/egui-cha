@@ -203,6 +203,47 @@ semantics::delete(ButtonStyle::Icon).on_click(ctx, Msg::Delete);
 ```
 Available: `save`, `edit`, `delete`, `close`, `add`, `remove`, `search`, `refresh`, `play`, `pause`, `stop`, `settings`, `back`, `forward`, `confirm`, `cancel`, `copy`
 
+## Layout DSL (cha! macro)
+
+Declarative layout syntax for composing views:
+
+```rust
+use egui_cha_ds::cha;
+
+cha!(ctx, {
+    Col(spacing: 8.0) {
+        Card("Settings") {
+            Row {
+                @gear(20.0)
+                ctx.ui.label("Options")
+            }
+            Button::primary("Save").on_click(ctx, Msg::Save)
+        }
+
+        Scroll(max_height: 300.0) {
+            // scrollable content
+        }
+    }
+});
+```
+
+### Supported Nodes
+| Node | Description |
+|------|-------------|
+| `Col` | Vertical layout (`ctx.vertical`) |
+| `Row` | Horizontal layout (`ctx.horizontal`) |
+| `Group` | Grouped layout (`ctx.group`) |
+| `Scroll` | Vertical scroll area |
+| `ScrollH` | Horizontal scroll area |
+| `ScrollBoth` | Both directions scroll |
+| `Card("title")` | Card container |
+| `@icon` | Icon shorthand (e.g., `@house`, `@gear(20.0)`) |
+
+### Properties
+- **Layout**: `spacing`, `padding`
+- **Scroll**: `max_height`, `max_width`, `min_height`, `min_width`, `id`
+- **Card**: `padding`
+
 ## Commands (Side Effects)
 
 ```rust

@@ -73,8 +73,32 @@ enum LayoutNode {
     Col(LayoutContainer),
     Row(LayoutContainer),
     Group(LayoutContainer),
+    Scroll(ScrollContainer),
+    Card(CardContainer),
     Icon(IconNode),
     Expr(Expr),
+}
+
+/// Scroll container with direction and optional properties
+struct ScrollContainer {
+    direction: ScrollDirection,
+    props: Vec<LayoutProp>,
+    children: Vec<LayoutNode>,
+}
+
+/// Scroll direction for Scroll node
+#[derive(Clone, Copy)]
+enum ScrollDirection {
+    Vertical,
+    Horizontal,
+    Both,
+}
+
+/// Card container with optional title
+struct CardContainer {
+    title: Option<Expr>,
+    props: Vec<LayoutProp>,
+    children: Vec<LayoutNode>,
 }
 
 /// Container with optional properties and children
@@ -164,6 +188,30 @@ impl LayoutNode {
                         _ => unreachable!(),
                     });
                 }
+                "Scroll" | "ScrollH" | "ScrollBoth" => {
+                    let _: Ident = input.parse()?;
+                    let direction = match name.as_str() {
+                        "Scroll" => ScrollDirection::Vertical,
+                        "ScrollH" => ScrollDirection::Horizontal,
+                        "ScrollBoth" => ScrollDirection::Both,
+                        _ => unreachable!(),
+                    };
+                    let container = parse_container(input)?;
+                    return Ok(LayoutNode::Scroll(ScrollContainer {
+                        direction,
+                        props: container.props,
+                        children: container.children,
+                    }));
+                }
+                "Card" => {
+                    let _: Ident = input.parse()?;
+                    let (title, props, children) = parse_card(input)?;
+                    return Ok(LayoutNode::Card(CardContainer {
+                        title,
+                        props,
+                        children,
+                    }));
+                }
                 _ => {}
             }
         }
@@ -212,6 +260,57 @@ fn parse_props(input: ParseStream) -> Result<Vec<LayoutProp>> {
     }
 
     Ok(props)
+}
+
+/// Parse Card: Card("title") { ... } or Card { ... }
+fn parse_card(input: ParseStream) -> Result<(Option<Expr>, Vec<LayoutProp>, Vec<LayoutNode>)> {
+    let mut title = None;
+    let mut props = Vec::new();
+    let mut children = Vec::new();
+
+    // Parse optional title and props: ("title") or ("title", padding: 8.0)
+    if input.peek(syn::token::Paren) {
+        let content;
+        parenthesized!(content in input);
+
+        // First item could be title (string literal) or property
+        if !content.is_empty() {
+            let fork = content.fork();
+            // Check if it starts with an identifier followed by `:` (property)
+            if fork.peek(Ident) {
+                let _: Ident = fork.parse()?;
+                if fork.peek(Token![:]) {
+                    // It's properties, no title
+                    props = parse_props(&content)?;
+                } else {
+                    // It's something else, try as title expression
+                    title = Some(content.parse::<Expr>()?);
+                    if content.peek(Token![,]) {
+                        content.parse::<Token![,]>()?;
+                        props = parse_props(&content)?;
+                    }
+                }
+            } else {
+                // Not an identifier, must be title (e.g., string literal)
+                title = Some(content.parse::<Expr>()?);
+                if content.peek(Token![,]) {
+                    content.parse::<Token![,]>()?;
+                    props = parse_props(&content)?;
+                }
+            }
+        }
+    }
+
+    // Parse children: { ... }
+    if input.peek(syn::token::Brace) {
+        let content;
+        braced!(content in input);
+        while !content.is_empty() {
+            children.push(LayoutNode::parse(&content)?);
+        }
+    }
+
+    Ok((title, props, children))
 }
 
 // ============================================================
@@ -265,6 +364,36 @@ impl LayoutNode {
                     });
                 }
             }
+            LayoutNode::Scroll(scroll) => {
+                let scroll_props = scroll_props_to_builder(&scroll.props);
+                let children = scroll.children.iter().map(|c| c.to_tokens(ctx));
+                let constructor = match scroll.direction {
+                    ScrollDirection::Vertical => quote! { ::egui_cha::ScrollArea::vertical() },
+                    ScrollDirection::Horizontal => quote! { ::egui_cha::ScrollArea::horizontal() },
+                    ScrollDirection::Both => quote! { ::egui_cha::ScrollArea::both() },
+                };
+
+                quote! {
+                    #constructor #scroll_props .show_ctx(#ctx, |#ctx| {
+                        #(#children)*
+                    });
+                }
+            }
+            LayoutNode::Card(card) => {
+                let card_props = card_props_to_builder(&card.props);
+                let children = card.children.iter().map(|c| c.to_tokens(ctx));
+                let constructor = if let Some(title) = &card.title {
+                    quote! { ::egui_cha_ds::Card::titled(#title) }
+                } else {
+                    quote! { ::egui_cha_ds::Card::new() }
+                };
+
+                quote! {
+                    #constructor #card_props .show_ctx(#ctx, |#ctx| {
+                        #(#children)*
+                    });
+                }
+            }
             LayoutNode::Icon(icon) => {
                 let name = &icon.name;
                 if let Some(size) = &icon.size {
@@ -308,6 +437,46 @@ fn props_to_setup(props: &[LayoutProp], axis: &str) -> TokenStream2 {
         .collect();
 
     quote! { #(#setups)* }
+}
+
+/// Convert ScrollArea properties to builder method calls
+fn scroll_props_to_builder(props: &[LayoutProp]) -> TokenStream2 {
+    let methods: Vec<TokenStream2> = props
+        .iter()
+        .filter_map(|prop| {
+            let key = prop.key.to_string();
+            let value = &prop.value;
+
+            match key.as_str() {
+                "max_height" => Some(quote! { .max_height(#value) }),
+                "max_width" => Some(quote! { .max_width(#value) }),
+                "min_height" => Some(quote! { .min_scrolled_height(#value) }),
+                "min_width" => Some(quote! { .min_scrolled_width(#value) }),
+                "id" => Some(quote! { .id_salt(#value) }),
+                _ => None,
+            }
+        })
+        .collect();
+
+    quote! { #(#methods)* }
+}
+
+/// Convert Card properties to builder method calls
+fn card_props_to_builder(props: &[LayoutProp]) -> TokenStream2 {
+    let methods: Vec<TokenStream2> = props
+        .iter()
+        .filter_map(|prop| {
+            let key = prop.key.to_string();
+            let value = &prop.value;
+
+            match key.as_str() {
+                "padding" => Some(quote! { .padding(#value) }),
+                _ => None,
+            }
+        })
+        .collect();
+
+    quote! { #(#methods)* }
 }
 
 // ============================================================
@@ -388,5 +557,105 @@ mod tests {
         assert!(code.contains("house"));
         assert!(code.contains("gear"));
         assert!(code.contains("size"));
+    }
+
+    #[test]
+    fn test_parse_scroll() {
+        let input: TokenStream2 = quote! {
+            ctx, {
+                Scroll(max_height: 300.0) {
+                    ctx.ui.label("Scrollable")
+                }
+            }
+        };
+        let parsed: ChaInput = syn::parse2(input).unwrap();
+        let tokens = parsed.to_tokens();
+        let code = tokens.to_string();
+        assert!(code.contains("ScrollArea"));
+        assert!(code.contains("vertical"));
+        assert!(code.contains("max_height"));
+    }
+
+    #[test]
+    fn test_parse_scroll_horizontal() {
+        let input: TokenStream2 = quote! {
+            ctx, {
+                ScrollH {
+                    ctx.ui.label("Horizontal")
+                }
+            }
+        };
+        let parsed: ChaInput = syn::parse2(input).unwrap();
+        let tokens = parsed.to_tokens();
+        let code = tokens.to_string();
+        assert!(code.contains("ScrollArea"));
+        assert!(code.contains("horizontal"));
+    }
+
+    #[test]
+    fn test_parse_scroll_both() {
+        let input: TokenStream2 = quote! {
+            ctx, {
+                ScrollBoth(max_height: 400.0, max_width: 600.0) {
+                    ctx.ui.label("Both directions")
+                }
+            }
+        };
+        let parsed: ChaInput = syn::parse2(input).unwrap();
+        let tokens = parsed.to_tokens();
+        let code = tokens.to_string();
+        assert!(code.contains("ScrollArea"));
+        assert!(code.contains("both"));
+        assert!(code.contains("max_height"));
+        assert!(code.contains("max_width"));
+    }
+
+    #[test]
+    fn test_parse_card_with_title() {
+        let input: TokenStream2 = quote! {
+            ctx, {
+                Card("My Card") {
+                    ctx.ui.label("Content")
+                }
+            }
+        };
+        let parsed: ChaInput = syn::parse2(input).unwrap();
+        let tokens = parsed.to_tokens();
+        let code = tokens.to_string();
+        assert!(code.contains("Card"));
+        assert!(code.contains("titled"));
+    }
+
+    #[test]
+    fn test_parse_card_without_title() {
+        let input: TokenStream2 = quote! {
+            ctx, {
+                Card {
+                    ctx.ui.label("Content")
+                }
+            }
+        };
+        let parsed: ChaInput = syn::parse2(input).unwrap();
+        let tokens = parsed.to_tokens();
+        let code = tokens.to_string();
+        assert!(code.contains("Card"));
+        assert!(code.contains("new"));
+    }
+
+    #[test]
+    fn test_parse_card_with_props() {
+        let input: TokenStream2 = quote! {
+            ctx, {
+                Card("Title", padding: 8.0) {
+                    ctx.ui.label("Content")
+                }
+            }
+        };
+        let parsed: ChaInput = syn::parse2(input).unwrap();
+        let tokens = parsed.to_tokens();
+        let code = tokens.to_string();
+        assert!(code.contains("Card"));
+        assert!(code.contains("titled"));
+        assert!(code.contains("padding"));
     }
 }
