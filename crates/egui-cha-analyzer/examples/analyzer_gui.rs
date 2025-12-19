@@ -148,96 +148,86 @@ impl App for CounterApp {
     }
 
     fn view(model: &Model, ctx: &mut ViewCtx<Msg>) {
-        // Use columns for two-panel layout
-        ctx.ui.columns(2, |columns| {
+        // Use sidebar_layout for clean two-panel design
+        ctx.sidebar_layout(
+            "analyzer_sidebar",
+            450.0,
             // Left panel: Source code input
-            columns[0].heading("Source Code");
-            columns[0].separator();
+            |ctx| {
+                ctx.ui.heading("Source Code");
+                ctx.ui.separator();
 
-            // File path input
-            columns[0].horizontal(|ui| {
-                ui.label("File:");
-                let mut path = model.file_path.clone();
-                if ui.text_edit_singleline(&mut path).changed() {
-                    // Note: We can't emit here easily, so we skip live updates
-                }
-            });
+                // File path input
+                ctx.horizontal(|ctx| {
+                    ctx.ui.label("File:");
+                    Input::new()
+                        .placeholder("path/to/file.rs")
+                        .show_with(ctx, &model.file_path, Msg::FilePathChanged);
+                });
 
-            columns[0].horizontal(|ui| {
-                if ui.button("Load File").clicked() {
-                    // Will handle via ctx later
-                }
-                if ui.button("Load Counter").clicked() {
-                    // Will handle via ctx later
-                }
-            });
+                ctx.horizontal(|ctx| {
+                    Button::outline("Load File").on_click(ctx, Msg::LoadFile);
+                    Button::secondary("Load Counter").on_click(ctx, Msg::LoadExample);
+                });
 
-            columns[0].add_space(4.0);
+                ctx.ui.add_space(4.0);
 
-            // Source code text area
-            let mut code = model.source_code.clone();
-            egui::ScrollArea::vertical()
-                .id_salt("source_code_scroll")
-                .max_height(450.0)
-                .show(&mut columns[0], |ui| {
-                    ui.add(
+                // Source code text area
+                ctx.scroll_area_id("source_code", |ctx| {
+                    let mut code = model.source_code.clone();
+                    if ctx.ui.add(
                         egui::TextEdit::multiline(&mut code)
                             .font(egui::TextStyle::Monospace)
                             .desired_width(f32::INFINITY)
-                            .desired_rows(25),
-                    );
+                            .desired_rows(30),
+                    ).changed() {
+                        ctx.emit(Msg::SourceCodeChanged(code));
+                    }
                 });
 
-            columns[0].add_space(8.0);
-            if columns[0].button("Analyze").clicked() {
-                // Will handle via ctx later
-            }
+                ctx.ui.add_space(8.0);
 
+                ctx.horizontal(|ctx| {
+                    Button::primary("Analyze").on_click(ctx, Msg::Analyze);
+                    Button::ghost("Clear").on_click(ctx, Msg::Clear);
+                });
+            },
             // Right panel: Analysis results
-            columns[1].heading("Analysis Results");
-            columns[1].separator();
+            |ctx| {
+                ctx.ui.heading("Analysis Results");
+                ctx.ui.separator();
 
-            // Stats
-            columns[1].horizontal(|ui| {
-                ui.label(format!("TEA: {} | Emissions: {} | Handlers: {}",
-                    model.tea_flow_count, model.emission_count, model.handler_count));
-            });
+                // Stats
+                ctx.horizontal(|ctx| {
+                    Badge::info(&format!("TEA: {}", model.tea_flow_count)).show(ctx.ui);
+                    Badge::success(&format!("Emissions: {}", model.emission_count)).show(ctx.ui);
+                    Badge::warning(&format!("Handlers: {}", model.handler_count)).show(ctx.ui);
+                });
 
-            columns[1].add_space(4.0);
+                ctx.ui.add_space(4.0);
 
-            // Tabs
-            columns[1].horizontal(|ui| {
-                ui.selectable_value(&mut model.active_tab.clone(), Tab::TeaFlows, "TEA Flows");
-                ui.selectable_value(&mut model.active_tab.clone(), Tab::Mermaid, "Mermaid");
-                ui.selectable_value(&mut model.active_tab.clone(), Tab::RawData, "Raw");
-            });
+                // Tabs using DS Tabs component
+                Tabs::new(&["TEA Flows", "Mermaid", "Raw Data"])
+                    .show_with(ctx, tab_to_index(&model.active_tab), |idx| {
+                        Msg::SetTab(index_to_tab(idx))
+                    });
 
-            columns[1].add_space(4.0);
+                ctx.ui.add_space(4.0);
 
-            // Output
-            egui::ScrollArea::vertical()
-                .id_salt("analysis_output_scroll")
-                .max_height(400.0)
-                .show(&mut columns[1], |ui| {
+                // Output
+                ctx.scroll_area_id("analysis_output", |ctx| {
                     let output = match model.active_tab {
                         Tab::TeaFlows | Tab::UiFlows | Tab::RawData => &model.analysis_output,
                         Tab::Mermaid => &model.mermaid_output,
                     };
-                    ui.add(
+                    ctx.ui.add(
                         egui::TextEdit::multiline(&mut output.as_str())
                             .font(egui::TextStyle::Monospace)
                             .desired_width(f32::INFINITY),
                     );
                 });
-        });
-
-        // Handle button clicks via ctx outside columns
-        ctx.ui.add_space(8.0);
-        ctx.horizontal(|ctx| {
-            Button::primary("Analyze").on_click(ctx, Msg::Analyze);
-            Button::secondary("Load Counter").on_click(ctx, Msg::LoadExample);
-            Button::ghost("Clear").on_click(ctx, Msg::Clear);
-        });
+            },
+        );
     }
 }
 
@@ -245,11 +235,19 @@ impl App for CounterApp {
 // Helpers
 // ============================================================
 
-fn tab_button(ctx: &mut ViewCtx<Msg>, label: &str, tab: Tab, active: &Tab) {
-    if *active == tab {
-        Button::primary(label).on_click(ctx, Msg::SetTab(tab));
-    } else {
-        Button::ghost(label).on_click(ctx, Msg::SetTab(tab));
+fn tab_to_index(tab: &Tab) -> usize {
+    match tab {
+        Tab::TeaFlows => 0,
+        Tab::Mermaid => 1,
+        Tab::UiFlows | Tab::RawData => 2,
+    }
+}
+
+fn index_to_tab(idx: usize) -> Tab {
+    match idx {
+        0 => Tab::TeaFlows,
+        1 => Tab::Mermaid,
+        _ => Tab::RawData,
     }
 }
 
