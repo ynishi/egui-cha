@@ -3,6 +3,7 @@
 //! Debouncing delays action until input stops for a specified duration.
 //! Useful for search inputs, form validation, auto-save, etc.
 
+use super::clock::Clock;
 use crate::Cmd;
 use std::time::{Duration, Instant};
 
@@ -119,6 +120,88 @@ impl Debouncer {
     /// Reset the debouncer state
     ///
     /// Same as `cancel()`, but semantically for cleanup.
+    pub fn reset(&mut self) {
+        self.pending_until = None;
+    }
+}
+
+// ============================================
+// DebouncerWithClock - testable version
+// ============================================
+
+/// A debouncer with pluggable clock for testing
+///
+/// Like [`Debouncer`], but uses a [`Clock`] trait for time access,
+/// enabling deterministic testing with [`FakeClock`](crate::testing::FakeClock).
+///
+/// # Example
+/// ```ignore
+/// use egui_cha::testing::FakeClock;
+/// use egui_cha::helpers::DebouncerWithClock;
+/// use std::time::Duration;
+///
+/// let clock = FakeClock::new();
+/// let mut debouncer = DebouncerWithClock::new(clock.clone());
+///
+/// debouncer.trigger(Duration::from_millis(500), Msg::Search);
+/// assert!(!debouncer.should_fire()); // Not yet
+///
+/// clock.advance(Duration::from_millis(600));
+/// assert!(debouncer.should_fire()); // Now it fires
+/// ```
+#[derive(Debug, Clone)]
+pub struct DebouncerWithClock<C: Clock> {
+    clock: C,
+    pending_until: Option<Duration>,
+}
+
+impl<C: Clock> DebouncerWithClock<C> {
+    /// Create a new debouncer with the given clock
+    pub fn new(clock: C) -> Self {
+        Self {
+            clock,
+            pending_until: None,
+        }
+    }
+
+    /// Trigger a debounced action
+    ///
+    /// Returns `Cmd::delay` that will deliver the message after the specified delay.
+    /// Each call resets the internal timer.
+    pub fn trigger<Msg>(&mut self, delay: Duration, msg: Msg) -> Cmd<Msg>
+    where
+        Msg: Clone + Send + 'static,
+    {
+        let fire_at = self.clock.now() + delay;
+        self.pending_until = Some(fire_at);
+        Cmd::delay(delay, msg)
+    }
+
+    /// Check if the debounced action should fire
+    ///
+    /// Returns `true` if enough time has passed since the last `trigger()` call.
+    pub fn should_fire(&mut self) -> bool {
+        match self.pending_until {
+            Some(until) if self.clock.now() >= until => {
+                self.pending_until = None;
+                true
+            }
+            Some(_) => false,
+            None => false,
+        }
+    }
+
+    /// Check if there's a pending debounce
+    pub fn is_pending(&self) -> bool {
+        self.pending_until.is_some()
+    }
+
+    /// Cancel any pending debounced action
+    pub fn cancel(&mut self) {
+        self.pending_until = None;
+    }
+
+    /// Reset the debouncer state
     pub fn reset(&mut self) {
         self.pending_until = None;
     }

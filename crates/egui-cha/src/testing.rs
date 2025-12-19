@@ -17,12 +17,89 @@
 //! }
 //! ```
 
+use crate::helpers::Clock;
 use crate::{App, Cmd};
+use std::cell::Cell;
 use std::future::Future;
 use std::pin::Pin;
+use std::rc::Rc;
+use std::time::Duration;
 
 /// A boxed future for async tasks
 type BoxFuture<Msg> = Pin<Box<dyn Future<Output = Msg> + Send + 'static>>;
+
+// ============================================
+// FakeClock for testing time-dependent code
+// ============================================
+
+/// A fake clock for testing time-dependent code
+///
+/// Allows manual control of time progression, enabling fast and
+/// deterministic tests for `Debouncer`, `Throttler`, etc.
+///
+/// # Example
+/// ```ignore
+/// use egui_cha::testing::FakeClock;
+/// use egui_cha::helpers::Debouncer;
+/// use std::time::Duration;
+///
+/// let clock = FakeClock::new();
+/// let mut debouncer = Debouncer::with_clock(clock.clone());
+///
+/// debouncer.trigger(Duration::from_millis(500), Msg::Search);
+///
+/// // Time hasn't passed yet
+/// assert!(!debouncer.should_fire());
+///
+/// // Advance time past the debounce delay
+/// clock.advance(Duration::from_millis(600));
+/// assert!(debouncer.should_fire());
+/// ```
+#[derive(Clone)]
+pub struct FakeClock {
+    current: Rc<Cell<Duration>>,
+}
+
+impl FakeClock {
+    /// Create a new fake clock starting at time zero
+    pub fn new() -> Self {
+        Self {
+            current: Rc::new(Cell::new(Duration::ZERO)),
+        }
+    }
+
+    /// Advance the clock by the specified duration
+    pub fn advance(&self, duration: Duration) {
+        self.current.set(self.current.get() + duration);
+    }
+
+    /// Set the clock to a specific time
+    pub fn set(&self, time: Duration) {
+        self.current.set(time);
+    }
+
+    /// Get the current time
+    pub fn get(&self) -> Duration {
+        self.current.get()
+    }
+
+    /// Reset the clock to time zero
+    pub fn reset(&self) {
+        self.current.set(Duration::ZERO);
+    }
+}
+
+impl Default for FakeClock {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Clock for FakeClock {
+    fn now(&self) -> Duration {
+        self.current.get()
+    }
+}
 
 /// A test runner for TEA applications
 ///
@@ -665,5 +742,149 @@ mod tests {
 
             runner.expect_model(|m| m.value == 42);
         });
+    }
+
+    // ========================================
+    // FakeClock tests
+    // ========================================
+
+    #[test]
+    fn test_fake_clock_basic() {
+        let clock = super::FakeClock::new();
+
+        assert_eq!(clock.get(), Duration::ZERO);
+
+        clock.advance(Duration::from_millis(100));
+        assert_eq!(clock.get(), Duration::from_millis(100));
+
+        clock.advance(Duration::from_millis(50));
+        assert_eq!(clock.get(), Duration::from_millis(150));
+    }
+
+    #[test]
+    fn test_fake_clock_set_and_reset() {
+        let clock = super::FakeClock::new();
+
+        clock.set(Duration::from_secs(10));
+        assert_eq!(clock.get(), Duration::from_secs(10));
+
+        clock.reset();
+        assert_eq!(clock.get(), Duration::ZERO);
+    }
+
+    #[test]
+    fn test_fake_clock_shared() {
+        let clock1 = super::FakeClock::new();
+        let clock2 = clock1.clone();
+
+        clock1.advance(Duration::from_millis(100));
+
+        // Both clocks share the same time
+        assert_eq!(clock2.get(), Duration::from_millis(100));
+    }
+
+    #[test]
+    fn test_debouncer_with_fake_clock() {
+        use crate::helpers::DebouncerWithClock;
+
+        let clock = super::FakeClock::new();
+        let mut debouncer = DebouncerWithClock::new(clock.clone());
+
+        // Trigger with 500ms delay
+        let _cmd = debouncer.trigger(Duration::from_millis(500), ());
+        assert!(debouncer.is_pending());
+        assert!(!debouncer.should_fire()); // Not yet
+
+        // Advance 300ms - still not ready
+        clock.advance(Duration::from_millis(300));
+        assert!(!debouncer.should_fire());
+
+        // Advance another 100ms - still not ready (400ms total)
+        clock.advance(Duration::from_millis(100));
+        assert!(!debouncer.should_fire());
+
+        // Advance 150ms - now ready (550ms total)
+        clock.advance(Duration::from_millis(150));
+        assert!(debouncer.should_fire());
+        assert!(!debouncer.is_pending());
+    }
+
+    #[test]
+    fn test_debouncer_reset_with_fake_clock() {
+        use crate::helpers::DebouncerWithClock;
+
+        let clock = super::FakeClock::new();
+        let mut debouncer = DebouncerWithClock::new(clock.clone());
+
+        // First trigger
+        let _cmd = debouncer.trigger(Duration::from_millis(500), ());
+
+        // Advance 300ms
+        clock.advance(Duration::from_millis(300));
+        assert!(!debouncer.should_fire());
+
+        // Trigger again (resets timer)
+        let _cmd = debouncer.trigger(Duration::from_millis(500), ());
+
+        // Advance 300ms from reset point - not yet (timer was reset)
+        clock.advance(Duration::from_millis(300));
+        assert!(!debouncer.should_fire());
+
+        // Advance 250ms more - now ready
+        clock.advance(Duration::from_millis(250));
+        assert!(debouncer.should_fire());
+    }
+
+    #[test]
+    fn test_throttler_with_fake_clock() {
+        use crate::helpers::ThrottlerWithClock;
+
+        let clock = super::FakeClock::new();
+        let mut throttler = ThrottlerWithClock::new(clock.clone());
+        let interval = Duration::from_millis(100);
+
+        // First call executes
+        let cmd1 = throttler.run(interval, || Cmd::Msg(1));
+        assert!(cmd1.is_msg());
+
+        // Immediate second call is throttled
+        let cmd2 = throttler.run(interval, || Cmd::Msg(2));
+        assert!(cmd2.is_none());
+
+        // Advance 50ms - still throttled
+        clock.advance(Duration::from_millis(50));
+        let cmd3 = throttler.run(interval, || Cmd::Msg(3));
+        assert!(cmd3.is_none());
+
+        // Advance 60ms more (110ms total) - now executes
+        clock.advance(Duration::from_millis(60));
+        let cmd4 = throttler.run(interval, || Cmd::Msg(4));
+        assert!(cmd4.is_msg());
+    }
+
+    #[test]
+    fn test_throttler_time_remaining_with_fake_clock() {
+        use crate::helpers::ThrottlerWithClock;
+
+        let clock = super::FakeClock::new();
+        let mut throttler = ThrottlerWithClock::new(clock.clone());
+        let interval = Duration::from_millis(100);
+
+        // Before first run
+        assert!(throttler.time_remaining(interval).is_none());
+
+        // After first run
+        let _ = throttler.run(interval, || Cmd::Msg(1));
+        let remaining = throttler.time_remaining(interval);
+        assert_eq!(remaining, Some(Duration::from_millis(100)));
+
+        // After 30ms
+        clock.advance(Duration::from_millis(30));
+        let remaining = throttler.time_remaining(interval);
+        assert_eq!(remaining, Some(Duration::from_millis(70)));
+
+        // After interval expires
+        clock.advance(Duration::from_millis(80));
+        assert!(throttler.time_remaining(interval).is_none());
     }
 }

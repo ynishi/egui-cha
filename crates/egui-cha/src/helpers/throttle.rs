@@ -3,6 +3,7 @@
 //! Throttling limits action frequency to at most once per interval.
 //! Useful for scroll events, resize handlers, rate-limited APIs, etc.
 
+use super::clock::Clock;
 use crate::Cmd;
 use std::time::{Duration, Instant};
 
@@ -137,6 +138,112 @@ impl Throttler {
     /// some external event.
     pub fn suppress(&mut self) {
         self.last_run = Some(Instant::now());
+    }
+}
+
+// ============================================
+// ThrottlerWithClock - testable version
+// ============================================
+
+/// A throttler with pluggable clock for testing
+///
+/// Like [`Throttler`], but uses a [`Clock`] trait for time access,
+/// enabling deterministic testing with [`FakeClock`](crate::testing::FakeClock).
+///
+/// # Example
+/// ```ignore
+/// use egui_cha::testing::FakeClock;
+/// use egui_cha::helpers::ThrottlerWithClock;
+/// use std::time::Duration;
+///
+/// let clock = FakeClock::new();
+/// let mut throttler = ThrottlerWithClock::new(clock.clone());
+///
+/// // First call executes
+/// let cmd1 = throttler.run(Duration::from_millis(100), || Cmd::Msg(1));
+/// assert!(cmd1.is_msg());
+///
+/// // Immediate second call is throttled
+/// let cmd2 = throttler.run(Duration::from_millis(100), || Cmd::Msg(2));
+/// assert!(cmd2.is_none());
+///
+/// // Advance time past throttle interval
+/// clock.advance(Duration::from_millis(150));
+/// let cmd3 = throttler.run(Duration::from_millis(100), || Cmd::Msg(3));
+/// assert!(cmd3.is_msg());
+/// ```
+#[derive(Debug, Clone)]
+pub struct ThrottlerWithClock<C: Clock> {
+    clock: C,
+    last_run: Option<Duration>,
+}
+
+impl<C: Clock> ThrottlerWithClock<C> {
+    /// Create a new throttler with the given clock
+    pub fn new(clock: C) -> Self {
+        Self {
+            clock,
+            last_run: None,
+        }
+    }
+
+    /// Run an action if not throttled
+    pub fn run<Msg, F>(&mut self, interval: Duration, action: F) -> Cmd<Msg>
+    where
+        F: FnOnce() -> Cmd<Msg>,
+    {
+        let now = self.clock.now();
+
+        let should_run = match self.last_run {
+            None => true,
+            Some(last) => now >= last + interval,
+        };
+
+        if should_run {
+            self.last_run = Some(now);
+            action()
+        } else {
+            Cmd::none()
+        }
+    }
+
+    /// Run with a message (convenience method)
+    pub fn run_msg<Msg>(&mut self, interval: Duration, msg: Msg) -> Cmd<Msg>
+    where
+        Msg: Clone,
+    {
+        self.run(interval, || Cmd::Msg(msg))
+    }
+
+    /// Check if an action would be throttled
+    pub fn is_throttled(&self, interval: Duration) -> bool {
+        match self.last_run {
+            None => false,
+            Some(last) => self.clock.now() < last + interval,
+        }
+    }
+
+    /// Time remaining until throttle expires
+    pub fn time_remaining(&self, interval: Duration) -> Option<Duration> {
+        self.last_run.and_then(|last| {
+            let now = self.clock.now();
+            let expires_at = last + interval;
+            if now < expires_at {
+                Some(expires_at - now)
+            } else {
+                None
+            }
+        })
+    }
+
+    /// Reset the throttler state
+    pub fn reset(&mut self) {
+        self.last_run = None;
+    }
+
+    /// Force the next run to be throttled
+    pub fn suppress(&mut self) {
+        self.last_run = Some(self.clock.now());
     }
 }
 

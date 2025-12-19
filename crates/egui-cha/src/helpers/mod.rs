@@ -62,8 +62,10 @@
 //! | Debounce | Waits until input stops | Search input, form validation |
 //! | Throttle | Limits frequency | Scroll, resize, API calls |
 
+mod clock;
 mod debounce;
 mod throttle;
 
-pub use debounce::Debouncer;
-pub use throttle::{Throttler, TrailingThrottler};
+pub use clock::{Clock, SystemClock};
+pub use debounce::{Debouncer, DebouncerWithClock};
+pub use throttle::{Throttler, ThrottlerWithClock, TrailingThrottler};
