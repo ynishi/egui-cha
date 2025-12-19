@@ -238,7 +238,6 @@ const ATOMS: &[&str] = &[
     "Link",
     "Code",
     "Text",
-    "ScrollArea",
     "Tooltip",
     "Context Menu",
 ];
@@ -275,7 +274,7 @@ const FRAMEWORK: &[&str] = &[
     "Drag & Drop",
     "Shortcuts",
     "Dynamic Bindings",
-    "scroll_area_with",
+    "ScrollArea",
 ];
 
 impl App for StorybookApp {
@@ -935,60 +934,6 @@ fn render_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.label(format!("font_size_xl: {}px", theme.font_size_xl));
             ctx.ui.label(format!("font_size_2xl: {}px", theme.font_size_2xl));
             ctx.ui.label(format!("font_size_3xl: {}px", theme.font_size_3xl));
-        }
-
-        "ScrollArea" => {
-            ctx.ui.heading("ScrollArea");
-            ctx.ui.label("Configurable scroll container");
-            ctx.ui.add_space(8.0);
-
-            Code::new(
-                "// Vertical scroll with max height\nScrollArea::vertical()\n    .max_height(200.0)\n    .show_ctx(ctx, |ctx| {\n        for i in 0..50 {\n            ctx.ui.label(format!(\"Item {}\", i));\n        }\n    });\n\n// Horizontal scroll\nScrollArea::horizontal().show_ctx(ctx, |ctx| { ... });\n\n// Both directions\nScrollArea::both().show_ctx(ctx, |ctx| { ... });"
-            ).show(ctx.ui);
-
-            ctx.ui.add_space(16.0);
-            ctx.ui.separator();
-            ctx.ui.add_space(8.0);
-
-            ctx.ui.strong("Vertical Scroll (max_height: 150px):");
-            ctx.ui.add_space(4.0);
-
-            ScrollArea::vertical()
-                .id_salt("demo_vertical")
-                .max_height(150.0)
-                .show_ctx(ctx, |ctx| {
-                    for i in 0..30 {
-                        ctx.ui.label(format!("Item {}", i));
-                    }
-                });
-
-            ctx.ui.add_space(16.0);
-            ctx.ui.separator();
-            ctx.ui.add_space(8.0);
-
-            ctx.ui.strong("Horizontal Scroll:");
-            ctx.ui.add_space(4.0);
-
-            ScrollArea::horizontal()
-                .id_salt("demo_horizontal")
-                .show_ctx(ctx, |ctx| {
-                    ctx.horizontal(|ctx| {
-                        for i in 0..20 {
-                            Button::outline(&format!("Btn {}", i)).show(ctx.ui);
-                        }
-                    });
-                });
-
-            ctx.ui.add_space(16.0);
-            ctx.ui.separator();
-            ctx.ui.add_space(8.0);
-
-            ctx.ui.strong("Options:");
-            ctx.ui.label("- .max_height() / .max_width()");
-            ctx.ui.label("- .auto_shrink([h, v]) / .no_shrink()");
-            ctx.ui.label("- .always_show_scroll() / .hide_scroll()");
-            ctx.ui.label("- .animated(bool)");
-            ctx.ui.label("- .id_salt(id) for multiple scroll areas");
         }
 
         "Tooltip" => {
@@ -2080,40 +2025,60 @@ fn render_framework(model: &Model, ctx: &mut ViewCtx<Msg>) {
             }
         }
 
-        "scroll_area_with" => {
-            ctx.ui.heading("scroll_area_with");
-            ctx.ui.label("Core scroll area API with full customization");
+        "ScrollArea" => {
+            ctx.ui.heading("ScrollArea");
+            ctx.ui.label("Scrollable container with configurable options (Core)");
             ctx.ui.add_space(8.0);
 
             Code::new(
-                "// Basic usage\nctx.scroll_area(|ctx| {\n    // content\n});\n\n// With custom ID (avoids clashes)\nctx.scroll_area_id(\"my_scroll\", |ctx| {\n    // content\n});\n\n// Full customization\nctx.scroll_area_with(\n    |area| area\n        .max_height(200.0)\n        .auto_shrink([false, false]),\n    |ctx| {\n        // content\n    },\n);"
+                "// Builder pattern (recommended)\nScrollArea::vertical()\n    .max_height(200.0)\n    .show_ctx(ctx, |ctx| { ... });\n\n// Closure-based\nctx.scroll_area_with(\n    |area| area.max_height(200.0),\n    |ctx| { ... },\n);\n\n// Simple shortcuts\nctx.scroll_area(|ctx| { ... });\nctx.scroll_area_id(\"id\", |ctx| { ... });"
             ).show(ctx.ui);
 
             ctx.ui.add_space(16.0);
             ctx.ui.separator();
             ctx.ui.add_space(8.0);
 
-            ctx.ui.strong("ctx.scroll_area() - Default vertical:");
+            ctx.ui.strong("ScrollArea::vertical() - Builder pattern:");
             ctx.ui.add_space(4.0);
 
-            ctx.scroll_area_id("framework_demo_1", |ctx| {
-                for i in 0..15 {
-                    ctx.ui.label(format!("Default scroll item {}", i));
-                }
-            });
+            ScrollArea::vertical()
+                .id_salt("framework_demo_1")
+                .max_height(120.0)
+                .show_ctx(ctx, |ctx| {
+                    for i in 0..20 {
+                        ctx.ui.label(format!("Builder item {}", i));
+                    }
+                });
 
             ctx.ui.add_space(16.0);
             ctx.ui.separator();
             ctx.ui.add_space(8.0);
 
-            ctx.ui.strong("ctx.scroll_area_with() - Customized:");
+            ctx.ui.strong("ScrollArea::horizontal():");
+            ctx.ui.add_space(4.0);
+
+            ScrollArea::horizontal()
+                .id_salt("framework_demo_2")
+                .show_ctx(ctx, |ctx| {
+                    ctx.horizontal(|ctx| {
+                        for i in 0..15 {
+                            Button::outline(&format!("Btn {}", i)).show(ctx.ui);
+                        }
+                    });
+                });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("ctx.scroll_area_with() - Closure-based:");
             ctx.ui.add_space(4.0);
 
             ctx.scroll_area_with(
-                |area| area.id_salt("framework_demo_2").max_height(120.0).auto_shrink([false, false]),
+                |area| area.id_salt("framework_demo_3").max_height(100.0).auto_shrink([false, false]),
                 |ctx| {
-                    for i in 0..20 {
-                        ctx.ui.label(format!("Customized item {} (max_height: 120px, no shrink)", i));
+                    for i in 0..15 {
+                        ctx.ui.label(format!("Closure item {} (no shrink)", i));
                     }
                 },
             );
@@ -2122,10 +2087,12 @@ fn render_framework(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.separator();
             ctx.ui.add_space(8.0);
 
-            ctx.ui.strong("Core vs DS:");
-            ctx.ui.label("- Core (egui-cha): ctx.scroll_area_with() - closure-based");
-            ctx.ui.label("- DS (egui-cha-ds): ScrollArea::vertical() - builder pattern");
-            ctx.ui.label("Both work; DS Atom uses Core internally.");
+            ctx.ui.strong("Options:");
+            ctx.ui.label("- .max_height() / .max_width()");
+            ctx.ui.label("- .auto_shrink([h, v]) / .no_shrink()");
+            ctx.ui.label("- .always_show_scroll() / .hide_scroll()");
+            ctx.ui.label("- .animated(bool)");
+            ctx.ui.label("- .id_salt(id) for multiple scroll areas");
         }
 
         _ => {

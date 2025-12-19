@@ -24,6 +24,7 @@ mod component;
 pub mod drag_drop;
 pub mod helpers;
 pub mod router;
+mod scroll_area;
 pub mod shortcuts;
 pub mod sub;
 pub mod testing;
@@ -36,6 +37,7 @@ pub use app::App;
 pub use cmd::Cmd;
 pub use component::Component;
 pub use router::{Router, RouterMsg};
+pub use scroll_area::{ScrollArea, ScrollDirection};
 pub use sub::Sub;
 pub use view_ctx::ViewCtx;
 
@@ -50,7 +52,7 @@ pub mod prelude {
     pub use crate::router::{BackButton, NavLink, Router, RouterMsg};
     pub use crate::shortcuts;
     pub use crate::sub::Sub;
-    pub use crate::{App, Cmd, Component, ViewCtx};
+    pub use crate::{App, Cmd, Component, ScrollArea, ViewCtx};
     pub use egui;
     pub use egui::{Key, KeyboardShortcut, Modifiers};
 

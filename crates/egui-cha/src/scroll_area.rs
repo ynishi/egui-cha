@@ -1,11 +1,11 @@
-//! ScrollArea atom - Scrollable container with configurable options
+//! ScrollArea - Scrollable container with configurable options
 //!
-//! Provides a themed, configurable scroll area that integrates with ViewCtx.
+//! Provides a configurable scroll area builder that integrates with ViewCtx.
 //!
 //! # Examples
 //!
 //! ```rust
-//! use egui_cha_ds::atoms::ScrollArea;
+//! use egui_cha::ScrollArea;
 //!
 //! // Vertical scroll (default)
 //! ScrollArea::vertical()
@@ -21,7 +21,7 @@
 //!     .show_ctx(ctx, |ctx| {
 //!         ctx.horizontal(|ctx| {
 //!             for i in 0..20 {
-//!                 Button::primary(&format!("{}", i)).show(ctx.ui);
+//!                 ctx.ui.label(format!("{}", i));
 //!             }
 //!         });
 //!     });
@@ -36,7 +36,8 @@
 //! ```
 
 use egui::{scroll_area::ScrollBarVisibility, Ui};
-use egui_cha::ViewCtx;
+
+use crate::ViewCtx;
 
 /// Scroll direction
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -47,7 +48,7 @@ pub enum ScrollDirection {
     Both,
 }
 
-/// A configurable scroll area component
+/// A configurable scroll area builder
 #[derive(Clone)]
 pub struct ScrollArea {
     direction: ScrollDirection,
@@ -203,7 +204,11 @@ impl ScrollArea {
     }
 
     /// Show the scroll area with raw egui::Ui
-    pub fn show<R>(self, ui: &mut Ui, f: impl FnOnce(&mut Ui) -> R) -> egui::scroll_area::ScrollAreaOutput<R> {
+    pub fn show<R>(
+        self,
+        ui: &mut Ui,
+        f: impl FnOnce(&mut Ui) -> R,
+    ) -> egui::scroll_area::ScrollAreaOutput<R> {
         self.build().show(ui, f)
     }
 
