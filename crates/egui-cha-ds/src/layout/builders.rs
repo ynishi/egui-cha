@@ -1,4 +1,7 @@
 //! Layout builders - Col, Row, Grid
+//!
+//! Provides type-safe, IDE-friendly layout composition with proper lifetime handling.
+//! Supports capturing borrowed data in closures (no 'static requirement).
 
 use egui::Ui;
 
@@ -19,17 +22,17 @@ where
 }
 
 /// Create a vertical column layout
-pub fn col() -> Col {
+pub fn col<'a>() -> Col<'a> {
     Col::new()
 }
 
 /// Create a horizontal row layout
-pub fn row() -> Row {
+pub fn row<'a>() -> Row<'a> {
     Row::new()
 }
 
 /// Create a grid layout with specified columns
-pub fn grid(cols: usize) -> Grid {
+pub fn grid<'a>(cols: usize) -> Grid<'a> {
     Grid::new(cols)
 }
 
@@ -38,14 +41,16 @@ pub fn grid(cols: usize) -> Grid {
 // ============================================================
 
 /// Vertical column layout builder
-pub struct Col {
+///
+/// Lifetime parameter allows capturing borrowed data in closures.
+pub struct Col<'a> {
     spacing: f32,
-    items: Vec<Box<dyn FnOnce(&mut Ui)>>,
+    items: Vec<Box<dyn FnOnce(&mut Ui) + 'a>>,
     fill_x: bool,
     padding: f32,
 }
 
-impl Col {
+impl<'a> Col<'a> {
     pub fn new() -> Self {
         Self {
             spacing: 4.0,
@@ -74,13 +79,13 @@ impl Col {
     }
 
     /// Add an item to the column (accepts closures, Col, Row, Grid, etc.)
-    pub fn add<T: LayoutItem + 'static>(mut self, item: T) -> Self {
+    pub fn add<T: LayoutItem + 'a>(mut self, item: T) -> Self {
         self.items.push(Box::new(move |ui: &mut Ui| item.render(ui)));
         self
     }
 
     /// Add a widget that implements Widget trait
-    pub fn add_widget(mut self, widget: impl egui::Widget + 'static) -> Self {
+    pub fn add_widget(mut self, widget: impl egui::Widget + 'a) -> Self {
         self.items.push(Box::new(move |ui: &mut Ui| {
             ui.add(widget);
         }));
@@ -114,13 +119,13 @@ impl Col {
     }
 }
 
-impl Default for Col {
+impl<'a> Default for Col<'a> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl LayoutItem for Col {
+impl<'a> LayoutItem for Col<'a> {
     fn render(self, ui: &mut Ui) {
         self.show(ui);
     }
@@ -131,15 +136,17 @@ impl LayoutItem for Col {
 // ============================================================
 
 /// Horizontal row layout builder
-pub struct Row {
+///
+/// Lifetime parameter allows capturing borrowed data in closures.
+pub struct Row<'a> {
     spacing: f32,
-    items: Vec<Box<dyn FnOnce(&mut Ui)>>,
+    items: Vec<Box<dyn FnOnce(&mut Ui) + 'a>>,
     fill_x: bool,
     centered: bool,
     padding: f32,
 }
 
-impl Row {
+impl<'a> Row<'a> {
     pub fn new() -> Self {
         Self {
             spacing: 4.0,
@@ -175,13 +182,13 @@ impl Row {
     }
 
     /// Add an item to the row (accepts closures, Col, Row, Grid, etc.)
-    pub fn add<T: LayoutItem + 'static>(mut self, item: T) -> Self {
+    pub fn add<T: LayoutItem + 'a>(mut self, item: T) -> Self {
         self.items.push(Box::new(move |ui: &mut Ui| item.render(ui)));
         self
     }
 
     /// Add a widget that implements Widget trait
-    pub fn add_widget(mut self, widget: impl egui::Widget + 'static) -> Self {
+    pub fn add_widget(mut self, widget: impl egui::Widget + 'a) -> Self {
         self.items.push(Box::new(move |ui: &mut Ui| {
             ui.add(widget);
         }));
@@ -212,13 +219,13 @@ impl Row {
     }
 }
 
-impl Default for Row {
+impl<'a> Default for Row<'a> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl LayoutItem for Row {
+impl<'a> LayoutItem for Row<'a> {
     fn render(self, ui: &mut Ui) {
         self.show(ui);
     }
@@ -229,14 +236,16 @@ impl LayoutItem for Row {
 // ============================================================
 
 /// Grid layout builder
-pub struct Grid {
+///
+/// Lifetime parameter allows capturing borrowed data in closures.
+pub struct Grid<'a> {
     cols: usize,
     gap: f32,
-    items: Vec<Box<dyn FnOnce(&mut Ui)>>,
+    items: Vec<Box<dyn FnOnce(&mut Ui) + 'a>>,
     padding: f32,
 }
 
-impl Grid {
+impl<'a> Grid<'a> {
     pub fn new(cols: usize) -> Self {
         Self {
             cols: cols.max(1),
@@ -259,13 +268,13 @@ impl Grid {
     }
 
     /// Add an item to the grid (accepts closures, Col, Row, Grid, etc.)
-    pub fn add<T: LayoutItem + 'static>(mut self, item: T) -> Self {
+    pub fn add<T: LayoutItem + 'a>(mut self, item: T) -> Self {
         self.items.push(Box::new(move |ui: &mut Ui| item.render(ui)));
         self
     }
 
     /// Add a widget that implements Widget trait
-    pub fn add_widget(mut self, widget: impl egui::Widget + 'static) -> Self {
+    pub fn add_widget(mut self, widget: impl egui::Widget + 'a) -> Self {
         self.items.push(Box::new(move |ui: &mut Ui| {
             ui.add(widget);
         }));
@@ -296,13 +305,13 @@ impl Grid {
     }
 }
 
-impl Default for Grid {
+impl<'a> Default for Grid<'a> {
     fn default() -> Self {
         Self::new(2)
     }
 }
 
-impl LayoutItem for Grid {
+impl<'a> LayoutItem for Grid<'a> {
     fn render(self, ui: &mut Ui) {
         self.show(ui);
     }
@@ -372,7 +381,7 @@ mod tests {
 
     #[test]
     fn col_default_trait() {
-        let col = Col::default();
+        let col: Col = Col::default();
         assert_eq!(col.spacing, 4.0);
     }
 
@@ -441,7 +450,7 @@ mod tests {
 
     #[test]
     fn row_default_trait() {
-        let row = Row::default();
+        let row: Row = Row::default();
         assert_eq!(row.spacing, 4.0);
     }
 
@@ -502,7 +511,7 @@ mod tests {
 
     #[test]
     fn grid_default_trait() {
-        let grid = Grid::default();
+        let grid: Grid = Grid::default();
         assert_eq!(grid.cols, 2);
         assert_eq!(grid.gap, 8.0);
     }
@@ -604,6 +613,29 @@ mod tests {
     fn grid_implements_layout_item() {
         fn accepts_layout_item<T: LayoutItem>(_: T) {}
         accepts_layout_item(grid(2));
+    }
+
+    // ----------------------------------------------------------
+    // Lifetime Tests - Capturing borrowed data
+    // ----------------------------------------------------------
+
+    #[test]
+    fn can_capture_borrowed_data() {
+        let mut value = 42;
+        let _layout = col()
+            .add(|_ui: &mut Ui| {
+                value += 1;
+            });
+        // Layout captures &mut value, which is NOT 'static
+    }
+
+    #[test]
+    fn can_capture_multiple_borrows() {
+        let mut a = 1;
+        let mut b = 2;
+        let _layout = col()
+            .add(|_ui: &mut Ui| { a += 1; })
+            .add(|_ui: &mut Ui| { b += 1; });
     }
 
     // ----------------------------------------------------------
@@ -731,6 +763,18 @@ mod tests {
                         .add(col()
                             .add(col()
                                 .add(|ui: &mut Ui| { ui.label("Deep"); })))))
+                .show(ui);
+        });
+    }
+
+    #[test]
+    fn render_with_captured_data() {
+        run_ui_test(|ui| {
+            let text = "Captured!";
+            col()
+                .add(|ui: &mut Ui| {
+                    ui.label(text);
+                })
                 .show(ui);
         });
     }

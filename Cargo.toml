@@ -5,6 +5,7 @@ members = [
     "crates/egui-cha-ds",
     "crates/egui-cha-macros",
     "examples/counter",
+    "examples/settings-form",
 ]
 
 [workspace.package]
