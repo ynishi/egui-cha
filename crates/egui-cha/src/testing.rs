@@ -112,6 +112,17 @@ impl<A: App> TestRunner<A> {
         matches!(self.last_cmd(), Some(CmdRecord::Msg(_)))
     }
 
+    /// Get a string describing the kind of the last command (for error messages)
+    fn last_cmd_kind(&self) -> &'static str {
+        match self.last_cmd() {
+            Some(CmdRecord::None) => "None",
+            Some(CmdRecord::Task) => "Task",
+            Some(CmdRecord::Msg(_)) => "Msg",
+            Some(CmdRecord::Batch(_)) => "Batch",
+            None => "<no command>",
+        }
+    }
+
     fn record_cmd(&mut self, cmd: Cmd<A::Msg>) {
         let record = match cmd {
             Cmd::None => CmdRecord::None,
@@ -120,6 +131,186 @@ impl<A: App> TestRunner<A> {
             Cmd::Batch(cmds) => CmdRecord::Batch(cmds.len()),
         };
         self.commands.push(record);
+    }
+
+    // ========================================
+    // Expect系アサーションメソッド
+    // ========================================
+
+    /// Assert that the model satisfies a predicate
+    ///
+    /// # Example
+    /// ```ignore
+    /// runner
+    ///     .send(Msg::Inc)
+    ///     .expect_model(|m| m.count == 1)
+    ///     .send(Msg::Inc)
+    ///     .expect_model(|m| m.count == 2);
+    /// ```
+    ///
+    /// # Panics
+    /// Panics if the predicate returns false
+    pub fn expect_model(&mut self, predicate: impl FnOnce(&A::Model) -> bool) -> &mut Self {
+        assert!(
+            predicate(&self.model),
+            "expect_model: predicate returned false"
+        );
+        self
+    }
+
+    /// Assert that the model satisfies a predicate with custom message
+    ///
+    /// # Panics
+    /// Panics with the provided message if the predicate returns false
+    pub fn expect_model_msg(
+        &mut self,
+        predicate: impl FnOnce(&A::Model) -> bool,
+        msg: &str,
+    ) -> &mut Self {
+        assert!(predicate(&self.model), "expect_model: {}", msg);
+        self
+    }
+
+    /// Assert that the last command was `Cmd::None`
+    ///
+    /// # Example
+    /// ```ignore
+    /// runner
+    ///     .send(Msg::SetValue(42))
+    ///     .expect_cmd_none();
+    /// ```
+    ///
+    /// # Panics
+    /// Panics if the last command was not `Cmd::None`
+    pub fn expect_cmd_none(&mut self) -> &mut Self {
+        assert!(
+            self.last_was_none(),
+            "expect_cmd_none: last command was {}, expected None",
+            self.last_cmd_kind()
+        );
+        self
+    }
+
+    /// Assert that the last command was `Cmd::Task`
+    ///
+    /// # Example
+    /// ```ignore
+    /// runner
+    ///     .send(Msg::FetchData)
+    ///     .expect_cmd_task();
+    /// ```
+    ///
+    /// # Panics
+    /// Panics if the last command was not `Cmd::Task`
+    pub fn expect_cmd_task(&mut self) -> &mut Self {
+        assert!(
+            self.last_was_task(),
+            "expect_cmd_task: last command was {}, expected Task",
+            self.last_cmd_kind()
+        );
+        self
+    }
+
+    /// Assert that the last command was `Cmd::Msg`
+    ///
+    /// # Example
+    /// ```ignore
+    /// runner
+    ///     .send(Msg::TriggerDelayed)
+    ///     .expect_cmd_msg();
+    /// ```
+    ///
+    /// # Panics
+    /// Panics if the last command was not `Cmd::Msg`
+    pub fn expect_cmd_msg(&mut self) -> &mut Self {
+        assert!(
+            self.last_was_msg(),
+            "expect_cmd_msg: last command was {}, expected Msg",
+            self.last_cmd_kind()
+        );
+        self
+    }
+
+    /// Assert that the last command was `Cmd::Msg` and verify its content
+    ///
+    /// # Example
+    /// ```ignore
+    /// runner
+    ///     .send(Msg::TriggerDelayed)
+    ///     .expect_cmd_msg_eq(Msg::Inc);
+    /// ```
+    ///
+    /// # Panics
+    /// Panics if the last command was not `Cmd::Msg` or the message doesn't match
+    pub fn expect_cmd_msg_eq(&mut self, expected: A::Msg) -> &mut Self
+    where
+        A::Msg: PartialEq + std::fmt::Debug,
+    {
+        match self.last_cmd() {
+            Some(CmdRecord::Msg(msg)) => {
+                assert_eq!(
+                    msg, &expected,
+                    "expect_cmd_msg_eq: message mismatch"
+                );
+            }
+            _ => {
+                panic!(
+                    "expect_cmd_msg_eq: last command was {}, expected Msg({:?})",
+                    self.last_cmd_kind(), expected
+                );
+            }
+        }
+        self
+    }
+
+    /// Assert that the last command was `Cmd::Batch`
+    ///
+    /// # Example
+    /// ```ignore
+    /// runner
+    ///     .send(Msg::MultiAction)
+    ///     .expect_cmd_batch();
+    /// ```
+    ///
+    /// # Panics
+    /// Panics if the last command was not `Cmd::Batch`
+    pub fn expect_cmd_batch(&mut self) -> &mut Self {
+        assert!(
+            matches!(self.last_cmd(), Some(CmdRecord::Batch(_))),
+            "expect_cmd_batch: last command was {}, expected Batch",
+            self.last_cmd_kind()
+        );
+        self
+    }
+
+    /// Assert that the last command was `Cmd::Batch` with expected size
+    ///
+    /// # Example
+    /// ```ignore
+    /// runner
+    ///     .send(Msg::MultiAction)
+    ///     .expect_cmd_batch_size(3);
+    /// ```
+    ///
+    /// # Panics
+    /// Panics if the last command was not `Cmd::Batch` or size doesn't match
+    pub fn expect_cmd_batch_size(&mut self, expected_size: usize) -> &mut Self {
+        match self.last_cmd() {
+            Some(CmdRecord::Batch(size)) => {
+                assert_eq!(
+                    *size, expected_size,
+                    "expect_cmd_batch_size: batch size mismatch (got {}, expected {})",
+                    size, expected_size
+                );
+            }
+            _ => {
+                panic!(
+                    "expect_cmd_batch_size: last command was {}, expected Batch({})",
+                    self.last_cmd_kind(), expected_size
+                );
+            }
+        }
+        self
     }
 }
 
@@ -153,12 +344,13 @@ mod tests {
         value: i32,
     }
 
-    #[derive(Clone, Debug)]
+    #[derive(Clone, Debug, PartialEq)]
     enum TestMsg {
         Inc,
         Dec,
         Set(i32),
         Delayed,
+        MultiBatch,
     }
 
     impl App for TestApp {
@@ -176,6 +368,9 @@ mod tests {
                 TestMsg::Set(v) => model.value = v,
                 TestMsg::Delayed => {
                     return Cmd::msg(TestMsg::Inc);
+                }
+                TestMsg::MultiBatch => {
+                    return Cmd::batch([Cmd::msg(TestMsg::Inc), Cmd::msg(TestMsg::Inc)]);
                 }
             }
             Cmd::none()
@@ -217,5 +412,68 @@ mod tests {
 
         runner.send_all([TestMsg::Inc, TestMsg::Inc, TestMsg::Inc]);
         assert_eq!(runner.model().value, 3);
+    }
+
+    #[test]
+    fn test_expect_model() {
+        let mut runner = TestRunner::<TestApp>::new();
+
+        runner
+            .send(TestMsg::Inc)
+            .expect_model(|m| m.value == 1)
+            .send(TestMsg::Inc)
+            .expect_model(|m| m.value == 2)
+            .send(TestMsg::Set(100))
+            .expect_model(|m| m.value == 100);
+    }
+
+    #[test]
+    fn test_expect_cmd_none() {
+        let mut runner = TestRunner::<TestApp>::new();
+
+        runner.send(TestMsg::Inc).expect_cmd_none();
+    }
+
+    #[test]
+    fn test_expect_cmd_msg() {
+        let mut runner = TestRunner::<TestApp>::new();
+
+        runner.send(TestMsg::Delayed).expect_cmd_msg();
+    }
+
+    #[test]
+    fn test_expect_cmd_msg_eq() {
+        let mut runner = TestRunner::<TestApp>::new();
+
+        runner
+            .send(TestMsg::Delayed)
+            .expect_cmd_msg_eq(TestMsg::Inc);
+    }
+
+    #[test]
+    fn test_expect_cmd_batch() {
+        let mut runner = TestRunner::<TestApp>::new();
+
+        runner
+            .send(TestMsg::MultiBatch)
+            .expect_cmd_batch()
+            .expect_cmd_batch_size(2);
+    }
+
+    #[test]
+    fn test_expect_chaining() {
+        // Fluent API chaining test
+        let mut runner = TestRunner::<TestApp>::new();
+
+        runner
+            .send(TestMsg::Inc)
+            .expect_model(|m| m.value == 1)
+            .expect_cmd_none()
+            .send(TestMsg::Inc)
+            .expect_model(|m| m.value == 2)
+            .expect_cmd_none()
+            .send(TestMsg::Delayed)
+            .expect_model(|m| m.value == 2) // Delayed doesn't change value directly
+            .expect_cmd_msg_eq(TestMsg::Inc);
     }
 }
