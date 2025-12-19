@@ -189,6 +189,7 @@ const ATOMS: &[&str] = &[
     "Slider",
     "Link",
     "Code",
+    "Tooltip",
 ];
 
 const SEMANTICS: &[&str] = &[
@@ -725,6 +726,51 @@ fn render_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.add_space(8.0);
 
             Code::new("fn main() {\n    println!(\"Hello, world!\");\n}").show(ctx.ui);
+        }
+
+        "Tooltip" => {
+            ctx.ui.heading("Tooltip");
+            ctx.ui.label("Themed tooltips via ResponseExt trait");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "use egui_cha_ds::prelude::*;  // imports ResponseExt\n\n// Works with any egui widget\nButton::primary(\"Hover me\").show(ui).with_tooltip(\"Save changes\");\nui.button(\"Native\").with_tooltip(\"Native egui button\");"
+            ).show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("With DS Components:");
+            ctx.ui.add_space(8.0);
+
+            ctx.horizontal(|ctx| {
+                ctx.ui.add(Button::primary("Save")).with_tooltip("Save current document");
+                ctx.ui.add(Button::secondary("Edit")).with_tooltip("Edit selected item");
+                ctx.ui.add(Button::danger("Delete")).with_tooltip("Delete permanently");
+            });
+
+            ctx.ui.add_space(16.0);
+
+            ctx.ui.strong("With Icon-only buttons:");
+            ctx.ui.add_space(8.0);
+
+            ctx.horizontal(|ctx| {
+                Icon::house().size(24.0).show(ctx.ui).with_tooltip("Go to Home");
+                Icon::gear().size(24.0).show(ctx.ui).with_tooltip("Open Settings");
+                Icon::user().size(24.0).show(ctx.ui).with_tooltip("View Profile");
+                Icon::info().size(24.0).show(ctx.ui).with_tooltip("More Information");
+            });
+
+            ctx.ui.add_space(16.0);
+
+            ctx.ui.strong("With native egui widgets:");
+            ctx.ui.add_space(8.0);
+
+            ctx.horizontal(|ctx| {
+                ctx.ui.button("Native Button").with_tooltip("This works too!");
+                ctx.ui.label("Hover label").with_tooltip("Labels can have tooltips");
+            });
         }
 
         _ => {

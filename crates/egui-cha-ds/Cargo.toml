@@ -11,10 +11,11 @@ default = ["macros"]
 macros = ["dep:egui-cha-macros"]
 
 [dependencies]
-egui-cha.workspace = true
+egui-cha = { workspace = true, features = ["tokio"] }
 egui.workspace = true
 egui-cha-macros = { workspace = true, optional = true }
 
 [dev-dependencies]
+egui-cha = { workspace = true, features = ["eframe"] }
 eframe.workspace = true
 tracing-subscriber = "0.3"
