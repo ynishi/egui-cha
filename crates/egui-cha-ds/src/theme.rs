@@ -1,6 +1,11 @@
 //! Theme system for consistent styling
+//!
+//! Provides a centralized theme system with:
+//! - Design tokens (colors, spacing, radii)
+//! - `Theme::current()` for component access
+//! - `ThemeProvider` trait for external theme integration
 
-use egui::Color32;
+use egui::{Color32, Id};
 
 /// Theme variant
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -8,6 +13,11 @@ pub enum ThemeVariant {
     #[default]
     Light,
     Dark,
+}
+
+/// Trait for converting external theme systems to DS Theme
+pub trait ThemeProvider {
+    fn to_ds_theme(&self) -> Theme;
 }
 
 /// Design system theme containing all style tokens
@@ -35,11 +45,26 @@ pub struct Theme {
     pub text_secondary: Color32,
     pub text_muted: Color32,
 
-    // Colors - Semantic
+    // Colors - Semantic (background)
     pub success: Color32,
     pub warning: Color32,
     pub error: Color32,
     pub info: Color32,
+    pub danger: Color32,
+
+    // Colors - Semantic (text on semantic background)
+    pub success_text: Color32,
+    pub warning_text: Color32,
+    pub error_text: Color32,
+    pub info_text: Color32,
+    pub danger_text: Color32,
+
+    // Colors - Semantic (hover states)
+    pub success_hover: Color32,
+    pub warning_hover: Color32,
+    pub error_hover: Color32,
+    pub info_hover: Color32,
+    pub danger_hover: Color32,
 
     // Colors - Border
     pub border: Color32,
@@ -90,11 +115,26 @@ impl Theme {
             text_secondary: Color32::from_rgb(75, 85, 99),
             text_muted: Color32::from_rgb(156, 163, 175),
 
-            // Semantic
-            success: Color32::from_rgb(34, 197, 94),
-            warning: Color32::from_rgb(234, 179, 8),
-            error: Color32::from_rgb(239, 68, 68),
-            info: Color32::from_rgb(59, 130, 246),
+            // Semantic (background)
+            success: Color32::from_rgb(34, 197, 94),   // green-500
+            warning: Color32::from_rgb(245, 158, 11),  // amber-500
+            error: Color32::from_rgb(239, 68, 68),     // red-500
+            info: Color32::from_rgb(14, 165, 233),     // sky-500
+            danger: Color32::from_rgb(239, 68, 68),    // red-500 (alias)
+
+            // Semantic text (on semantic background)
+            success_text: Color32::WHITE,
+            warning_text: Color32::WHITE,
+            error_text: Color32::WHITE,
+            info_text: Color32::WHITE,
+            danger_text: Color32::WHITE,
+
+            // Semantic hover
+            success_hover: Color32::from_rgb(22, 163, 74),   // green-600
+            warning_hover: Color32::from_rgb(217, 119, 6),   // amber-600
+            error_hover: Color32::from_rgb(220, 38, 38),     // red-600
+            info_hover: Color32::from_rgb(2, 132, 199),      // sky-600
+            danger_hover: Color32::from_rgb(220, 38, 38),    // red-600
 
             // Border
             border: Color32::from_rgb(229, 231, 235),
@@ -139,11 +179,26 @@ impl Theme {
             text_secondary: Color32::from_rgb(209, 213, 219),
             text_muted: Color32::from_rgb(156, 163, 175),
 
-            // Semantic
-            success: Color32::from_rgb(74, 222, 128),
-            warning: Color32::from_rgb(250, 204, 21),
-            error: Color32::from_rgb(248, 113, 113),
-            info: Color32::from_rgb(96, 165, 250),
+            // Semantic (background)
+            success: Color32::from_rgb(74, 222, 128),   // green-400
+            warning: Color32::from_rgb(251, 191, 36),   // amber-400
+            error: Color32::from_rgb(248, 113, 113),    // red-400
+            info: Color32::from_rgb(56, 189, 248),      // sky-400
+            danger: Color32::from_rgb(248, 113, 113),   // red-400 (alias)
+
+            // Semantic text (on semantic background) - dark text for light bg
+            success_text: Color32::from_rgb(17, 24, 39),
+            warning_text: Color32::from_rgb(17, 24, 39),
+            error_text: Color32::from_rgb(17, 24, 39),
+            info_text: Color32::from_rgb(17, 24, 39),
+            danger_text: Color32::from_rgb(17, 24, 39),
+
+            // Semantic hover
+            success_hover: Color32::from_rgb(34, 197, 94),   // green-500
+            warning_hover: Color32::from_rgb(245, 158, 11),  // amber-500
+            error_hover: Color32::from_rgb(239, 68, 68),     // red-500
+            info_hover: Color32::from_rgb(14, 165, 233),     // sky-500
+            danger_hover: Color32::from_rgb(239, 68, 68),    // red-500
 
             // Border
             border: Color32::from_rgb(55, 65, 81),
@@ -163,8 +218,25 @@ impl Theme {
         }
     }
 
-    /// Apply theme to egui context
+    /// ID used for storing theme in egui context
+    const STORAGE_ID: &'static str = "egui_cha_ds_theme";
+
+    /// Get current theme from egui context (fallback to default if not set)
+    pub fn current(ctx: &egui::Context) -> Self {
+        ctx.data(|d| d.get_temp::<Theme>(Id::new(Self::STORAGE_ID)))
+            .unwrap_or_default()
+    }
+
+    /// Create theme from external provider
+    pub fn from_provider(provider: impl ThemeProvider) -> Self {
+        provider.to_ds_theme()
+    }
+
+    /// Apply theme to egui context and store for component access
     pub fn apply(&self, ctx: &egui::Context) {
+        // Store theme for component access via Theme::current()
+        ctx.data_mut(|d| d.insert_temp(Id::new(Self::STORAGE_ID), self.clone()));
+
         let mut style = (*ctx.style()).clone();
         let visuals = &mut style.visuals;
 
