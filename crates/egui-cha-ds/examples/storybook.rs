@@ -68,6 +68,9 @@ struct Model {
     throttle_click_count: u32,
     throttle_actual_count: u32,
     throttler: Throttler,
+
+    // Columns demo
+    col_clicks: [u32; 4],
 }
 
 #[derive(Clone, Debug)]
@@ -132,6 +135,9 @@ enum Msg {
     // Throttler demo
     ThrottleClick,
     ThrottleActual,
+
+    // Columns demo
+    ColClick(usize),
 }
 
 const CATEGORIES: &[&str] = &["Atoms", "Molecules", "Framework"];
@@ -155,6 +161,7 @@ const MOLECULES: &[&str] = &[
     "Table",
     "Navbar",
     "ErrorConsole",
+    "Columns",
 ];
 
 const FRAMEWORK: &[&str] = &[
@@ -333,6 +340,11 @@ impl App for StorybookApp {
             }
             Msg::ThrottleActual => {
                 model.throttle_actual_count += 1;
+            }
+
+            // Columns demo
+            Msg::ColClick(i) => {
+                model.col_clicks[i] += 1;
             }
         }
         Cmd::none()
@@ -659,6 +671,75 @@ fn render_molecule(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.label("Error message display (see counter example)");
             ctx.ui.add_space(8.0);
             ctx.ui.label("The ErrorConsole component displays dismissible error messages.");
+        }
+
+        "Columns" => {
+            ctx.ui.heading("Column Layouts");
+            ctx.ui.label("Multi-column layouts with full emit() capability");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "ctx.two_columns(\n    |ctx| { ctx.button(\"Left\", Msg::Left); },\n    |ctx| { ctx.button(\"Right\", Msg::Right); },\n);"
+            ).show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+
+            // Two columns demo
+            ctx.ui.add_space(8.0);
+            ctx.ui.strong("two_columns:");
+            ctx.ui.add_space(4.0);
+
+            ctx.two_columns(
+                |ctx| {
+                    ctx.ui.label("Left Column");
+                    Button::primary("Click Left").on_click(ctx, Msg::ColClick(0));
+                    ctx.ui.label(format!("Clicks: {}", model.col_clicks[0]));
+                },
+                |ctx| {
+                    ctx.ui.label("Right Column");
+                    Button::secondary("Click Right").on_click(ctx, Msg::ColClick(1));
+                    ctx.ui.label(format!("Clicks: {}", model.col_clicks[1]));
+                },
+            );
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+
+            // Three columns demo
+            ctx.ui.add_space(8.0);
+            ctx.ui.strong("three_columns:");
+            ctx.ui.add_space(4.0);
+
+            ctx.three_columns(
+                |ctx| {
+                    ctx.ui.label("Col 1");
+                    Button::primary("A").on_click(ctx, Msg::ColClick(0));
+                },
+                |ctx| {
+                    ctx.ui.label("Col 2");
+                    Button::secondary("B").on_click(ctx, Msg::ColClick(1));
+                },
+                |ctx| {
+                    ctx.ui.label("Col 3");
+                    Button::danger("C").on_click(ctx, Msg::ColClick(2));
+                },
+            );
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+
+            // Four columns demo
+            ctx.ui.add_space(8.0);
+            ctx.ui.strong("four_columns:");
+            ctx.ui.add_space(4.0);
+
+            ctx.four_columns(
+                |ctx| { Button::primary("1").on_click(ctx, Msg::ColClick(0)); },
+                |ctx| { Button::secondary("2").on_click(ctx, Msg::ColClick(1)); },
+                |ctx| { Button::danger("3").on_click(ctx, Msg::ColClick(2)); },
+                |ctx| { Button::ghost("4").on_click(ctx, Msg::ColClick(3)); },
+            );
         }
 
         _ => {

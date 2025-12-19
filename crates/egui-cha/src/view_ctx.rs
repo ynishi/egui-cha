@@ -308,4 +308,77 @@ impl<'a, Msg> ViewCtx<'a, Msg> {
         self.emitter.extend(top_msgs);
         self.emitter.extend(main_msgs);
     }
+
+    /// Two-column layout using allocate_ui_at_rect
+    ///
+    /// Divides the available space into two equal columns.
+    /// Each column gets its own ViewCtx with full emit() capability.
+    ///
+    /// # Example
+    /// ```ignore
+    /// ctx.two_columns(
+    ///     |ctx| {
+    ///         ctx.ui.label("Left column");
+    ///         ctx.button("Click", Msg::LeftClicked);
+    ///     },
+    ///     |ctx| {
+    ///         ctx.ui.label("Right column");
+    ///         ctx.button("Click", Msg::RightClicked);
+    ///     },
+    /// );
+    /// ```
+    pub fn two_columns(
+        &mut self,
+        left: impl FnOnce(&mut ViewCtx<'_, Msg>),
+        right: impl FnOnce(&mut ViewCtx<'_, Msg>),
+    ) {
+        self.columns_n::<2>([Box::new(left), Box::new(right)]);
+    }
+
+    /// Three-column layout
+    ///
+    /// Divides the available space into three equal columns.
+    pub fn three_columns(
+        &mut self,
+        col1: impl FnOnce(&mut ViewCtx<'_, Msg>),
+        col2: impl FnOnce(&mut ViewCtx<'_, Msg>),
+        col3: impl FnOnce(&mut ViewCtx<'_, Msg>),
+    ) {
+        self.columns_n::<3>([Box::new(col1), Box::new(col2), Box::new(col3)]);
+    }
+
+    /// Four-column layout
+    ///
+    /// Divides the available space into four equal columns.
+    pub fn four_columns(
+        &mut self,
+        col1: impl FnOnce(&mut ViewCtx<'_, Msg>),
+        col2: impl FnOnce(&mut ViewCtx<'_, Msg>),
+        col3: impl FnOnce(&mut ViewCtx<'_, Msg>),
+        col4: impl FnOnce(&mut ViewCtx<'_, Msg>),
+    ) {
+        self.columns_n::<4>([Box::new(col1), Box::new(col2), Box::new(col3), Box::new(col4)]);
+    }
+
+    /// Internal helper for N-column layout
+    fn columns_n<const N: usize>(
+        &mut self,
+        columns: [Box<dyn FnOnce(&mut ViewCtx<'_, Msg>) + '_>; N],
+    ) {
+        let mut all_msgs: Vec<Vec<Msg>> = (0..N).map(|_| Vec::new()).collect();
+        let mut columns: Vec<_> = columns.into_iter().map(Some).collect();
+
+        self.ui.columns(N, |cols| {
+            for i in 0..N {
+                if let Some(col_fn) = columns[i].take() {
+                    let mut ctx = ViewCtx::new(&mut cols[i], &mut all_msgs[i]);
+                    col_fn(&mut ctx);
+                }
+            }
+        });
+
+        for msgs in all_msgs {
+            self.emitter.extend(msgs);
+        }
+    }
 }
