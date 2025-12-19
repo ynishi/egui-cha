@@ -150,29 +150,57 @@ impl App for MyApp {
 
 ### Design System (egui-cha-ds)
 
-#### Atoms
-| Component | Variants |
-|-----------|----------|
-| `Button` | Primary, Secondary, Outline, Ghost, Danger |
-| `Badge` | Default, Success, Warning, Error, Info |
-| `Input` | Text input with TEA-style callbacks |
-| `Icon` | Phosphor Icons (house, gear, info, etc.) |
-
-#### Molecules
-| Component | Description |
-|-----------|-------------|
-| `Card` | Container with optional title |
-| `Navbar` | Horizontal navigation bar |
-| `sidebar` | Vertical navigation |
-| `ErrorConsole` | Error/Warning/Info message display |
-| `SearchBar` | Search input with submit |
-
 #### Theme
 ```rust
 // Apply theme to egui context
-let theme = Theme::dark(); // or Theme::light()
+let theme = Theme::dark(); // or Theme::light(), Theme::pastel(), Theme::pastel_dark()
 theme.apply(ctx.ui.ctx());
 ```
+
+Theme includes:
+- **Colors**: Primary, Secondary, Semantic (success/warning/error/info), Background, Text, Border
+- **Spacing**: xs (4px), sm (8px), md (16px), lg (24px), xl (32px)
+- **Border Radius**: sm, md, lg
+- **Typography**: font_size_xs (10px) through font_size_3xl (30px)
+
+#### Atoms (14 components)
+| Component | Description |
+|-----------|-------------|
+| `Button` | Primary, Secondary, Outline, Ghost, Danger, Warning, Success, Info |
+| `Badge` | Default, Success, Warning, Error, Info |
+| `Text` | Typography: h1, h2, h3, body, small, caption with modifiers |
+| `Input` | Text input with TEA-style callbacks |
+| `ValidatedInput` | Input with validation state |
+| `Checkbox` | Boolean toggle with label |
+| `Toggle` | Switch-style boolean toggle |
+| `Slider` | Numeric range input |
+| `Select` | Dropdown selection |
+| `Icon` | Phosphor Icons (house, gear, info, etc.) |
+| `Link` | Hyperlink component |
+| `Code` | Code block display |
+| `Tooltip` | Themed tooltips via `ResponseExt` trait |
+| `ContextMenu` | Right-click menu via `ContextMenuExt` trait |
+
+#### Molecules (9 components)
+| Component | Description |
+|-----------|-------------|
+| `Card` | Container with optional title |
+| `Tabs` | Tabbed navigation with TabPanel |
+| `Modal` | Dialog overlay |
+| `Table` | Data table component |
+| `Navbar` | Horizontal navigation bar |
+| `ErrorConsole` | Error/Warning/Info message display |
+| `Toast` | Temporary notifications with auto-dismiss |
+| `Form` | Structured form with validation |
+| `SearchBar` | Search input with submit |
+
+#### Semantics (Pre-defined buttons)
+```rust
+// Consistent labels & icons across your app
+semantics::save(ButtonStyle::Both).on_click(ctx, Msg::Save);
+semantics::delete(ButtonStyle::Icon).on_click(ctx, Msg::Delete);
+```
+Available: `save`, `edit`, `delete`, `close`, `add`, `remove`, `search`, `refresh`, `play`, `pause`, `stop`, `settings`, `back`, `forward`, `confirm`, `cancel`, `copy`
 
 ## Commands (Side Effects)
 
