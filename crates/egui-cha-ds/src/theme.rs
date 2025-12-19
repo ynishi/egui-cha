@@ -5,7 +5,7 @@
 //! - `Theme::current()` for component access
 //! - `ThemeProvider` trait for external theme integration
 
-use egui::{Color32, Id};
+use egui::{Color32, FontId, Id, TextStyle};
 
 /// Theme variant
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -81,6 +81,18 @@ pub struct Theme {
     pub radius_sm: f32,
     pub radius_md: f32,
     pub radius_lg: f32,
+
+    // Typography - Font sizes
+    pub font_size_xs: f32,
+    pub font_size_sm: f32,
+    pub font_size_md: f32,
+    pub font_size_lg: f32,
+    pub font_size_xl: f32,
+    pub font_size_2xl: f32,
+    pub font_size_3xl: f32,
+
+    // Typography - Line height multiplier
+    pub line_height: f32,
 }
 
 impl Default for Theme {
@@ -151,6 +163,16 @@ impl Theme {
             radius_sm: 4.0,
             radius_md: 8.0,
             radius_lg: 12.0,
+
+            // Typography
+            font_size_xs: 10.0,
+            font_size_sm: 12.0,
+            font_size_md: 14.0,
+            font_size_lg: 16.0,
+            font_size_xl: 20.0,
+            font_size_2xl: 24.0,
+            font_size_3xl: 30.0,
+            line_height: 1.4,
         }
     }
 
@@ -215,6 +237,16 @@ impl Theme {
             radius_sm: 4.0,
             radius_md: 8.0,
             radius_lg: 12.0,
+
+            // Typography (same as light)
+            font_size_xs: 10.0,
+            font_size_sm: 12.0,
+            font_size_md: 14.0,
+            font_size_lg: 16.0,
+            font_size_xl: 20.0,
+            font_size_2xl: 24.0,
+            font_size_3xl: 30.0,
+            line_height: 1.4,
         }
     }
 
@@ -301,6 +333,28 @@ impl Theme {
         // Popup
         visuals.popup_shadow.color = visuals.window_shadow.color;
 
+        // Typography - Configure text styles
+        style.text_styles.insert(
+            TextStyle::Small,
+            FontId::proportional(self.font_size_sm),
+        );
+        style.text_styles.insert(
+            TextStyle::Body,
+            FontId::proportional(self.font_size_md),
+        );
+        style.text_styles.insert(
+            TextStyle::Button,
+            FontId::proportional(self.font_size_md),
+        );
+        style.text_styles.insert(
+            TextStyle::Heading,
+            FontId::proportional(self.font_size_xl),
+        );
+        style.text_styles.insert(
+            TextStyle::Monospace,
+            FontId::monospace(self.font_size_md),
+        );
+
         ctx.set_style(style);
     }
 
@@ -365,6 +419,16 @@ impl Theme {
             radius_sm: 6.0,
             radius_md: 12.0,
             radius_lg: 16.0,
+
+            // Typography (same as light)
+            font_size_xs: 10.0,
+            font_size_sm: 12.0,
+            font_size_md: 14.0,
+            font_size_lg: 16.0,
+            font_size_xl: 20.0,
+            font_size_2xl: 24.0,
+            font_size_3xl: 30.0,
+            line_height: 1.4,
         }
     }
 
@@ -429,6 +493,16 @@ impl Theme {
             radius_sm: 6.0,
             radius_md: 12.0,
             radius_lg: 16.0,
+
+            // Typography (same as light)
+            font_size_xs: 10.0,
+            font_size_sm: 12.0,
+            font_size_md: 14.0,
+            font_size_lg: 16.0,
+            font_size_xl: 20.0,
+            font_size_2xl: 24.0,
+            font_size_3xl: 30.0,
+            line_height: 1.4,
         }
     }
 }

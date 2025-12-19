@@ -59,7 +59,11 @@ impl<'a> Badge<'a> {
             .corner_radius(theme.radius_sm)
             .inner_margin(egui::Margin::symmetric(8, 2))
             .show(ui, |ui| {
-                ui.label(RichText::new(self.text).color(text_color).small());
+                ui.label(
+                    RichText::new(self.text)
+                        .color(text_color)
+                        .size(theme.font_size_xs),
+                );
             });
     }
 

@@ -237,6 +237,7 @@ const ATOMS: &[&str] = &[
     "Slider",
     "Link",
     "Code",
+    "Text",
     "Tooltip",
     "Context Menu",
 ];
@@ -865,6 +866,73 @@ fn render_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.add_space(8.0);
 
             Code::new("fn main() {\n    println!(\"Hello, world!\");\n}").show(ctx.ui);
+        }
+
+        "Text" => {
+            ctx.ui.heading("Text");
+            ctx.ui.label("Typography system with semantic variants");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "// Headings\nText::h1(\"Page Title\").show(ui);\nText::h2(\"Section\").show(ui);\nText::h3(\"Subsection\").show(ui);\n\n// Body variants\nText::body(\"Regular text\").show(ui);\nText::small(\"Small text\").show(ui);\nText::caption(\"Caption\").show(ui);\n\n// Modifiers\nText::body(\"Bold\").bold().show(ui);\nText::body(\"Colored\").color(theme.error).show(ui);"
+            ).show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Headings:");
+            ctx.ui.add_space(4.0);
+            Text::h1("Heading 1 (font_size_3xl)").show(ctx.ui);
+            Text::h2("Heading 2 (font_size_2xl)").show(ctx.ui);
+            Text::h3("Heading 3 (font_size_xl)").show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Body Variants:");
+            ctx.ui.add_space(4.0);
+            Text::large("Large text (font_size_lg)").show(ctx.ui);
+            Text::body("Body text (font_size_md) - default size").show(ctx.ui);
+            Text::small("Small text (font_size_sm)").show(ctx.ui);
+            Text::caption("Caption text (font_size_xs)").show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Modifiers:");
+            ctx.ui.add_space(4.0);
+            ctx.horizontal(|ctx| {
+                Text::body("Bold").bold().show(ctx.ui);
+                Text::body("Italic").italic().show(ctx.ui);
+                Text::body("Underline").underline().show(ctx.ui);
+                Text::body("Strikethrough").strikethrough().show(ctx.ui);
+            });
+
+            ctx.ui.add_space(8.0);
+            let theme = Theme::current(ctx.ui.ctx());
+            ctx.horizontal(|ctx| {
+                Text::body("Primary").color(theme.primary).show(ctx.ui);
+                Text::body("Success").color(theme.success).show(ctx.ui);
+                Text::body("Warning").color(theme.warning).show(ctx.ui);
+                Text::body("Error").color(theme.error).show(ctx.ui);
+            });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Typography Tokens (from Theme):");
+            ctx.ui.add_space(4.0);
+            ctx.ui.label(format!("font_size_xs: {}px", theme.font_size_xs));
+            ctx.ui.label(format!("font_size_sm: {}px", theme.font_size_sm));
+            ctx.ui.label(format!("font_size_md: {}px", theme.font_size_md));
+            ctx.ui.label(format!("font_size_lg: {}px", theme.font_size_lg));
+            ctx.ui.label(format!("font_size_xl: {}px", theme.font_size_xl));
+            ctx.ui.label(format!("font_size_2xl: {}px", theme.font_size_2xl));
+            ctx.ui.label(format!("font_size_3xl: {}px", theme.font_size_3xl));
         }
 
         "Tooltip" => {
