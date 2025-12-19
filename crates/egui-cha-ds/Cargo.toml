@@ -14,3 +14,7 @@ macros = ["dep:egui-cha-macros"]
 egui-cha.workspace = true
 egui.workspace = true
 egui-cha-macros = { workspace = true, optional = true }
+
+[dev-dependencies]
+eframe.workspace = true
+tracing-subscriber = "0.3"
