@@ -1,7 +1,10 @@
 //! ViewCtx - The bridge between view and message emission
 
+use std::hash::Hash;
+
 use egui::Ui;
 
+use crate::bindings::{ActionBindings, InputBinding};
 use crate::drag_drop::{DragSourceResponse, DropZoneResponse};
 
 /// Context passed to view functions, enabling message emission from any depth
@@ -499,6 +502,151 @@ impl<'a, Msg> ViewCtx<'a, Msg> {
             self.emitter.extend(child_msgs);
             result
         }).inner
+    }
+}
+
+// Keyboard shortcuts support
+impl<'a, Msg> ViewCtx<'a, Msg> {
+    /// Check if a keyboard shortcut was pressed and emit a message
+    ///
+    /// Uses `consume_shortcut` internally, so the shortcut won't trigger
+    /// other handlers after being consumed.
+    ///
+    /// # Example
+    /// ```ignore
+    /// use egui::{Key, KeyboardShortcut, Modifiers};
+    ///
+    /// // Define shortcuts
+    /// const SAVE: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::S);
+    /// const UNDO: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::Z);
+    ///
+    /// // In view function
+    /// ctx.on_shortcut(SAVE, Msg::Save);
+    /// ctx.on_shortcut(UNDO, Msg::Undo);
+    /// ```
+    pub fn on_shortcut(&mut self, shortcut: egui::KeyboardShortcut, msg: Msg) -> bool {
+        let triggered = self
+            .ui
+            .ctx()
+            .input_mut(|i| i.consume_shortcut(&shortcut));
+        if triggered {
+            self.emit(msg);
+        }
+        triggered
+    }
+
+    /// Check multiple shortcuts at once
+    ///
+    /// More efficient than calling `on_shortcut` multiple times.
+    ///
+    /// # Example
+    /// ```ignore
+    /// ctx.on_shortcuts(&[
+    ///     (SAVE, Msg::Save),
+    ///     (UNDO, Msg::Undo),
+    ///     (REDO, Msg::Redo),
+    /// ]);
+    /// ```
+    pub fn on_shortcuts(&mut self, shortcuts: &[(egui::KeyboardShortcut, Msg)])
+    where
+        Msg: Clone,
+    {
+        for (shortcut, msg) in shortcuts {
+            self.on_shortcut(*shortcut, msg.clone());
+        }
+    }
+
+    /// Check if a specific key was pressed (without modifiers)
+    ///
+    /// # Example
+    /// ```ignore
+    /// ctx.on_key(Key::Escape, Msg::Cancel);
+    /// ctx.on_key(Key::Enter, Msg::Confirm);
+    /// ```
+    pub fn on_key(&mut self, key: egui::Key, msg: Msg) -> bool {
+        let pressed = self.ui.ctx().input(|i| i.key_pressed(key));
+        if pressed {
+            self.emit(msg);
+        }
+        pressed
+    }
+
+    /// Check if an input binding was triggered and emit a message.
+    ///
+    /// Works with any type implementing `InputBinding`, including
+    /// `KeyboardShortcut`, `DynamicShortcut`, and `ShortcutGroup`.
+    ///
+    /// # Example
+    /// ```ignore
+    /// use egui_cha::bindings::{DynamicShortcut, InputBinding};
+    ///
+    /// let custom = DynamicShortcut::new(Modifiers::CTRL, Key::K);
+    /// ctx.on_binding(&custom, Msg::Custom);
+    ///
+    /// // Also works with static shortcuts
+    /// ctx.on_binding(&shortcuts::SAVE, Msg::Save);
+    /// ```
+    pub fn on_binding(&mut self, binding: &impl InputBinding, msg: Msg) -> bool {
+        let ctx = self.ui.ctx().clone();
+        if binding.consume(&ctx) {
+            self.emit(msg);
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Check if an action from ActionBindings was triggered.
+    ///
+    /// This is the preferred way to handle keyboard shortcuts when
+    /// using the dynamic binding system.
+    ///
+    /// # Example
+    /// ```ignore
+    /// use egui_cha::bindings::ActionBindings;
+    ///
+    /// #[derive(Clone, PartialEq, Eq, Hash)]
+    /// enum Action { Save, Undo, Redo }
+    ///
+    /// let bindings = ActionBindings::new()
+    ///     .with_default(Action::Save, shortcuts::SAVE)
+    ///     .with_default(Action::Undo, shortcuts::UNDO);
+    ///
+    /// // In view function
+    /// ctx.on_action(&bindings, &Action::Save, Msg::Save);
+    /// ctx.on_action(&bindings, &Action::Undo, Msg::Undo);
+    /// ```
+    pub fn on_action<A>(&mut self, bindings: &ActionBindings<A>, action: &A, msg: Msg) -> bool
+    where
+        A: Eq + Hash + Clone,
+    {
+        if let Some(shortcut) = bindings.get(action) {
+            self.on_binding(shortcut, msg)
+        } else {
+            false
+        }
+    }
+
+    /// Check all actions in ActionBindings and return triggered ones.
+    ///
+    /// Useful when you want to handle multiple actions in a single call.
+    ///
+    /// # Example
+    /// ```ignore
+    /// for action in ctx.triggered_actions(&bindings) {
+    ///     match action {
+    ///         Action::Save => ctx.emit(Msg::Save),
+    ///         Action::Undo => ctx.emit(Msg::Undo),
+    ///         _ => {}
+    ///     }
+    /// }
+    /// ```
+    pub fn triggered_actions<A>(&mut self, bindings: &ActionBindings<A>) -> Option<A>
+    where
+        A: Eq + Hash + Clone,
+    {
+        let ctx = self.ui.ctx().clone();
+        bindings.check_triggered(&ctx).cloned()
     }
 }
 

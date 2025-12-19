@@ -127,6 +127,17 @@ impl App for CounterApp {
     fn view(model: &Model, ctx: &mut ViewCtx<Msg>) {
         model.theme.apply(ctx.ui.ctx());
 
+        // Global keyboard shortcuts
+        ctx.on_shortcuts(&[
+            (shortcuts::UNDO, Msg::Decrement),
+            (shortcuts::REDO, Msg::Increment),
+        ]);
+        ctx.on_key(Key::Escape, Msg::Reset);
+
+        // Custom shortcut for theme toggle (Cmd+T)
+        const TOGGLE_THEME: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::T);
+        ctx.on_shortcut(TOGGLE_THEME, Msg::ToggleTheme);
+
         // Navigation bar (icons rendered separately in nav items)
         navbar(
             ctx,

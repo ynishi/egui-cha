@@ -18,11 +18,13 @@
 //! ```
 
 mod app;
+pub mod bindings;
 mod cmd;
 mod component;
 pub mod drag_drop;
 pub mod helpers;
 pub mod router;
+pub mod shortcuts;
 pub mod sub;
 pub mod testing;
 mod view_ctx;
@@ -42,12 +44,15 @@ pub use runtime::{run, RunConfig};
 
 /// Prelude for convenient imports
 pub mod prelude {
+    pub use crate::bindings::{ActionBindings, DynamicShortcut, InputBinding, ShortcutGroup};
     pub use crate::drag_drop::{DragSourceResponse, DropZoneResponse};
     pub use crate::helpers::{Debouncer, Throttler, TrailingThrottler};
     pub use crate::router::{BackButton, NavLink, Router, RouterMsg};
+    pub use crate::shortcuts;
     pub use crate::sub::Sub;
     pub use crate::{App, Cmd, Component, ViewCtx};
     pub use egui;
+    pub use egui::{Key, KeyboardShortcut, Modifiers};
 
     #[cfg(feature = "eframe")]
     pub use crate::RunConfig;

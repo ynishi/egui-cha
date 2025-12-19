@@ -16,7 +16,7 @@ rust-version = "1.75"
 
 [workspace.dependencies]
 # Internal
-egui-cha = { path = "crates/egui-cha" }
+egui-cha = { path = "crates/egui-cha", features = ["eframe"] }
 egui-cha-ds = { path = "crates/egui-cha-ds" }
 egui-cha-macros = { path = "crates/egui-cha-macros" }
 

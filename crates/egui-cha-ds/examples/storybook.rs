@@ -93,6 +93,25 @@ struct Model {
     // Drag & Drop demo
     dnd_items: Vec<String>,
     dnd_dropped: Vec<String>,
+
+    // Keyboard shortcuts demo
+    shortcut_counter: i32,
+    shortcut_last_action: Option<&'static str>,
+
+    // Dynamic bindings demo
+    bindings: ActionBindings<DemoAction>,
+    bindings_counter: i32,
+    bindings_last_action: Option<&'static str>,
+    bindings_rebind_mode: bool,
+}
+
+/// Demo action for dynamic bindings showcase
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+enum DemoAction {
+    Increment,
+    Decrement,
+    Reset,
+    Save,
 }
 
 #[derive(Clone, Debug)]
@@ -182,6 +201,20 @@ enum Msg {
 
     // Drag & Drop demo
     DndDropped(String),
+
+    // Keyboard shortcuts demo
+    ShortcutIncrement,
+    ShortcutDecrement,
+    ShortcutReset,
+    ShortcutSave,
+    ShortcutUndo,
+
+    // Dynamic bindings demo
+    BindingsAction(DemoAction),
+    BindingsRebind(DemoAction, DynamicShortcut),
+    BindingsReset(DemoAction),
+    BindingsResetAll,
+    BindingsToggleRebindMode,
 }
 
 const CATEGORIES: &[&str] = &["Atoms", "Semantics", "Molecules", "Framework"];
@@ -229,6 +262,8 @@ const FRAMEWORK: &[&str] = &[
     "Debouncer",
     "Throttler",
     "Drag & Drop",
+    "Shortcuts",
+    "Dynamic Bindings",
 ];
 
 impl App for StorybookApp {
@@ -236,6 +271,13 @@ impl App for StorybookApp {
     type Msg = Msg;
 
     fn init() -> (Model, Cmd<Msg>) {
+        // Set up default bindings for the demo
+        let bindings = ActionBindings::new()
+            .with_default(DemoAction::Increment, DynamicShortcut::new(Modifiers::NONE, Key::ArrowUp))
+            .with_default(DemoAction::Decrement, DynamicShortcut::new(Modifiers::NONE, Key::ArrowDown))
+            .with_default(DemoAction::Reset, DynamicShortcut::new(Modifiers::NONE, Key::Escape))
+            .with_default(DemoAction::Save, shortcuts::SAVE);
+
         (
             Model {
                 slider_value: 50.0,
@@ -256,6 +298,7 @@ impl App for StorybookApp {
                 ],
                 dnd_dropped: Vec::new(),
                 theme: Theme::light(),
+                bindings,
                 ..Default::default()
             },
             Cmd::none(),
@@ -481,6 +524,59 @@ impl App for StorybookApp {
                     model.dnd_items.remove(pos);
                 }
                 model.dnd_dropped.push(item);
+            }
+
+            // Keyboard shortcuts
+            Msg::ShortcutIncrement => {
+                model.shortcut_counter += 1;
+                model.shortcut_last_action = Some("Increment (+)");
+            }
+            Msg::ShortcutDecrement => {
+                model.shortcut_counter -= 1;
+                model.shortcut_last_action = Some("Decrement (-)");
+            }
+            Msg::ShortcutReset => {
+                model.shortcut_counter = 0;
+                model.shortcut_last_action = Some("Reset (Escape)");
+            }
+            Msg::ShortcutSave => {
+                model.shortcut_last_action = Some("Save (Cmd+S)");
+            }
+            Msg::ShortcutUndo => {
+                model.shortcut_last_action = Some("Undo (Cmd+Z)");
+            }
+
+            // Dynamic bindings
+            Msg::BindingsAction(action) => {
+                match action {
+                    DemoAction::Increment => {
+                        model.bindings_counter += 1;
+                        model.bindings_last_action = Some("Increment");
+                    }
+                    DemoAction::Decrement => {
+                        model.bindings_counter -= 1;
+                        model.bindings_last_action = Some("Decrement");
+                    }
+                    DemoAction::Reset => {
+                        model.bindings_counter = 0;
+                        model.bindings_last_action = Some("Reset");
+                    }
+                    DemoAction::Save => {
+                        model.bindings_last_action = Some("Save");
+                    }
+                }
+            }
+            Msg::BindingsRebind(action, shortcut) => {
+                model.bindings.rebind(&action, shortcut);
+            }
+            Msg::BindingsReset(action) => {
+                model.bindings.reset(&action);
+            }
+            Msg::BindingsResetAll => {
+                model.bindings.reset_all();
+            }
+            Msg::BindingsToggleRebindMode => {
+                model.bindings_rebind_mode = !model.bindings_rebind_mode;
             }
         }
         Cmd::none()
@@ -1356,7 +1452,10 @@ fn render_molecule(model: &Model, ctx: &mut ViewCtx<Msg>) {
             });
 
             ctx.show_if(model.cond_show, |ctx| {
-                ctx.ui.label("🎉 This content is conditionally shown!");
+                ctx.horizontal(|ctx| {
+                    Icon::check().color(egui::Color32::GREEN).show(ctx.ui);
+                    ctx.ui.label("This content is conditionally shown!");
+                });
             });
 
             ctx.ui.add_space(16.0);
@@ -1601,6 +1700,183 @@ fn render_framework(model: &Model, ctx: &mut ViewCtx<Msg>) {
                     drop_resp.on_drop(ctx, |item| Msg::DndDropped((*item).clone()));
                 },
             );
+        }
+
+        "Shortcuts" => {
+            ctx.ui.heading("Keyboard Shortcuts");
+            ctx.ui.label("TEA-style keyboard input handling");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "use egui_cha::prelude::*;\n\n// Use standard shortcuts from the shortcuts module\nctx.on_shortcut(shortcuts::SAVE, Msg::Save);\nctx.on_shortcut(shortcuts::UNDO, Msg::Undo);\n\n// Use on_key for simple key presses\nctx.on_key(Key::Escape, Msg::Cancel);\n\n// Define custom shortcuts\nconst MY_SHORTCUT: KeyboardShortcut = \n    KeyboardShortcut::new(Modifiers::COMMAND, Key::T);\nctx.on_shortcut(MY_SHORTCUT, Msg::Custom);"
+            ).show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Live Demo:");
+            ctx.ui.label("Try these keyboard shortcuts:");
+            ctx.ui.add_space(8.0);
+
+            // Register shortcuts for this demo
+            ctx.on_shortcut(shortcuts::SAVE, Msg::ShortcutSave);
+            ctx.on_shortcut(shortcuts::UNDO, Msg::ShortcutUndo);
+            ctx.on_key(Key::Escape, Msg::ShortcutReset);
+
+            // Arrow keys for counter
+            ctx.on_key(Key::ArrowUp, Msg::ShortcutIncrement);
+            ctx.on_key(Key::ArrowDown, Msg::ShortcutDecrement);
+
+            // Custom shortcuts
+            const INCREMENT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::NONE, Key::Plus);
+            const DECREMENT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::NONE, Key::Minus);
+            ctx.on_shortcut(INCREMENT, Msg::ShortcutIncrement);
+            ctx.on_shortcut(DECREMENT, Msg::ShortcutDecrement);
+
+            ctx.ui.label("Cmd+S : Save action");
+            ctx.ui.label("Cmd+Z : Undo action");
+            ctx.ui.label("Escape : Reset counter");
+            ctx.ui.label("Arrow Up/Down or +/- : Counter");
+
+            ctx.ui.add_space(16.0);
+
+            ctx.horizontal(|ctx| {
+                ctx.ui.strong("Counter:");
+                ctx.ui.label(format!("{}", model.shortcut_counter));
+            });
+
+            if let Some(action) = model.shortcut_last_action {
+                ctx.ui.add_space(8.0);
+                Badge::success(action).show(ctx.ui);
+            }
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Available Constants in shortcuts module:");
+            ctx.ui.label("Pre-defined KeyboardShortcut constants. Use as shortcuts::SAVE, shortcuts::UNDO, etc.");
+            ctx.ui.add_space(4.0);
+
+            ctx.two_columns(
+                |ctx| {
+                    ctx.ui.label("File: NEW, OPEN, SAVE, CLOSE");
+                    ctx.ui.label("Edit: UNDO, REDO, CUT, COPY, PASTE");
+                },
+                |ctx| {
+                    ctx.ui.label("Search: FIND, REPLACE");
+                    ctx.ui.label("Common: ESCAPE, ENTER, TAB");
+                },
+            );
+        }
+
+        "Dynamic Bindings" => {
+            ctx.ui.heading("Dynamic Key Bindings");
+            ctx.ui.label("Runtime-rebindable keyboard shortcuts (Phase 2)");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "use egui_cha::prelude::*;\n\n#[derive(Clone, PartialEq, Eq, Hash)]\nenum Action { Save, Undo, Redo }\n\n// Create bindings with defaults\nlet bindings = ActionBindings::new()\n    .with_default(Action::Save, shortcuts::SAVE)\n    .with_default(Action::Undo, shortcuts::UNDO);\n\n// Rebind at runtime\nbindings.rebind(&Action::Save, DynamicShortcut::new(\n    Modifiers::CTRL | Modifiers::SHIFT, Key::S\n));\n\n// In view function\nctx.on_action(&bindings, &Action::Save, Msg::Save);"
+            ).show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Live Demo:");
+            ctx.ui.label("Try the shortcuts, then rebind them!");
+            ctx.ui.add_space(8.0);
+
+            // Register action bindings
+            ctx.on_action(&model.bindings, &DemoAction::Increment, Msg::BindingsAction(DemoAction::Increment));
+            ctx.on_action(&model.bindings, &DemoAction::Decrement, Msg::BindingsAction(DemoAction::Decrement));
+            ctx.on_action(&model.bindings, &DemoAction::Reset, Msg::BindingsAction(DemoAction::Reset));
+            ctx.on_action(&model.bindings, &DemoAction::Save, Msg::BindingsAction(DemoAction::Save));
+
+            // Current bindings table
+            ctx.ui.strong("Current Bindings:");
+            ctx.ui.label("Press the shortcut key to trigger the action. Use buttons below to rebind.");
+            ctx.ui.add_space(4.0);
+
+            egui::Grid::new("bindings_grid")
+                .num_columns(3)
+                .spacing([20.0, 4.0])
+                .show(ctx.ui, |ui| {
+                    ui.strong("Action");
+                    ui.strong("Shortcut");
+                    ui.strong("Modified");
+                    ui.end_row();
+
+                    for action in [DemoAction::Increment, DemoAction::Decrement, DemoAction::Reset, DemoAction::Save] {
+                        let label = match &action {
+                            DemoAction::Increment => "Increment (counter +1)",
+                            DemoAction::Decrement => "Decrement (counter -1)",
+                            DemoAction::Reset => "Reset (counter = 0)",
+                            DemoAction::Save => "Save (show badge)",
+                        };
+
+                        ui.label(label);
+
+                        if let Some(shortcut) = model.bindings.get(&action) {
+                            ui.label(shortcut.display());
+                        } else {
+                            ui.label("-");
+                        }
+
+                        if model.bindings.is_modified(&action) {
+                            Badge::warning("Modified").show(ui);
+                        } else {
+                            ui.label("-");
+                        }
+
+                        ui.end_row();
+                    }
+                });
+
+            ctx.ui.add_space(16.0);
+
+            // Quick rebind buttons
+            ctx.ui.strong("Quick Rebind (try these):");
+            ctx.ui.add_space(4.0);
+
+            ctx.horizontal(|ctx| {
+                if ctx.ui.button("Increment -> W").clicked() {
+                    ctx.emit(Msg::BindingsRebind(
+                        DemoAction::Increment,
+                        DynamicShortcut::new(Modifiers::NONE, Key::W),
+                    ));
+                }
+                if ctx.ui.button("Decrement -> S").clicked() {
+                    ctx.emit(Msg::BindingsRebind(
+                        DemoAction::Decrement,
+                        DynamicShortcut::new(Modifiers::NONE, Key::S),
+                    ));
+                }
+            });
+
+            ctx.horizontal(|ctx| {
+                if ctx.ui.button("Save -> Ctrl+Shift+S").clicked() {
+                    ctx.emit(Msg::BindingsRebind(
+                        DemoAction::Save,
+                        DynamicShortcut::new(Modifiers::CTRL.plus(Modifiers::SHIFT), Key::S),
+                    ));
+                }
+                Button::secondary("Reset All to Defaults").on_click(ctx, Msg::BindingsResetAll);
+            });
+
+            ctx.ui.add_space(16.0);
+
+            // Counter display
+            ctx.horizontal(|ctx| {
+                ctx.ui.strong("Counter:");
+                ctx.ui.label(format!("{}", model.bindings_counter));
+            });
+
+            if let Some(action) = model.bindings_last_action {
+                ctx.ui.add_space(8.0);
+                Badge::success(action).show(ctx.ui);
+            }
         }
 
         _ => {
