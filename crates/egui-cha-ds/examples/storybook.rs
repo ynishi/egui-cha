@@ -39,6 +39,7 @@ struct Model {
 
     // Theme
     theme: Theme,
+    theme_index: usize,  // 0: Light, 1: Dark, 2: Pastel, 3: Pastel Dark
 
     // Tabs demo
     tabs_index: usize,
@@ -266,9 +267,12 @@ impl App for StorybookApp {
                 model.confirm_result = Some(result);
             }
             Msg::ToggleTheme => {
-                model.theme = match model.theme.variant {
-                    ThemeVariant::Light => Theme::dark(),
-                    ThemeVariant::Dark => Theme::light(),
+                model.theme_index = (model.theme_index + 1) % 4;
+                model.theme = match model.theme_index {
+                    0 => Theme::light(),
+                    1 => Theme::dark(),
+                    2 => Theme::pastel(),
+                    _ => Theme::pastel_dark(),
                 };
             }
             Msg::TabChanged(idx) => {
@@ -430,7 +434,12 @@ impl App for StorybookApp {
                     ctx.ui.heading("DS Storybook");
                 });
 
-                let theme_label = if model.theme.variant == ThemeVariant::Dark { "Light" } else { "Dark" };
+                let theme_label = match model.theme_index {
+                    0 => "Light > Dark",
+                    1 => "Dark > Pastel",
+                    2 => "Pastel > Pastel Dark",
+                    _ => "Pastel Dark > Light",
+                };
                 Button::ghost(theme_label).on_click(ctx, Msg::ToggleTheme);
 
                 ctx.ui.separator();

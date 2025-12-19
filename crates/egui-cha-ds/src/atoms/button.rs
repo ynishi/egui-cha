@@ -3,6 +3,8 @@
 use egui::{Color32, Response, RichText, Stroke, Ui, Widget};
 use egui_cha::ViewCtx;
 
+use crate::Theme;
+
 /// Button variant for different styles
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ButtonVariant {
@@ -12,6 +14,9 @@ pub enum ButtonVariant {
     Outline,
     Ghost,
     Danger,
+    Warning,
+    Success,
+    Info,
 }
 
 /// A styled button component
@@ -59,6 +64,21 @@ impl<'a> Button<'a> {
         Self::new(label).variant(ButtonVariant::Danger)
     }
 
+    /// Create a warning variant button
+    pub fn warning(label: &'a str) -> Self {
+        Self::new(label).variant(ButtonVariant::Warning)
+    }
+
+    /// Create a success variant button
+    pub fn success(label: &'a str) -> Self {
+        Self::new(label).variant(ButtonVariant::Success)
+    }
+
+    /// Create an info variant button
+    pub fn info(label: &'a str) -> Self {
+        Self::new(label).variant(ButtonVariant::Info)
+    }
+
     /// Set the variant
     pub fn variant(mut self, variant: ButtonVariant) -> Self {
         self.variant = variant;
@@ -93,9 +113,8 @@ impl<'a> Button<'a> {
             None => self.label.to_string(),
         };
 
-        // Get dark_mode from Context (not Ui) since theme.apply() updates Context style
-        let is_dark = ui.ctx().style().visuals.dark_mode;
-        let (fill, text_color, stroke) = self.variant_style(is_dark);
+        let theme = Theme::current(ui.ctx());
+        let (fill, text_color, stroke) = self.variant_style(&theme);
 
         let rich_text = RichText::new(text).color(text_color);
         let mut button = egui::Button::new(rich_text).fill(fill);
@@ -108,69 +127,21 @@ impl<'a> Button<'a> {
         response.clicked()
     }
 
-    /// Get style colors for variant
-    fn variant_style(&self, is_dark: bool) -> (Color32, Color32, Option<Stroke>) {
+    /// Get style colors for variant from theme
+    fn variant_style(&self, theme: &Theme) -> (Color32, Color32, Option<Stroke>) {
         match self.variant {
-            ButtonVariant::Primary => {
-                let bg = if is_dark {
-                    Color32::from_rgb(96, 165, 250) // primary dark
-                } else {
-                    Color32::from_rgb(59, 130, 246) // primary light
-                };
-                let fg = if is_dark {
-                    Color32::from_rgb(17, 24, 39) // dark text on light button
-                } else {
-                    Color32::WHITE
-                };
-                (bg, fg, None)
-            }
-            ButtonVariant::Secondary => {
-                let bg = if is_dark {
-                    Color32::from_rgb(55, 65, 81) // bg_tertiary dark
-                } else {
-                    Color32::from_rgb(107, 114, 128) // secondary light
-                };
-                let fg = if is_dark {
-                    Color32::from_rgb(249, 250, 251) // text_primary dark
-                } else {
-                    Color32::WHITE
-                };
-                (bg, fg, None)
-            }
-            ButtonVariant::Outline => {
-                let border = if is_dark {
-                    Color32::from_rgb(156, 163, 175) // text_muted
-                } else {
-                    Color32::from_rgb(107, 114, 128)
-                };
-                let fg = if is_dark {
-                    Color32::from_rgb(249, 250, 251)
-                } else {
-                    Color32::from_rgb(17, 24, 39)
-                };
-                (Color32::TRANSPARENT, fg, Some(Stroke::new(1.0, border)))
-            }
-            ButtonVariant::Ghost => {
-                let fg = if is_dark {
-                    Color32::from_rgb(209, 213, 219) // text_secondary dark
-                } else {
-                    Color32::from_rgb(75, 85, 99)
-                };
-                (Color32::TRANSPARENT, fg, None)
-            }
-            ButtonVariant::Danger => {
-                let bg = if is_dark {
-                    Color32::from_rgb(248, 113, 113) // error dark
-                } else {
-                    Color32::from_rgb(239, 68, 68) // error light
-                };
-                let fg = if is_dark {
-                    Color32::from_rgb(17, 24, 39)
-                } else {
-                    Color32::WHITE
-                };
-                (bg, fg, None)
-            }
+            ButtonVariant::Primary => (theme.primary, theme.primary_text, None),
+            ButtonVariant::Secondary => (theme.secondary, theme.secondary_text, None),
+            ButtonVariant::Outline => (
+                Color32::TRANSPARENT,
+                theme.text_primary,
+                Some(Stroke::new(1.0, theme.border)),
+            ),
+            ButtonVariant::Ghost => (Color32::TRANSPARENT, theme.text_secondary, None),
+            ButtonVariant::Danger => (theme.danger, theme.danger_text, None),
+            ButtonVariant::Warning => (theme.warning, theme.warning_text, None),
+            ButtonVariant::Success => (theme.success, theme.success_text, None),
+            ButtonVariant::Info => (theme.info, theme.info_text, None),
         }
     }
 }
@@ -182,9 +153,8 @@ impl<'a> Widget for Button<'a> {
             None => self.label.to_string(),
         };
 
-        // Get dark_mode from Context (not Ui) since theme.apply() updates Context style
-        let is_dark = ui.ctx().style().visuals.dark_mode;
-        let (fill, text_color, stroke) = self.variant_style(is_dark);
+        let theme = Theme::current(ui.ctx());
+        let (fill, text_color, stroke) = self.variant_style(&theme);
 
         let rich_text = RichText::new(text).color(text_color);
         let mut button = egui::Button::new(rich_text).fill(fill);

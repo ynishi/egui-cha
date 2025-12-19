@@ -42,6 +42,8 @@ use egui::{Align2, Area, Color32, CornerRadius, Frame, Id, Order, RichText, Vec2
 use egui_cha::{Cmd, ViewCtx};
 use std::time::Duration;
 
+use crate::{icons, Theme, ThemeVariant};
+
 /// Unique identifier for a toast
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ToastId(u64);
@@ -65,59 +67,42 @@ pub enum ToastVariant {
 }
 
 impl ToastVariant {
-    fn colors(&self, is_dark: bool) -> (Color32, Color32, &'static str) {
+    /// Get colors from theme (subtle style: light bg, dark text)
+    fn colors(&self, theme: &Theme) -> (Color32, Color32, &'static str) {
+        let is_dark = theme.variant == ThemeVariant::Dark;
+
         match self {
             ToastVariant::Info => {
-                let bg = if is_dark {
-                    Color32::from_rgb(30, 58, 138) // blue-900
+                let (bg, fg) = if is_dark {
+                    (darken(theme.info, 0.4), lighten(theme.info, 0.6))
                 } else {
-                    Color32::from_rgb(219, 234, 254) // blue-100
+                    (lighten(theme.info, 0.85), darken(theme.info, 0.3))
                 };
-                let fg = if is_dark {
-                    Color32::from_rgb(191, 219, 254) // blue-200
-                } else {
-                    Color32::from_rgb(30, 64, 175) // blue-800
-                };
-                (bg, fg, "\u{e2ce}") // info icon
+                (bg, fg, icons::INFO)
             }
             ToastVariant::Success => {
-                let bg = if is_dark {
-                    Color32::from_rgb(20, 83, 45) // green-900
+                let (bg, fg) = if is_dark {
+                    (darken(theme.success, 0.4), lighten(theme.success, 0.6))
                 } else {
-                    Color32::from_rgb(220, 252, 231) // green-100
+                    (lighten(theme.success, 0.85), darken(theme.success, 0.3))
                 };
-                let fg = if is_dark {
-                    Color32::from_rgb(187, 247, 208) // green-200
-                } else {
-                    Color32::from_rgb(22, 101, 52) // green-800
-                };
-                (bg, fg, "\u{e182}") // check icon
+                (bg, fg, icons::CHECK)
             }
             ToastVariant::Warning => {
-                let bg = if is_dark {
-                    Color32::from_rgb(120, 53, 15) // amber-900
+                let (bg, fg) = if is_dark {
+                    (darken(theme.warning, 0.4), lighten(theme.warning, 0.6))
                 } else {
-                    Color32::from_rgb(254, 243, 199) // amber-100
+                    (lighten(theme.warning, 0.85), darken(theme.warning, 0.4))
                 };
-                let fg = if is_dark {
-                    Color32::from_rgb(253, 230, 138) // amber-200
-                } else {
-                    Color32::from_rgb(146, 64, 14) // amber-800
-                };
-                (bg, fg, "\u{e4e0}") // warning icon
+                (bg, fg, icons::WARNING)
             }
             ToastVariant::Error => {
-                let bg = if is_dark {
-                    Color32::from_rgb(127, 29, 29) // red-900
+                let (bg, fg) = if is_dark {
+                    (darken(theme.error, 0.4), lighten(theme.error, 0.6))
                 } else {
-                    Color32::from_rgb(254, 226, 226) // red-100
+                    (lighten(theme.error, 0.85), darken(theme.error, 0.3))
                 };
-                let fg = if is_dark {
-                    Color32::from_rgb(254, 202, 202) // red-200
-                } else {
-                    Color32::from_rgb(153, 27, 27) // red-800
-                };
-                (bg, fg, "\u{e4f6}") // x-circle icon
+                (bg, fg, icons::X)
             }
         }
     }
@@ -143,12 +128,13 @@ impl ToastPosition {
         }
     }
 
-    fn offset(&self) -> Vec2 {
+    fn offset(&self, theme: &Theme) -> Vec2 {
+        let margin = theme.spacing_md;
         match self {
-            ToastPosition::TopRight => Vec2::new(-16.0, 16.0),
-            ToastPosition::BottomRight => Vec2::new(-16.0, -16.0),
-            ToastPosition::TopLeft => Vec2::new(16.0, 16.0),
-            ToastPosition::BottomLeft => Vec2::new(16.0, -16.0),
+            ToastPosition::TopRight => Vec2::new(-margin, margin),
+            ToastPosition::BottomRight => Vec2::new(-margin, -margin),
+            ToastPosition::TopLeft => Vec2::new(margin, margin),
+            ToastPosition::BottomLeft => Vec2::new(margin, -margin),
         }
     }
 
@@ -259,7 +245,7 @@ impl ToastContainer {
     }
 
     /// Show all toasts
-    pub fn show<Msg, F>(&self, ctx: &mut ViewCtx<'_, Msg>, dismiss_msg: F)
+    pub fn show<Msg, F>(&self, ctx: &mut ViewCtx<'_, Msg>, _dismiss_msg: F)
     where
         F: Fn(ToastId) -> Msg + Clone,
     {
@@ -267,17 +253,17 @@ impl ToastContainer {
             return;
         }
 
-        let is_dark = ctx.ui.ctx().style().visuals.dark_mode;
+        let theme = Theme::current(ctx.ui.ctx());
         let screen_rect = ctx.ui.ctx().screen_rect();
 
         // Calculate starting position
         let anchor = self.position.anchor();
-        let offset = self.position.offset();
+        let offset = self.position.offset(&theme);
         let base_pos = anchor.pos_in_rect(&screen_rect) + offset;
 
         // Render each toast
         let toast_height = 48.0;
-        let toast_spacing = 8.0;
+        let toast_spacing = theme.spacing_sm;
 
         for (i, toast) in self.toasts.iter().enumerate() {
             let y_offset = if self.position.is_bottom() {
@@ -292,12 +278,12 @@ impl ToastContainer {
                 .anchor(anchor, pos - anchor.pos_in_rect(&screen_rect))
                 .order(Order::Foreground)
                 .show(ctx.ui.ctx(), |ui| {
-                    let (bg, fg, icon) = toast.variant.colors(is_dark);
+                    let (bg, fg, icon) = toast.variant.colors(&theme);
 
                     Frame::new()
                         .fill(bg)
-                        .corner_radius(CornerRadius::same(8))
-                        .inner_margin(12.0)
+                        .corner_radius(CornerRadius::same(theme.radius_md as u8))
+                        .inner_margin(theme.spacing_sm + 4.0)
                         .show(ui, |ui| {
                             ui.horizontal(|ui| {
                                 // Icon
@@ -308,17 +294,17 @@ impl ToastContainer {
                                         .size(16.0),
                                 );
 
-                                ui.add_space(8.0);
+                                ui.add_space(theme.spacing_sm);
 
                                 // Message
                                 ui.label(RichText::new(&toast.message).color(fg));
 
-                                ui.add_space(16.0);
+                                ui.add_space(theme.spacing_md);
 
                                 // Close button
-                                let close_response = ui.add(
+                                let _close_response = ui.add(
                                     egui::Button::new(
-                                        RichText::new("\u{e4f6}")
+                                        RichText::new(icons::X)
                                             .family(egui::FontFamily::Name("icons".into()))
                                             .color(fg)
                                             .size(14.0),
@@ -327,15 +313,34 @@ impl ToastContainer {
                                     .stroke(egui::Stroke::NONE),
                                 );
 
-                                if close_response.clicked() {
-                                    // We can't emit here since we don't have ViewCtx
-                                    // The dismiss will happen via the auto-dismiss Cmd
-                                }
+                                // Note: dismiss via auto-dismiss Cmd
                             });
                         });
                 });
         }
     }
+}
+
+/// Lighten a color by mixing with white
+fn lighten(color: Color32, amount: f32) -> Color32 {
+    let [r, g, b, a] = color.to_array();
+    Color32::from_rgba_unmultiplied(
+        (r as f32 + (255.0 - r as f32) * amount) as u8,
+        (g as f32 + (255.0 - g as f32) * amount) as u8,
+        (b as f32 + (255.0 - b as f32) * amount) as u8,
+        a,
+    )
+}
+
+/// Darken a color by mixing with black
+fn darken(color: Color32, amount: f32) -> Color32 {
+    let [r, g, b, a] = color.to_array();
+    Color32::from_rgba_unmultiplied(
+        (r as f32 * (1.0 - amount)) as u8,
+        (g as f32 * (1.0 - amount)) as u8,
+        (b as f32 * (1.0 - amount)) as u8,
+        a,
+    )
 }
 
 #[cfg(test)]

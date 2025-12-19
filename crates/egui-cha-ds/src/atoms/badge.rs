@@ -2,6 +2,8 @@
 
 use egui::{Color32, RichText, Ui};
 
+use crate::Theme;
+
 /// Badge variant
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum BadgeVariant {
@@ -49,85 +51,78 @@ impl<'a> Badge<'a> {
     }
 
     pub fn show(self, ui: &mut Ui) {
-        let is_dark = ui.ctx().style().visuals.dark_mode;
-        let (bg_color, text_color) = self.variant_colors(is_dark);
+        let theme = Theme::current(ui.ctx());
+        let (bg_color, text_color) = self.variant_colors(&theme);
 
         egui::Frame::new()
             .fill(bg_color)
-            .corner_radius(4.0)
+            .corner_radius(theme.radius_sm)
             .inner_margin(egui::Margin::symmetric(8, 2))
             .show(ui, |ui| {
                 ui.label(RichText::new(self.text).color(text_color).small());
             });
     }
 
-    fn variant_colors(&self, is_dark: bool) -> (Color32, Color32) {
+    /// Get badge colors from theme
+    /// Note: Badge uses "subtle" style (light bg, dark text) unlike buttons
+    fn variant_colors(&self, theme: &Theme) -> (Color32, Color32) {
+        let is_dark = theme.variant == crate::ThemeVariant::Dark;
+
         match self.variant {
             BadgeVariant::Default => {
-                if is_dark {
-                    (
-                        Color32::from_rgb(55, 65, 81),
-                        Color32::from_rgb(209, 213, 219),
-                    )
-                } else {
-                    (
-                        Color32::from_rgb(229, 231, 235),
-                        Color32::from_rgb(55, 65, 81),
-                    )
-                }
+                (theme.bg_tertiary, theme.text_secondary)
             }
             BadgeVariant::Success => {
+                // Subtle style: light green bg, dark green text
                 if is_dark {
-                    (
-                        Color32::from_rgb(22, 101, 52),
-                        Color32::from_rgb(187, 247, 208),
-                    )
+                    (darken(theme.success, 0.3), lighten(theme.success, 0.7))
                 } else {
-                    (
-                        Color32::from_rgb(220, 252, 231),
-                        Color32::from_rgb(22, 101, 52),
-                    )
+                    (lighten(theme.success, 0.85), darken(theme.success, 0.3))
                 }
             }
             BadgeVariant::Warning => {
                 if is_dark {
-                    (
-                        Color32::from_rgb(133, 77, 14),
-                        Color32::from_rgb(254, 240, 138),
-                    )
+                    (darken(theme.warning, 0.3), lighten(theme.warning, 0.7))
                 } else {
-                    (
-                        Color32::from_rgb(254, 249, 195),
-                        Color32::from_rgb(133, 77, 14),
-                    )
+                    (lighten(theme.warning, 0.85), darken(theme.warning, 0.4))
                 }
             }
             BadgeVariant::Error => {
                 if is_dark {
-                    (
-                        Color32::from_rgb(153, 27, 27),
-                        Color32::from_rgb(254, 202, 202),
-                    )
+                    (darken(theme.error, 0.3), lighten(theme.error, 0.7))
                 } else {
-                    (
-                        Color32::from_rgb(254, 226, 226),
-                        Color32::from_rgb(153, 27, 27),
-                    )
+                    (lighten(theme.error, 0.85), darken(theme.error, 0.3))
                 }
             }
             BadgeVariant::Info => {
                 if is_dark {
-                    (
-                        Color32::from_rgb(30, 64, 175),
-                        Color32::from_rgb(191, 219, 254),
-                    )
+                    (darken(theme.info, 0.3), lighten(theme.info, 0.7))
                 } else {
-                    (
-                        Color32::from_rgb(219, 234, 254),
-                        Color32::from_rgb(30, 64, 175),
-                    )
+                    (lighten(theme.info, 0.85), darken(theme.info, 0.3))
                 }
             }
         }
     }
+}
+
+/// Lighten a color by mixing with white
+fn lighten(color: Color32, amount: f32) -> Color32 {
+    let [r, g, b, a] = color.to_array();
+    Color32::from_rgba_unmultiplied(
+        (r as f32 + (255.0 - r as f32) * amount) as u8,
+        (g as f32 + (255.0 - g as f32) * amount) as u8,
+        (b as f32 + (255.0 - b as f32) * amount) as u8,
+        a,
+    )
+}
+
+/// Darken a color by mixing with black
+fn darken(color: Color32, amount: f32) -> Color32 {
+    let [r, g, b, a] = color.to_array();
+    Color32::from_rgba_unmultiplied(
+        (r as f32 * (1.0 - amount)) as u8,
+        (g as f32 * (1.0 - amount)) as u8,
+        (b as f32 * (1.0 - amount)) as u8,
+        a,
+    )
 }
