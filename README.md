@@ -147,6 +147,7 @@ impl App for MyApp {
 | `ViewCtx` | UI context with `emit`, `horizontal`, `vertical`, `group` |
 | `Router` | Page navigation with history stack |
 | `Component` | Reusable component trait |
+| `ScrollArea` | Scrollable container with builder pattern |
 
 ### Design System (egui-cha-ds)
 
@@ -163,7 +164,7 @@ Theme includes:
 - **Border Radius**: sm, md, lg
 - **Typography**: font_size_xs (10px) through font_size_3xl (30px)
 
-#### Atoms (14 components)
+#### Atoms (13 components)
 | Component | Description |
 |-----------|-------------|
 | `Button` | Primary, Secondary, Outline, Ghost, Danger, Warning, Success, Info |
