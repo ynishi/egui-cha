@@ -71,6 +71,11 @@ struct Model {
 
     // Columns demo
     col_clicks: [u32; 4],
+
+    // Conditionals demo
+    cond_show: bool,
+    cond_enabled: bool,
+    cond_visible: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -138,6 +143,11 @@ enum Msg {
 
     // Columns demo
     ColClick(usize),
+
+    // Conditionals demo
+    ToggleCondShow,
+    ToggleCondEnabled,
+    ToggleCondVisible,
 }
 
 const CATEGORIES: &[&str] = &["Atoms", "Molecules", "Framework"];
@@ -162,6 +172,7 @@ const MOLECULES: &[&str] = &[
     "Navbar",
     "ErrorConsole",
     "Columns",
+    "Conditionals",
 ];
 
 const FRAMEWORK: &[&str] = &[
@@ -345,6 +356,17 @@ impl App for StorybookApp {
             // Columns demo
             Msg::ColClick(i) => {
                 model.col_clicks[i] += 1;
+            }
+
+            // Conditionals demo
+            Msg::ToggleCondShow => {
+                model.cond_show = !model.cond_show;
+            }
+            Msg::ToggleCondEnabled => {
+                model.cond_enabled = !model.cond_enabled;
+            }
+            Msg::ToggleCondVisible => {
+                model.cond_visible = !model.cond_visible;
             }
         }
         Cmd::none()
@@ -757,6 +779,73 @@ fn render_molecule(model: &Model, ctx: &mut ViewCtx<Msg>) {
                 Box::new(|ctx| { ctx.ui.label("E"); }),
                 Box::new(|ctx| { ctx.ui.label("F"); }),
             ]);
+        }
+
+        "Conditionals" => {
+            ctx.ui.heading("Conditional Rendering");
+            ctx.ui.label("show_if, enabled_if, visible_if helpers");
+            ctx.ui.add_space(16.0);
+
+            // show_if demo
+            ctx.ui.strong("show_if:");
+            ctx.ui.add_space(4.0);
+            Code::new("ctx.show_if(condition, |ctx| { ... });").show(ctx.ui);
+            ctx.ui.add_space(8.0);
+
+            ctx.horizontal(|ctx| {
+                ctx.ui.checkbox(&mut model.cond_show.clone(), "Show content");
+                if ctx.ui.checkbox(&mut model.cond_show.clone(), "").changed() {
+                    ctx.emit(Msg::ToggleCondShow);
+                }
+            });
+
+            ctx.show_if(model.cond_show, |ctx| {
+                ctx.ui.label("🎉 This content is conditionally shown!");
+            });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+
+            // enabled_if demo
+            ctx.ui.add_space(8.0);
+            ctx.ui.strong("enabled_if:");
+            ctx.ui.add_space(4.0);
+            Code::new("ctx.enabled_if(can_submit, |ctx| { ... });").show(ctx.ui);
+            ctx.ui.add_space(8.0);
+
+            ctx.horizontal(|ctx| {
+                if ctx.ui.checkbox(&mut model.cond_enabled.clone(), "Enable button").changed() {
+                    ctx.emit(Msg::ToggleCondEnabled);
+                }
+            });
+
+            ctx.enabled_if(model.cond_enabled, |ctx| {
+                Button::primary("Submit").on_click(ctx, Msg::ButtonClicked);
+            });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+
+            // visible_if demo
+            ctx.ui.add_space(8.0);
+            ctx.ui.strong("visible_if (keeps space):");
+            ctx.ui.add_space(4.0);
+            Code::new("ctx.visible_if(show_hint, |ctx| { ... });").show(ctx.ui);
+            ctx.ui.add_space(8.0);
+
+            ctx.horizontal(|ctx| {
+                if ctx.ui.checkbox(&mut model.cond_visible.clone(), "Show hint").changed() {
+                    ctx.emit(Msg::ToggleCondVisible);
+                }
+            });
+
+            ctx.visible_if(model.cond_visible, |ctx| {
+                ctx.ui.label("This hint takes space even when hidden");
+            });
+            ctx.horizontal(|ctx| {
+                Icon::arrow_left().show_ctx(ctx);
+                ctx.ui.label("Content below stays in place");
+            });
         }
 
         _ => {

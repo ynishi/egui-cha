@@ -419,4 +419,83 @@ impl<'a, Msg> ViewCtx<'a, Msg> {
             self.emitter.extend(msgs);
         }
     }
+
+    /// Conditionally show content
+    ///
+    /// # Example
+    /// ```ignore
+    /// ctx.show_if(model.is_logged_in, |ctx| {
+    ///     ctx.ui.label("Welcome!");
+    ///     ctx.button("Logout", Msg::Logout);
+    /// });
+    /// ```
+    pub fn show_if<R>(&mut self, condition: bool, f: impl FnOnce(&mut ViewCtx<'_, Msg>) -> R) -> Option<R> {
+        if condition {
+            Some(f(self))
+        } else {
+            None
+        }
+    }
+
+    /// Conditionally show content with else branch
+    ///
+    /// # Example
+    /// ```ignore
+    /// ctx.show_if_else(
+    ///     model.is_logged_in,
+    ///     |ctx| { ctx.ui.label("Welcome!"); },
+    ///     |ctx| { ctx.button("Login", Msg::Login); },
+    /// );
+    /// ```
+    pub fn show_if_else<R>(
+        &mut self,
+        condition: bool,
+        if_true: impl FnOnce(&mut ViewCtx<'_, Msg>) -> R,
+        if_false: impl FnOnce(&mut ViewCtx<'_, Msg>) -> R,
+    ) -> R {
+        if condition {
+            if_true(self)
+        } else {
+            if_false(self)
+        }
+    }
+
+    /// Render content with disabled state
+    ///
+    /// # Example
+    /// ```ignore
+    /// ctx.enabled_if(model.can_submit, |ctx| {
+    ///     ctx.button("Submit", Msg::Submit);
+    /// });
+    /// ```
+    pub fn enabled_if<R>(&mut self, enabled: bool, f: impl FnOnce(&mut ViewCtx<'_, Msg>) -> R) -> R {
+        self.ui.add_enabled_ui(enabled, |ui| {
+            let mut child_msgs = Vec::new();
+            let mut ctx = ViewCtx::new(ui, &mut child_msgs);
+            let result = f(&mut ctx);
+            self.emitter.extend(child_msgs);
+            result
+        }).inner
+    }
+
+    /// Render content with visible state (hidden but still takes space)
+    ///
+    /// # Example
+    /// ```ignore
+    /// ctx.visible_if(model.show_hint, |ctx| {
+    ///     ctx.ui.label("This is a hint");
+    /// });
+    /// ```
+    pub fn visible_if<R>(&mut self, visible: bool, f: impl FnOnce(&mut ViewCtx<'_, Msg>) -> R) -> R {
+        self.ui.scope(|ui| {
+            if !visible {
+                ui.set_invisible();
+            }
+            let mut child_msgs = Vec::new();
+            let mut ctx = ViewCtx::new(ui, &mut child_msgs);
+            let result = f(&mut ctx);
+            self.emitter.extend(child_msgs);
+            result
+        }).inner
+    }
 }
