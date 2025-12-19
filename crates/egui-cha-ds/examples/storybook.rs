@@ -4,7 +4,7 @@
 
 use egui_cha::prelude::*;
 use egui_cha_ds::prelude::*;
-use egui_cha_ds::ConfirmResult;
+use egui_cha_ds::{ConfirmResult, ToastContainer, ToastId};
 use std::time::Duration;
 
 fn main() -> eframe::Result<()> {
@@ -76,6 +76,9 @@ struct Model {
     cond_show: bool,
     cond_enabled: bool,
     cond_visible: bool,
+
+    // Toast demo
+    toasts: ToastContainer,
 }
 
 #[derive(Clone, Debug)]
@@ -148,6 +151,13 @@ enum Msg {
     ToggleCondShow,
     ToggleCondEnabled,
     ToggleCondVisible,
+
+    // Toast demo
+    ShowToastInfo,
+    ShowToastSuccess,
+    ShowToastWarning,
+    ShowToastError,
+    DismissToast(ToastId),
 }
 
 const CATEGORIES: &[&str] = &["Atoms", "Semantics", "Molecules", "Framework"];
@@ -180,6 +190,7 @@ const MOLECULES: &[&str] = &[
     "Table",
     "Navbar",
     "ErrorConsole",
+    "Toast",
     "Columns",
     "Conditionals",
 ];
@@ -377,6 +388,23 @@ impl App for StorybookApp {
             Msg::ToggleCondVisible => {
                 model.cond_visible = !model.cond_visible;
             }
+
+            // Toast demo
+            Msg::ShowToastInfo => {
+                return model.toasts.info("This is an info message", Duration::from_secs(3), Msg::DismissToast);
+            }
+            Msg::ShowToastSuccess => {
+                return model.toasts.success("Operation completed successfully!", Duration::from_secs(3), Msg::DismissToast);
+            }
+            Msg::ShowToastWarning => {
+                return model.toasts.warning("Please check your input", Duration::from_secs(3), Msg::DismissToast);
+            }
+            Msg::ShowToastError => {
+                return model.toasts.error("Something went wrong", Duration::from_secs(5), Msg::DismissToast);
+            }
+            Msg::DismissToast(id) => {
+                model.toasts.dismiss(id);
+            }
         }
         Cmd::none()
     }
@@ -476,6 +504,9 @@ impl App for StorybookApp {
                 }
             },
         );
+
+        // Show toasts (overlay)
+        model.toasts.show(ctx, Msg::DismissToast);
     }
 }
 
@@ -984,6 +1015,46 @@ fn render_molecule(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.label("Error message display (see counter example)");
             ctx.ui.add_space(8.0);
             ctx.ui.label("The ErrorConsole component displays dismissible error messages.");
+        }
+
+        "Toast" => {
+            ctx.ui.heading("Toast Notifications");
+            ctx.ui.label("Temporary notifications that auto-dismiss");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "// Add toast (returns auto-dismiss Cmd)\nmodel.toasts.success(\"Saved!\", Duration::from_secs(3), Msg::DismissToast)\n\n// Handle dismiss\nMsg::DismissToast(id) => model.toasts.dismiss(id)"
+            ).show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+
+            ctx.ui.strong("Variants:");
+            ctx.ui.add_space(8.0);
+
+            ctx.horizontal(|ctx| {
+                Button::info("Info").on_click(ctx, Msg::ShowToastInfo);
+                Button::success("Success").on_click(ctx, Msg::ShowToastSuccess);
+            });
+            ctx.ui.add_space(4.0);
+            ctx.horizontal(|ctx| {
+                Button::warning("Warning").on_click(ctx, Msg::ShowToastWarning);
+                Button::danger("Error").on_click(ctx, Msg::ShowToastError);
+            });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.label("Click buttons to show toasts (top-right corner)");
+            ctx.ui.label("Toasts auto-dismiss after 3-5 seconds");
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Features:");
+            ctx.ui.label("- 4 variants: Info, Success, Warning, Error");
+            ctx.ui.label("- Auto-dismiss with configurable duration");
+            ctx.ui.label("- Manual dismiss via close button");
+            ctx.ui.label("- Position: TopRight (default), BottomRight, etc.");
+            ctx.ui.label("- Multiple toasts stack vertically");
         }
 
         "Columns" => {
