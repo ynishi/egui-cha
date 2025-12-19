@@ -360,6 +360,44 @@ impl<'a, Msg> ViewCtx<'a, Msg> {
         self.columns_n::<4>([Box::new(col1), Box::new(col2), Box::new(col3), Box::new(col4)]);
     }
 
+    /// Variable-length column layout
+    ///
+    /// Divides the available space into N equal columns.
+    /// Use this when you need more than 4 columns or dynamic column count.
+    ///
+    /// # Example
+    /// ```ignore
+    /// ctx.columns(vec![
+    ///     Box::new(|ctx| { ctx.ui.label("Col 1"); }),
+    ///     Box::new(|ctx| { ctx.ui.label("Col 2"); }),
+    ///     Box::new(|ctx| { ctx.ui.label("Col 3"); }),
+    ///     Box::new(|ctx| { ctx.ui.label("Col 4"); }),
+    ///     Box::new(|ctx| { ctx.ui.label("Col 5"); }),
+    /// ]);
+    /// ```
+    pub fn columns(&mut self, columns: Vec<Box<dyn FnOnce(&mut ViewCtx<'_, Msg>) + '_>>) {
+        let n = columns.len();
+        if n == 0 {
+            return;
+        }
+
+        let mut all_msgs: Vec<Vec<Msg>> = (0..n).map(|_| Vec::new()).collect();
+        let mut columns: Vec<_> = columns.into_iter().map(Some).collect();
+
+        self.ui.columns(n, |cols| {
+            for i in 0..n {
+                if let Some(col_fn) = columns[i].take() {
+                    let mut ctx = ViewCtx::new(&mut cols[i], &mut all_msgs[i]);
+                    col_fn(&mut ctx);
+                }
+            }
+        });
+
+        for msgs in all_msgs {
+            self.emitter.extend(msgs);
+        }
+    }
+
     /// Internal helper for N-column layout
     fn columns_n<const N: usize>(
         &mut self,

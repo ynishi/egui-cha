@@ -740,6 +740,23 @@ fn render_molecule(model: &Model, ctx: &mut ViewCtx<Msg>) {
                 |ctx| { Button::danger("3").on_click(ctx, Msg::ColClick(2)); },
                 |ctx| { Button::ghost("4").on_click(ctx, Msg::ColClick(3)); },
             );
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+
+            // Variable-length columns demo
+            ctx.ui.add_space(8.0);
+            ctx.ui.strong("columns (variable-length, 6 cols):");
+            ctx.ui.add_space(4.0);
+
+            ctx.columns(vec![
+                Box::new(|ctx| { ctx.ui.label("A"); }),
+                Box::new(|ctx| { ctx.ui.label("B"); }),
+                Box::new(|ctx| { ctx.ui.label("C"); }),
+                Box::new(|ctx| { ctx.ui.label("D"); }),
+                Box::new(|ctx| { ctx.ui.label("E"); }),
+                Box::new(|ctx| { ctx.ui.label("F"); }),
+            ]);
         }
 
         _ => {
