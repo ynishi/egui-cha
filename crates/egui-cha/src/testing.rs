@@ -18,6 +18,11 @@
 //! ```
 
 use crate::{App, Cmd};
+use std::future::Future;
+use std::pin::Pin;
+
+/// A boxed future for async tasks
+type BoxFuture<Msg> = Pin<Box<dyn Future<Output = Msg> + Send + 'static>>;
 
 /// A test runner for TEA applications
 ///
@@ -25,6 +30,7 @@ use crate::{App, Cmd};
 pub struct TestRunner<A: App> {
     model: A::Model,
     commands: Vec<CmdRecord<A::Msg>>,
+    pending_tasks: Vec<BoxFuture<A::Msg>>,
 }
 
 /// Record of a command that was returned from update
@@ -43,6 +49,7 @@ impl<A: App> TestRunner<A> {
         let mut runner = Self {
             model,
             commands: Vec::new(),
+            pending_tasks: Vec::new(),
         };
         runner.record_cmd(init_cmd);
         runner
@@ -53,6 +60,7 @@ impl<A: App> TestRunner<A> {
         Self {
             model,
             commands: Vec::new(),
+            pending_tasks: Vec::new(),
         }
     }
 
@@ -126,11 +134,117 @@ impl<A: App> TestRunner<A> {
     fn record_cmd(&mut self, cmd: Cmd<A::Msg>) {
         let record = match cmd {
             Cmd::None => CmdRecord::None,
-            Cmd::Task(_) => CmdRecord::Task,
+            Cmd::Task(future) => {
+                self.pending_tasks.push(future);
+                CmdRecord::Task
+            }
             Cmd::Msg(msg) => CmdRecord::Msg(msg),
-            Cmd::Batch(cmds) => CmdRecord::Batch(cmds.len()),
+            Cmd::Batch(cmds) => {
+                let len = cmds.len();
+                // Extract tasks from batch
+                for cmd in cmds {
+                    self.extract_tasks(cmd);
+                }
+                CmdRecord::Batch(len)
+            }
         };
         self.commands.push(record);
+    }
+
+    /// Extract tasks from a command (recursively for batches)
+    fn extract_tasks(&mut self, cmd: Cmd<A::Msg>) {
+        match cmd {
+            Cmd::None | Cmd::Msg(_) => {}
+            Cmd::Task(future) => {
+                self.pending_tasks.push(future);
+            }
+            Cmd::Batch(cmds) => {
+                for cmd in cmds {
+                    self.extract_tasks(cmd);
+                }
+            }
+        }
+    }
+
+    // ========================================
+    // Async task processing
+    // ========================================
+
+    /// Get the number of pending async tasks
+    pub fn pending_task_count(&self) -> usize {
+        self.pending_tasks.len()
+    }
+
+    /// Check if there are any pending async tasks
+    pub fn has_pending_tasks(&self) -> bool {
+        !self.pending_tasks.is_empty()
+    }
+
+    /// Process one pending async task
+    ///
+    /// Executes the first pending task, awaits its result, and sends
+    /// the resulting message through update.
+    ///
+    /// Returns `true` if a task was processed, `false` if no tasks were pending.
+    ///
+    /// # Example
+    /// ```ignore
+    /// runner.send(Msg::FetchData);
+    /// assert!(runner.has_pending_tasks());
+    ///
+    /// runner.process_task().await;
+    /// assert!(!runner.has_pending_tasks());
+    /// ```
+    pub async fn process_task(&mut self) -> bool {
+        if let Some(task) = self.pending_tasks.pop() {
+            let msg = task.await;
+            self.send(msg);
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Process all pending async tasks
+    ///
+    /// Processes tasks until none remain. Note that processing a task
+    /// may add new tasks (if the resulting message produces new Cmd::Task),
+    /// so this processes until the queue is fully drained.
+    ///
+    /// # Example
+    /// ```ignore
+    /// runner.send(Msg::FetchData);
+    /// runner.process_tasks().await;
+    /// // All tasks completed, results sent through update
+    /// ```
+    pub async fn process_tasks(&mut self) -> &mut Self {
+        while let Some(task) = self.pending_tasks.pop() {
+            let msg = task.await;
+            self.send(msg);
+        }
+        self
+    }
+
+    /// Process exactly N pending tasks
+    ///
+    /// Useful when you want to control the order of task execution
+    /// or test intermediate states.
+    ///
+    /// # Panics
+    /// Panics if there are fewer than N pending tasks.
+    pub async fn process_n_tasks(&mut self, n: usize) -> &mut Self {
+        for i in 0..n {
+            assert!(
+                !self.pending_tasks.is_empty(),
+                "process_n_tasks: expected {} tasks but only {} were available",
+                n,
+                i
+            );
+            let task = self.pending_tasks.remove(0);
+            let msg = task.await;
+            self.send(msg);
+        }
+        self
     }
 
     // ========================================
@@ -351,6 +465,8 @@ mod tests {
         Set(i32),
         Delayed,
         MultiBatch,
+        AsyncFetch,
+        FetchResult(i32),
     }
 
     impl App for TestApp {
@@ -372,6 +488,10 @@ mod tests {
                 TestMsg::MultiBatch => {
                     return Cmd::batch([Cmd::msg(TestMsg::Inc), Cmd::msg(TestMsg::Inc)]);
                 }
+                TestMsg::AsyncFetch => {
+                    return Cmd::task(async { TestMsg::FetchResult(42) });
+                }
+                TestMsg::FetchResult(v) => model.value = v,
             }
             Cmd::none()
         }
@@ -475,5 +595,75 @@ mod tests {
             .send(TestMsg::Delayed)
             .expect_model(|m| m.value == 2) // Delayed doesn't change value directly
             .expect_cmd_msg_eq(TestMsg::Inc);
+    }
+
+    fn block_on<F: std::future::Future>(f: F) -> F::Output {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(f)
+    }
+
+    #[test]
+    fn test_process_task() {
+        block_on(async {
+            let mut runner = TestRunner::<TestApp>::new();
+
+            // Send a message that produces an async task
+            runner.send(TestMsg::AsyncFetch);
+            assert!(runner.last_was_task());
+            assert!(runner.has_pending_tasks());
+            assert_eq!(runner.pending_task_count(), 1);
+
+            // Model hasn't changed yet
+            assert_eq!(runner.model().value, 0);
+
+            // Process the async task
+            runner.process_task().await;
+
+            // Task completed, result was sent through update
+            assert!(!runner.has_pending_tasks());
+            assert_eq!(runner.model().value, 42);
+        });
+    }
+
+    #[test]
+    fn test_process_tasks() {
+        block_on(async {
+            let mut runner = TestRunner::<TestApp>::new();
+
+            // Queue multiple async tasks
+            runner.send(TestMsg::AsyncFetch);
+            runner.send(TestMsg::AsyncFetch);
+            assert_eq!(runner.pending_task_count(), 2);
+
+            // Process all tasks
+            runner.process_tasks().await;
+
+            // All tasks completed
+            assert!(!runner.has_pending_tasks());
+            // Last FetchResult(42) sets value to 42
+            assert_eq!(runner.model().value, 42);
+        });
+    }
+
+    #[test]
+    fn test_async_expect_chaining() {
+        block_on(async {
+            let mut runner = TestRunner::<TestApp>::new();
+
+            runner
+                .send(TestMsg::Inc)
+                .expect_model(|m| m.value == 1)
+                .expect_cmd_none()
+                .send(TestMsg::AsyncFetch)
+                .expect_cmd_task();
+
+            // Process async task
+            runner.process_tasks().await;
+
+            runner.expect_model(|m| m.value == 42);
+        });
     }
 }
