@@ -275,6 +275,7 @@ const FRAMEWORK: &[&str] = &[
     "Drag & Drop",
     "Shortcuts",
     "Dynamic Bindings",
+    "scroll_area_with",
 ];
 
 impl App for StorybookApp {
@@ -2077,6 +2078,54 @@ fn render_framework(model: &Model, ctx: &mut ViewCtx<Msg>) {
                 ctx.ui.add_space(8.0);
                 Badge::success(action).show(ctx.ui);
             }
+        }
+
+        "scroll_area_with" => {
+            ctx.ui.heading("scroll_area_with");
+            ctx.ui.label("Core scroll area API with full customization");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "// Basic usage\nctx.scroll_area(|ctx| {\n    // content\n});\n\n// With custom ID (avoids clashes)\nctx.scroll_area_id(\"my_scroll\", |ctx| {\n    // content\n});\n\n// Full customization\nctx.scroll_area_with(\n    |area| area\n        .max_height(200.0)\n        .auto_shrink([false, false]),\n    |ctx| {\n        // content\n    },\n);"
+            ).show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("ctx.scroll_area() - Default vertical:");
+            ctx.ui.add_space(4.0);
+
+            ctx.scroll_area_id("framework_demo_1", |ctx| {
+                for i in 0..15 {
+                    ctx.ui.label(format!("Default scroll item {}", i));
+                }
+            });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("ctx.scroll_area_with() - Customized:");
+            ctx.ui.add_space(4.0);
+
+            ctx.scroll_area_with(
+                |area| area.id_salt("framework_demo_2").max_height(120.0).auto_shrink([false, false]),
+                |ctx| {
+                    for i in 0..20 {
+                        ctx.ui.label(format!("Customized item {} (max_height: 120px, no shrink)", i));
+                    }
+                },
+            );
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Core vs DS:");
+            ctx.ui.label("- Core (egui-cha): ctx.scroll_area_with() - closure-based");
+            ctx.ui.label("- DS (egui-cha-ds): ScrollArea::vertical() - builder pattern");
+            ctx.ui.label("Both work; DS Atom uses Core internally.");
         }
 
         _ => {
