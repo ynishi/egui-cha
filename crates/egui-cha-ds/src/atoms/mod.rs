@@ -2,10 +2,22 @@
 
 mod badge;
 mod button;
+mod checkbox;
+mod code;
 mod icon;
 mod input;
+mod link;
+mod select;
+mod slider;
+mod toggle;
 
 pub use badge::{Badge, BadgeVariant};
 pub use button::{Button, ButtonVariant};
+pub use checkbox::Checkbox;
+pub use code::{Code, CodeBlock};
 pub use icon::{icons, Icon};
 pub use input::Input;
+pub use link::Link;
+pub use select::Select;
+pub use slider::Slider;
+pub use toggle::Toggle;
