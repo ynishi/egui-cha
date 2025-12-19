@@ -19,12 +19,34 @@ pub mod ui_extractor;
 pub mod action_extractor;
 pub mod state_extractor;
 pub mod flow_extractor;
+pub mod tea_extractor;
 pub mod graph_generator;
 
 use std::path::Path;
-use types::FileAnalysis;
+use types::{FileAnalysis, MsgEmission, MsgHandler, TeaFlow};
 
 pub use types::AnalysisResult;
+
+/// Build TEA flows by matching emissions to handlers
+fn build_tea_flows(emissions: &[MsgEmission], handlers: &[MsgHandler]) -> Vec<TeaFlow> {
+    emissions
+        .iter()
+        .map(|emission| {
+            // Try to find a matching handler
+            let handler = handlers.iter().find(|h| {
+                // Match by message name (e.g., "Msg::Increment" matches "Msg::Increment")
+                emission.msg == h.msg_pattern
+                    || emission.msg.ends_with(&format!("::{}", h.msg_pattern))
+                    || h.msg_pattern.ends_with(&format!("::{}", emission.msg.split("::").last().unwrap_or("")))
+            });
+
+            TeaFlow {
+                emission: emission.clone(),
+                handler: handler.cloned(),
+            }
+        })
+        .collect()
+}
 
 /// Main analyzer for egui UI flow
 pub struct Analyzer;
@@ -50,7 +72,7 @@ impl Analyzer {
         let syntax_tree = syn::parse_file(content)
             .map_err(|e| format!("Parse error in {}: {}", file_path, e))?;
 
-        // Extract UI elements
+        // Extract UI elements (standard egui)
         let ui_elements = ui_extractor::extract_ui_elements(file_path, &syntax_tree);
 
         // Extract actions (response checks)
@@ -62,12 +84,24 @@ impl Analyzer {
         // Extract flows with scope tracking (causality)
         let flows = flow_extractor::extract_flows(file_path, &syntax_tree);
 
+        // Extract TEA patterns (DS components -> Msg)
+        let msg_emissions = tea_extractor::extract_msg_emissions(file_path, &syntax_tree);
+
+        // Extract Msg handlers (update function)
+        let msg_handlers = tea_extractor::extract_msg_handlers(file_path, &syntax_tree);
+
+        // Build TEA flows by matching emissions to handlers
+        let tea_flows = build_tea_flows(&msg_emissions, &msg_handlers);
+
         Ok(FileAnalysis {
             path: file_path.to_string(),
             ui_elements,
             actions,
             state_mutations,
             flows,
+            msg_emissions,
+            msg_handlers,
+            tea_flows,
         })
     }
 }

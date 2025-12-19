@@ -301,6 +301,9 @@ mod tests {
                 line: 0,
             }],
             flows: Vec::new(),
+            msg_emissions: Vec::new(),
+            msg_handlers: Vec::new(),
+            tea_flows: Vec::new(),
         };
 
         let mermaid = generate_mermaid(&analysis);

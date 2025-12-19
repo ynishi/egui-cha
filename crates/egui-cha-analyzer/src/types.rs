@@ -57,6 +57,47 @@ pub struct UiFlow {
     pub context: String,
 }
 
+// ============================================================
+// TEA (The Elm Architecture) specific types
+// ============================================================
+
+/// A DS component that emits a message (e.g., Button::primary("+").on_click(ctx, Msg::Increment))
+#[derive(Debug, Clone, PartialEq)]
+pub struct MsgEmission {
+    /// DS component type (Button, Input, etc.)
+    pub component: String,
+    /// Variant (primary, secondary, ghost, etc.)
+    pub variant: String,
+    /// Label text
+    pub label: Option<String>,
+    /// Action type (on_click, on_change, etc.)
+    pub action: String,
+    /// Message type being emitted (e.g., "Msg::Increment")
+    pub msg: String,
+    /// Function/method containing this emission
+    pub context: String,
+    /// File path
+    pub file_path: String,
+}
+
+/// A message handler in the update function
+#[derive(Debug, Clone, PartialEq)]
+pub struct MsgHandler {
+    /// Message pattern being matched (e.g., "Msg::Increment")
+    pub msg_pattern: String,
+    /// State mutations triggered by this message
+    pub state_mutations: Vec<StateMutation>,
+    /// File path
+    pub file_path: String,
+}
+
+/// A complete TEA flow: DS Component -> Msg -> State changes
+#[derive(Debug, Clone)]
+pub struct TeaFlow {
+    pub emission: MsgEmission,
+    pub handler: Option<MsgHandler>,
+}
+
 /// Analysis result for a single file
 #[derive(Debug, Clone)]
 pub struct FileAnalysis {
@@ -66,6 +107,12 @@ pub struct FileAnalysis {
     pub state_mutations: Vec<StateMutation>,
     /// Scope-aware flows (UI -> Action -> State with causality)
     pub flows: Vec<UiFlow>,
+    /// TEA: DS component -> Msg emissions
+    pub msg_emissions: Vec<MsgEmission>,
+    /// TEA: Msg -> State handlers (from update function)
+    pub msg_handlers: Vec<MsgHandler>,
+    /// TEA: Complete flows (emission + handler)
+    pub tea_flows: Vec<TeaFlow>,
 }
 
 impl FileAnalysis {
@@ -76,6 +123,9 @@ impl FileAnalysis {
             actions: Vec::new(),
             state_mutations: Vec::new(),
             flows: Vec::new(),
+            msg_emissions: Vec::new(),
+            msg_handlers: Vec::new(),
+            tea_flows: Vec::new(),
         }
     }
 }
