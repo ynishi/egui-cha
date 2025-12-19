@@ -2,6 +2,8 @@
 
 use egui::Ui;
 
+use crate::drag_drop::{DragSourceResponse, DropZoneResponse};
+
 /// Context passed to view functions, enabling message emission from any depth
 ///
 /// # Example
@@ -497,5 +499,87 @@ impl<'a, Msg> ViewCtx<'a, Msg> {
             self.emitter.extend(child_msgs);
             result
         }).inner
+    }
+}
+
+// Drag & Drop support
+impl<'a, Msg> ViewCtx<'a, Msg> {
+    /// Create a draggable source
+    ///
+    /// # Example
+    /// ```ignore
+    /// ctx.drag_source("item_1", item.clone(), |ctx| {
+    ///     ctx.ui.label(&item.name);
+    /// }).on_drag_start(ctx, Msg::DragStart { id: item.id });
+    /// ```
+    pub fn drag_source<P, R>(
+        &mut self,
+        id: impl Into<egui::Id>,
+        payload: P,
+        content: impl FnOnce(&mut ViewCtx<'_, Msg>) -> R,
+    ) -> DragSourceResponse<R>
+    where
+        P: Clone + Send + Sync + 'static,
+    {
+        let id = id.into();
+        let mut child_msgs = Vec::new();
+        let mut inner_result = None;
+        let mut drag_started = false;
+
+        let response = self
+            .ui
+            .dnd_drag_source(id, payload, |ui| {
+                let mut ctx = ViewCtx::new(ui, &mut child_msgs);
+                inner_result = Some(content(&mut ctx));
+            })
+            .response;
+
+        // Check if drag started this frame
+        if response.drag_started() {
+            drag_started = true;
+        }
+
+        self.emitter.extend(child_msgs);
+
+        DragSourceResponse {
+            inner: inner_result.expect("content closure should have been called"),
+            response,
+            drag_started,
+        }
+    }
+
+    /// Create a drop zone that accepts payloads of type P
+    ///
+    /// # Example
+    /// ```ignore
+    /// ctx.drop_zone::<Item, _>(|ctx| {
+    ///     ctx.ui.label("Drop items here");
+    /// }).on_drop(ctx, |item| Msg::ItemDropped(item));
+    /// ```
+    pub fn drop_zone<P, R>(
+        &mut self,
+        content: impl FnOnce(&mut ViewCtx<'_, Msg>) -> R,
+    ) -> DropZoneResponse<P, R>
+    where
+        P: Clone + Send + Sync + 'static,
+    {
+        let mut child_msgs = Vec::new();
+
+        let (response, dropped_payload) = self.ui.dnd_drop_zone::<P, _>(egui::Frame::default(), |ui| {
+            let mut ctx = ViewCtx::new(ui, &mut child_msgs);
+            content(&mut ctx)
+        });
+
+        // Check if being dragged over with compatible payload
+        let is_being_dragged_over = egui::DragAndDrop::has_payload_of_type::<P>(self.ui.ctx());
+
+        self.emitter.extend(child_msgs);
+
+        DropZoneResponse {
+            inner: response.inner,
+            response: response.response,
+            payload: dropped_payload,
+            is_being_dragged_over,
+        }
     }
 }

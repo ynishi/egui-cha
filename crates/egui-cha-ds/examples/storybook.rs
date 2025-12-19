@@ -89,6 +89,10 @@ struct Model {
 
     // Form demo
     form_submitted: bool,
+
+    // Drag & Drop demo
+    dnd_items: Vec<String>,
+    dnd_dropped: Vec<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -175,6 +179,9 @@ enum Msg {
 
     // Form demo
     FormSubmit,
+
+    // Drag & Drop demo
+    DndDropped(String),
 }
 
 const CATEGORIES: &[&str] = &["Atoms", "Semantics", "Molecules", "Framework"];
@@ -221,6 +228,7 @@ const FRAMEWORK: &[&str] = &[
     "Sub::interval",
     "Debouncer",
     "Throttler",
+    "Drag & Drop",
 ];
 
 impl App for StorybookApp {
@@ -241,6 +249,12 @@ impl App for StorybookApp {
                     ("Bob".to_string(), 30, false),
                     ("Carol".to_string(), 28, true),
                 ],
+                dnd_items: vec![
+                    "Item A".to_string(),
+                    "Item B".to_string(),
+                    "Item C".to_string(),
+                ],
+                dnd_dropped: Vec::new(),
                 theme: Theme::light(),
                 ..Default::default()
             },
@@ -458,6 +472,15 @@ impl App for StorybookApp {
             Msg::FormSubmit => {
                 model.form_submitted = true;
                 return model.toasts.success("Form submitted!", Duration::from_secs(3), Msg::DismissToast);
+            }
+
+            // Drag & Drop
+            Msg::DndDropped(item) => {
+                // Move item from source to dropped list
+                if let Some(pos) = model.dnd_items.iter().position(|i| *i == item) {
+                    model.dnd_items.remove(pos);
+                }
+                model.dnd_dropped.push(item);
             }
         }
         Cmd::none()
@@ -1512,6 +1535,72 @@ fn render_framework(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.label(format!("Button clicks: {}", model.throttle_click_count));
             ctx.ui.label(format!("Actual actions: {}", model.throttle_actual_count));
             ctx.ui.label("(Notice actual actions are throttled)");
+        }
+
+        "Drag & Drop" => {
+            ctx.ui.heading("Drag & Drop");
+            ctx.ui.label("Type-safe drag and drop with TEA messages");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "// Drag source\nctx.drag_source(\"item\", payload, |ctx| {\n    ctx.ui.label(\"Drag me\");\n});\n\n// Drop zone\nctx.drop_zone::<Payload, _>(|ctx| {\n    ctx.ui.label(\"Drop here\");\n}).on_drop(ctx, |p| Msg::Dropped(p));"
+            ).show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Live Demo:");
+            ctx.ui.label("Drag items from left to right");
+            ctx.ui.add_space(8.0);
+
+            ctx.two_columns(
+                |ctx| {
+                    ctx.ui.label("Available Items:");
+                    ctx.ui.add_space(4.0);
+
+                    for item in &model.dnd_items {
+                        ctx.drag_source(
+                            egui::Id::new(item),
+                            item.clone(),
+                            |ctx| {
+                                ctx.ui.group(|ui| {
+                                    ui.horizontal(|ui| {
+                                        Icon::hash().size(16.0).show(ui);
+                                        ui.label(item);
+                                    });
+                                });
+                            },
+                        );
+                    }
+
+                    if model.dnd_items.is_empty() {
+                        ctx.ui.label("(empty)");
+                    }
+                },
+                |ctx| {
+                    ctx.ui.label("Drop Zone:");
+                    ctx.ui.add_space(4.0);
+
+                    let drop_resp = ctx.drop_zone::<String, _>(|ctx| {
+                        ctx.ui.group(|ui| {
+                            ui.set_min_size(egui::vec2(150.0, 100.0));
+                            if model.dnd_dropped.is_empty() {
+                                ui.label("Drop items here...");
+                            } else {
+                                for item in &model.dnd_dropped {
+                                    ui.horizontal(|ui| {
+                                        Icon::check().size(16.0).show(ui);
+                                        ui.label(item);
+                                    });
+                                }
+                            }
+                        });
+                    });
+
+                    drop_resp.on_drop(ctx, |item| Msg::DndDropped((*item).clone()));
+                },
+            );
         }
 
         _ => {

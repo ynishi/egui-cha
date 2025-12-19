@@ -20,6 +20,7 @@
 mod app;
 mod cmd;
 mod component;
+pub mod drag_drop;
 pub mod helpers;
 pub mod router;
 pub mod sub;
@@ -41,6 +42,7 @@ pub use runtime::{run, RunConfig};
 
 /// Prelude for convenient imports
 pub mod prelude {
+    pub use crate::drag_drop::{DragSourceResponse, DropZoneResponse};
     pub use crate::helpers::{Debouncer, Throttler, TrailingThrottler};
     pub use crate::router::{BackButton, NavLink, Router, RouterMsg};
     pub use crate::sub::Sub;
