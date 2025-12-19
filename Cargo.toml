@@ -6,6 +6,7 @@ members = [
     "crates/egui-cha-macros",
     "crates/egui-cha-analyzer",
     "examples/counter",
+    "examples/vj-mock",
 ]
 
 [workspace.package]

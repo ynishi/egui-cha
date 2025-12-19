@@ -100,6 +100,7 @@ pub mod icons {
     pub const PLAY: &str = "\u{e3d0}";
     pub const PAUSE: &str = "\u{e39e}";
     pub const STOP: &str = "\u{e46c}";
+    pub const RECORD: &str = "\u{e3f0}";
 
     // Misc
     pub const COPY: &str = "\u{e1ca}";
@@ -163,6 +164,18 @@ impl Icon {
     }
     pub fn user() -> Self {
         Self::new(icons::USER)
+    }
+    pub fn play() -> Self {
+        Self::new(icons::PLAY)
+    }
+    pub fn pause() -> Self {
+        Self::new(icons::PAUSE)
+    }
+    pub fn stop() -> Self {
+        Self::new(icons::STOP)
+    }
+    pub fn record() -> Self {
+        Self::new(icons::RECORD)
     }
 
     /// Set icon size
