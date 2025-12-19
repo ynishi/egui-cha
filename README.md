@@ -57,6 +57,20 @@ fn update(model: &mut Model, msg: Msg) -> Cmd<Msg> {
 - **Error Handling**: Structured error handling with `Cmd::try_task` and `ErrorConsole`
 - **Testing Utilities**: `TestRunner` for unit testing your app logic
 
+## Installation
+
+```bash
+cargo add egui-cha egui-cha-ds
+```
+
+Or add to your `Cargo.toml`:
+
+```toml
+[dependencies]
+egui-cha = "0.1"
+egui-cha-ds = "0.1"
+```
+
 ## Quick Start
 
 ```rust
