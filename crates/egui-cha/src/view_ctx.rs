@@ -178,17 +178,9 @@ impl<'a, Msg> ViewCtx<'a, Msg> {
         result
     }
 
-    /// Scroll area
+    /// Scroll area (vertical, default settings)
     pub fn scroll_area<R>(&mut self, f: impl FnOnce(&mut ViewCtx<'_, Msg>) -> R) -> R {
-        let mut child_msgs = Vec::new();
-        let result = egui::ScrollArea::vertical()
-            .show(self.ui, |ui| {
-                let mut child_ctx = ViewCtx::new(ui, &mut child_msgs);
-                f(&mut child_ctx)
-            })
-            .inner;
-        self.emitter.extend(child_msgs);
-        result
+        self.scroll_area_with(|area| area, f)
     }
 
     /// Scroll area with custom id (avoids ID clashes)
@@ -197,9 +189,30 @@ impl<'a, Msg> ViewCtx<'a, Msg> {
         id: impl std::hash::Hash,
         f: impl FnOnce(&mut ViewCtx<'_, Msg>) -> R,
     ) -> R {
+        self.scroll_area_with(|area| area.id_salt(id), f)
+    }
+
+    /// Scroll area with full customization via builder
+    ///
+    /// # Example
+    /// ```ignore
+    /// ctx.scroll_area_with(
+    ///     |area| area.max_height(300.0).auto_shrink([false, false]),
+    ///     |ctx| {
+    ///         for i in 0..100 {
+    ///             ctx.ui.label(format!("Item {}", i));
+    ///         }
+    ///     },
+    /// );
+    /// ```
+    pub fn scroll_area_with<R>(
+        &mut self,
+        builder: impl FnOnce(egui::ScrollArea) -> egui::ScrollArea,
+        f: impl FnOnce(&mut ViewCtx<'_, Msg>) -> R,
+    ) -> R {
         let mut child_msgs = Vec::new();
-        let result = egui::ScrollArea::vertical()
-            .id_salt(id)
+        let area = builder(egui::ScrollArea::vertical());
+        let result = area
             .show(self.ui, |ui| {
                 let mut child_ctx = ViewCtx::new(ui, &mut child_msgs);
                 f(&mut child_ctx)

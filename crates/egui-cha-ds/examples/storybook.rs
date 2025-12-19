@@ -238,6 +238,7 @@ const ATOMS: &[&str] = &[
     "Link",
     "Code",
     "Text",
+    "ScrollArea",
     "Tooltip",
     "Context Menu",
 ];
@@ -933,6 +934,60 @@ fn render_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.label(format!("font_size_xl: {}px", theme.font_size_xl));
             ctx.ui.label(format!("font_size_2xl: {}px", theme.font_size_2xl));
             ctx.ui.label(format!("font_size_3xl: {}px", theme.font_size_3xl));
+        }
+
+        "ScrollArea" => {
+            ctx.ui.heading("ScrollArea");
+            ctx.ui.label("Configurable scroll container");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "// Vertical scroll with max height\nScrollArea::vertical()\n    .max_height(200.0)\n    .show_ctx(ctx, |ctx| {\n        for i in 0..50 {\n            ctx.ui.label(format!(\"Item {}\", i));\n        }\n    });\n\n// Horizontal scroll\nScrollArea::horizontal().show_ctx(ctx, |ctx| { ... });\n\n// Both directions\nScrollArea::both().show_ctx(ctx, |ctx| { ... });"
+            ).show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Vertical Scroll (max_height: 150px):");
+            ctx.ui.add_space(4.0);
+
+            ScrollArea::vertical()
+                .id_salt("demo_vertical")
+                .max_height(150.0)
+                .show_ctx(ctx, |ctx| {
+                    for i in 0..30 {
+                        ctx.ui.label(format!("Item {}", i));
+                    }
+                });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Horizontal Scroll:");
+            ctx.ui.add_space(4.0);
+
+            ScrollArea::horizontal()
+                .id_salt("demo_horizontal")
+                .show_ctx(ctx, |ctx| {
+                    ctx.horizontal(|ctx| {
+                        for i in 0..20 {
+                            Button::outline(&format!("Btn {}", i)).show(ctx.ui);
+                        }
+                    });
+                });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Options:");
+            ctx.ui.label("- .max_height() / .max_width()");
+            ctx.ui.label("- .auto_shrink([h, v]) / .no_shrink()");
+            ctx.ui.label("- .always_show_scroll() / .hide_scroll()");
+            ctx.ui.label("- .animated(bool)");
+            ctx.ui.label("- .id_salt(id) for multiple scroll areas");
         }
 
         "Tooltip" => {
