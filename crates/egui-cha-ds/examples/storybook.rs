@@ -4,7 +4,9 @@
 
 use egui_cha::prelude::*;
 use egui_cha_ds::prelude::*;
-use egui_cha_ds::{dock_layout, ConfirmResult, DockArea, DockEvent, DockTree, ToastContainer, ToastId};
+#[cfg(feature = "dock")]
+use egui_cha_ds::{dock_layout, DockArea, DockEvent, DockTree};
+use egui_cha_ds::{ConfirmResult, ToastContainer, ToastId};
 use std::cell::RefCell;
 use std::time::Duration;
 
@@ -308,9 +310,20 @@ enum Msg {
     DockEvent(DockEvent<DemoPane>),
 }
 
-const CATEGORIES: &[&str] = &["Atoms", "Semantics", "Molecules", "Framework", "Theme"];
+const CATEGORIES: &[&str] = &[
+    "Core",       // 0: Basic UI atoms
+    "Audio",      // 1: Audio visualization
+    "MIDI",       // 2: MIDI components
+    "Mixer",      // 3: Mixing & effects
+    "Visual",     // 4: Visual editing
+    "Semantics",  // 5
+    "Molecules",  // 6
+    "Framework",  // 7
+    "Theme",      // 8
+];
 
-const ATOMS: &[&str] = &[
+// Core atoms - Basic UI components (always available)
+const CORE_ATOMS: &[&str] = &[
     "Button",
     "Badge",
     "Icon",
@@ -321,22 +334,63 @@ const ATOMS: &[&str] = &[
     "Knob",
     "Fader",
     "XYPad",
-    "Waveform",
-    "Spectrum",
-    "LevelMeter",
     "ArcSlider",
-    "Oscilloscope",
     "ButtonGroup",
-    "BpmDisplay",
-    "ClipGrid",
-    "Plot",
     "Link",
     "Code",
     "Text",
     "Tooltip",
     "Context Menu",
     "ListItem",
+    "Select",
 ];
+
+// Audio atoms - Audio visualization & control
+const AUDIO_ATOMS: &[&str] = &[
+    "Waveform",
+    "Spectrum",
+    "LevelMeter",
+    "Oscilloscope",
+    "BpmDisplay",
+    "Transport",
+    "BeatSync",
+    "StepSeq",
+    "SamplePad",
+];
+
+// MIDI atoms - MIDI input & editing
+const MIDI_ATOMS: &[&str] = &[
+    "MidiKeyboard",
+    "MidiMonitor",
+    "MidiMapper",
+    "PianoRoll",
+];
+
+// Mixer atoms - Audio mixing & effects
+const MIXER_ATOMS: &[&str] = &[
+    "ChannelStrip",
+    "CrossFader",
+    "EffectRack",
+    "EnvelopeEditor",
+    "AutomationLane",
+];
+
+// Visual atoms - Video/graphics editing
+const VISUAL_ATOMS: &[&str] = &[
+    "ClipGrid",
+    "Timeline",
+    "Preview",
+    "LayerStack",
+    "ColorWheel",
+    "GradientEditor",
+    "MaskEditor",
+    "TransformGizmo",
+    "MediaBrowser",
+    "OutputRouter",
+];
+
+// Plot atoms (feature-gated)
+const PLOT_ATOMS: &[&str] = &["Plot"];
 
 const SEMANTICS: &[&str] = &[
     "Overview",
@@ -901,12 +955,16 @@ impl App for StorybookApp {
                 ctx.ui.strong("Components");
                 ctx.ui.add_space(4.0);
 
-                // Component list
+                // Component list based on category
                 let components = match model.active_category {
-                    0 => ATOMS,
-                    1 => SEMANTICS,
-                    2 => MOLECULES,
-                    3 => FRAMEWORK,
+                    0 => CORE_ATOMS,
+                    1 => AUDIO_ATOMS,
+                    2 => MIDI_ATOMS,
+                    3 => MIXER_ATOMS,
+                    4 => VISUAL_ATOMS,
+                    5 => SEMANTICS,
+                    6 => MOLECULES,
+                    7 => FRAMEWORK,
                     _ => THEME_ITEMS,
                 };
                 Menu::new(components).compact().show_with(ctx, model.active_component, Msg::SetComponent);
@@ -918,10 +976,14 @@ impl App for StorybookApp {
 
                 Card::new().show_ctx(ctx, |ctx| {
                     match model.active_category {
-                        0 => render_atom(model, ctx),
-                        1 => render_semantics(model, ctx),
-                        2 => render_molecule(model, ctx),
-                        3 => render_framework(model, ctx),
+                        0 => render_core_atom(model, ctx),
+                        1 => render_audio_atom(model, ctx),
+                        2 => render_midi_atom(model, ctx),
+                        3 => render_mixer_atom(model, ctx),
+                        4 => render_visual_atom(model, ctx),
+                        5 => render_semantics(model, ctx),
+                        6 => render_molecule(model, ctx),
+                        7 => render_framework(model, ctx),
                         _ => render_theme(model, ctx),
                     }
                 });
@@ -956,8 +1018,8 @@ impl App for StorybookApp {
     }
 }
 
-fn render_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
-    match ATOMS[model.active_component] {
+fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
+    match CORE_ATOMS[model.active_component] {
         "Button" => {
             ctx.ui.heading("Button");
             ctx.ui.label("Various button styles");
@@ -1252,204 +1314,16 @@ fn render_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.label("• Optional grid overlay");
         }
 
-        "Waveform" => {
-            ctx.ui.heading("Waveform");
-            ctx.ui.label("Audio waveform visualization for EDM/VJ applications");
+        "Select" => {
+            ctx.ui.heading("Select");
+            ctx.ui.label("Dropdown select component");
             ctx.ui.add_space(16.0);
 
-            // Generate sample waveform data (sine wave with harmonics)
-            let time = ctx.ui.input(|i| i.time) as f32;
-            let samples: Vec<f32> = (0..128)
-                .map(|i| {
-                    let t = i as f32 / 128.0 * std::f32::consts::PI * 4.0 + time * 2.0;
-                    (t.sin() * 0.6 + (t * 2.0).sin() * 0.3 + (t * 3.0).sin() * 0.1)
-                })
-                .collect();
-
-            // Line style (default)
-            ctx.ui.label("Line style:");
-            Waveform::new(&samples).height(60.0).show(ctx.ui);
-
-            ctx.ui.add_space(12.0);
-
-            // Filled style
-            ctx.ui.label("Filled style:");
-            Waveform::new(&samples).height(60.0).filled().show(ctx.ui);
-
-            ctx.ui.add_space(12.0);
-
-            // Bars style
-            ctx.ui.label("Bars style:");
-            Waveform::new(&samples).height(60.0).bars().show(ctx.ui);
-
-            ctx.ui.add_space(12.0);
-
-            // Stereo with grid
-            let samples_right: Vec<f32> = (0..128)
-                .map(|i| {
-                    let t = i as f32 / 128.0 * std::f32::consts::PI * 4.0 + time * 2.0 + 0.5;
-                    (t.sin() * 0.5 + (t * 1.5).sin() * 0.4)
-                })
-                .collect();
-
-            ctx.ui.label("Stereo with grid:");
-            Waveform::stereo(&samples, &samples_right)
-                .height(40.0)
-                .grid(true)
-                .show(ctx.ui);
-
-            ctx.ui.add_space(16.0);
-            ctx.ui.separator();
-            ctx.ui.add_space(8.0);
-
-            ctx.ui.label("Usage:");
-            Code::new(r#"Waveform::new(&audio_samples)
-    .height(60.0)
-    .filled()
-    .show(ctx.ui);"#).show(ctx.ui);
-        }
-
-        "Spectrum" => {
-            ctx.ui.heading("Spectrum");
-            ctx.ui.label("Frequency spectrum analyzer for EDM/VJ applications");
-            ctx.ui.add_space(16.0);
-
-            // Generate fake FFT data (simulated frequency bins)
-            let time = ctx.ui.input(|i| i.time) as f32;
-            let fft_bins: Vec<f32> = (0..64)
-                .map(|i| {
-                    let freq = i as f32 / 64.0;
-                    let base = (1.0 - freq).powf(1.5); // Bass-heavy
-                    let pulse = ((time * 2.0 + i as f32 * 0.1).sin() * 0.5 + 0.5);
-                    (base * pulse * 0.8).clamp(0.0, 1.0)
-                })
-                .collect();
-
-            // Solid color (default)
-            ctx.ui.label("Solid color:");
-            Spectrum::new(&fft_bins).height(80.0).show(ctx.ui);
-
-            ctx.ui.add_space(12.0);
-
-            // Gradient
-            ctx.ui.label("Gradient:");
-            Spectrum::new(&fft_bins).height(80.0).gradient().show(ctx.ui);
-
-            ctx.ui.add_space(12.0);
-
-            // Rainbow with peak hold
-            ctx.ui.label("Rainbow with peak hold:");
-            Spectrum::new(&fft_bins)
-                .height(80.0)
-                .rainbow()
-                .peak_hold(true)
-                .show(ctx.ui);
-
-            ctx.ui.add_space(12.0);
-
-            // Mirrored (symmetric)
-            ctx.ui.label("Mirrored:");
-            Spectrum::new(&fft_bins)
-                .height(80.0)
-                .mirrored(true)
-                .gradient()
-                .show(ctx.ui);
-
-            ctx.ui.add_space(16.0);
-            ctx.ui.separator();
-            ctx.ui.add_space(8.0);
-
-            ctx.ui.label("Usage:");
-            Code::new(r#"Spectrum::new(&fft_bins)
-    .bands(32)
-    .rainbow()
-    .peak_hold(true)
-    .show(ctx.ui);"#).show(ctx.ui);
-        }
-
-        "LevelMeter" => {
-            ctx.ui.heading("LevelMeter");
-            ctx.ui.label("VU/Peak meter for audio level visualization");
-            ctx.ui.add_space(16.0);
-
-            // Animated level values
-            let time = ctx.ui.input(|i| i.time) as f32;
-            let left_db = -60.0 + (time * 1.3).sin() * 30.0 + (time * 3.7).sin() * 15.0 + 30.0;
-            let right_db = -60.0 + (time * 1.5).sin() * 30.0 + (time * 4.1).sin() * 15.0 + 28.0;
-            let left_db = left_db.clamp(-60.0, 6.0);
-            let right_db = right_db.clamp(-60.0, 6.0);
-
-            // Peak hold (simulate)
-            let left_peak = left_db + 3.0;
-            let right_peak = right_db + 3.0;
-
-            ctx.horizontal(|ctx| {
-                ctx.vertical(|ctx| {
-                    ctx.ui.label("Mono:");
-                    LevelMeter::new()
-                        .size(20.0, 180.0)
-                        .show(ctx.ui, left_db);
-                });
-
-                ctx.ui.add_space(24.0);
-
-                ctx.vertical(|ctx| {
-                    ctx.ui.label("Stereo:");
-                    LevelMeter::new()
-                        .size(32.0, 180.0)
-                        .stereo(true)
-                        .show_stereo(ctx.ui, left_db, right_db);
-                });
-
-                ctx.ui.add_space(24.0);
-
-                ctx.vertical(|ctx| {
-                    ctx.ui.label("With peak hold:");
-                    LevelMeter::new()
-                        .size(32.0, 180.0)
-                        .stereo(true)
-                        .show_stereo_with_peak(ctx.ui, left_db, right_db, left_peak, right_peak);
-                });
-
-                ctx.ui.add_space(24.0);
-
-                ctx.vertical(|ctx| {
-                    ctx.ui.label("No scale:");
-                    LevelMeter::new()
-                        .size(20.0, 180.0)
-                        .show_scale(false)
-                        .show(ctx.ui, right_db);
-                });
-            });
-
-            // Horizontal orientation
-            ctx.ui.add_space(16.0);
-            ctx.ui.label("Horizontal:");
-            LevelMeter::new()
-                .size(200.0, 20.0)
-                .orientation(MeterOrientation::Horizontal)
-                .show_scale(false)
-                .show(ctx.ui, left_db);
-
-            ctx.ui.add_space(16.0);
-            ctx.ui.separator();
-            ctx.ui.add_space(8.0);
-
-            ctx.ui.label("Usage:");
-            Code::new(r#"LevelMeter::new()
-    .stereo(true)
-    .show_stereo_with_peak(ui, left_db, right_db, left_peak, right_peak);"#).show(ctx.ui);
+            let options = [(0, "Option A"), (1, "Option B"), (2, "Option C"), (3, "Option D")];
+            Select::new(&options).show_with(ctx, Some(&model.select_value), |idx| Msg::SelectChanged(idx));
 
             ctx.ui.add_space(8.0);
-            ctx.ui.label("Features:");
-            ctx.ui.label("• Green/Yellow/Red color zones");
-            ctx.ui.label("• Configurable dB range");
-            ctx.ui.label("• Peak hold indicator");
-            ctx.ui.label("• Optional dB scale");
-            ctx.ui.label("• Vertical or horizontal orientation");
-
-            // Request repaint for animation
-            ctx.ui.ctx().request_repaint();
+            ctx.ui.label(format!("Selected: Option {}", ["A", "B", "C", "D"][model.select_value]));
         }
 
         "ArcSlider" => {
@@ -1511,85 +1385,6 @@ fn render_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.label("• Optional value suffix (%, dB, etc.)");
         }
 
-        "Oscilloscope" => {
-            ctx.ui.heading("Oscilloscope");
-            ctx.ui.label("Real-time signal visualization with trigger and grid");
-            ctx.ui.add_space(16.0);
-
-            // Generate animated sine wave
-            let time = ctx.ui.input(|i| i.time) as f32;
-            let samples: Vec<f32> = (0..512)
-                .map(|i| {
-                    let t = i as f32 / 512.0 * std::f32::consts::PI * 8.0 + time * 3.0;
-                    (t.sin() * 0.7 + (t * 3.0).sin() * 0.2).clamp(-1.0, 1.0)
-                })
-                .collect();
-
-            // Secondary signal for XY mode
-            let samples_y: Vec<f32> = (0..512)
-                .map(|i| {
-                    let t = i as f32 / 512.0 * std::f32::consts::PI * 8.0 + time * 3.0;
-                    (t * 1.5).cos().clamp(-1.0, 1.0)
-                })
-                .collect();
-
-            // Standard oscilloscope
-            ctx.ui.label("Line mode:");
-            Oscilloscope::new(&samples)
-                .height(80.0)
-                .trigger(TriggerMode::Rising)
-                .show(ctx.ui);
-
-            ctx.ui.add_space(12.0);
-
-            // Phosphor glow (CRT style)
-            ctx.ui.label("Phosphor glow (retro CRT):");
-            Oscilloscope::new(&samples)
-                .height(80.0)
-                .phosphor(true)
-                .trigger(TriggerMode::Rising)
-                .show(ctx.ui);
-
-            ctx.ui.add_space(12.0);
-
-            // Filled mode
-            ctx.ui.label("Filled mode:");
-            Oscilloscope::new(&samples)
-                .height(80.0)
-                .filled()
-                .show(ctx.ui);
-
-            ctx.ui.add_space(12.0);
-
-            // XY mode (Lissajous)
-            ctx.ui.label("XY mode (Lissajous):");
-            Oscilloscope::new(&samples)
-                .height(120.0)
-                .xy(&samples_y)
-                .phosphor(true)
-                .show(ctx.ui);
-
-            ctx.ui.add_space(16.0);
-            ctx.ui.separator();
-            ctx.ui.add_space(8.0);
-
-            ctx.ui.label("Usage:");
-            Code::new(r#"Oscilloscope::new(&signal_buffer)
-    .trigger(TriggerMode::Rising)
-    .phosphor(true)
-    .show(ui);"#).show(ctx.ui);
-
-            ctx.ui.add_space(8.0);
-            ctx.ui.label("Features:");
-            ctx.ui.label("• Line, Filled, Dots, XY modes");
-            ctx.ui.label("• Trigger modes (Free, Rising, Falling)");
-            ctx.ui.label("• Phosphor glow effect (CRT style)");
-            ctx.ui.label("• Configurable grid");
-
-            // Request repaint for animation
-            ctx.ui.ctx().request_repaint();
-        }
-
         "ButtonGroup" => {
             ctx.ui.heading("ButtonGroup");
             ctx.ui.label("Radio-style button group with normalized 0.0-1.0 output");
@@ -1649,282 +1444,6 @@ fn render_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.label("• Horizontal/Vertical orientation");
             ctx.ui.label("• Size variants (compact/medium/large)");
             ctx.ui.label("• Rounded outer corners only");
-        }
-
-        "BpmDisplay" => {
-            ctx.ui.heading("BpmDisplay");
-            ctx.ui.label("Large numeric display for BPM/tempo (tap to interact)");
-            ctx.ui.add_space(16.0);
-
-            // Animated BPM for demo
-            let time = ctx.ui.input(|i| i.time);
-            let bpm = 120.0 + (time * 0.5).sin() * 8.0;
-
-            ctx.horizontal(|ctx| {
-                // Modern style
-                ctx.vertical(|ctx| {
-                    ctx.ui.label("Modern:");
-                    BpmDisplay::new()
-                        .label("BPM")
-                        .show(ctx.ui, bpm);
-                });
-
-                ctx.ui.add_space(24.0);
-
-                // Segment style (LED)
-                ctx.vertical(|ctx| {
-                    ctx.ui.label("Segment (LED):");
-                    BpmDisplay::new()
-                        .label("TEMPO")
-                        .segment()
-                        .show(ctx.ui, bpm);
-                });
-
-                ctx.ui.add_space(24.0);
-
-                // Minimal
-                ctx.vertical(|ctx| {
-                    ctx.ui.label("Minimal:");
-                    BpmDisplay::new()
-                        .minimal()
-                        .large()
-                        .decimals(0)
-                        .show(ctx.ui, bpm);
-                });
-            });
-
-            ctx.ui.add_space(12.0);
-
-            ctx.horizontal(|ctx| {
-                // Compact
-                ctx.vertical(|ctx| {
-                    ctx.ui.label("Compact:");
-                    BpmDisplay::new()
-                        .compact()
-                        .decimals(0)
-                        .show(ctx.ui, 128.0);
-                });
-
-                ctx.ui.add_space(24.0);
-
-                // Blinking (sync indicator)
-                ctx.vertical(|ctx| {
-                    ctx.ui.label("Blinking:");
-                    BpmDisplay::new()
-                        .segment()
-                        .blinking(true)
-                        .decimals(0)
-                        .show(ctx.ui, 140.0);
-                });
-            });
-
-            ctx.ui.add_space(16.0);
-            ctx.ui.separator();
-            ctx.ui.add_space(8.0);
-
-            ctx.ui.label("Usage:");
-            Code::new(r#"BpmDisplay::new()
-    .label("BPM")
-    .segment()
-    .show_with(ctx, model.bpm, || Msg::TapTempo);"#).show(ctx.ui);
-
-            ctx.ui.add_space(8.0);
-            ctx.ui.label("Features:");
-            ctx.ui.label("• Modern / Segment / Minimal styles");
-            ctx.ui.label("• Size variants");
-            ctx.ui.label("• Blinking effect for sync");
-            ctx.ui.label("• Click for tap tempo");
-
-            // Request repaint for animation
-            ctx.ui.ctx().request_repaint();
-        }
-
-        "ClipGrid" => {
-            ctx.ui.heading("ClipGrid");
-            ctx.ui.label("Ableton Live style clip launcher grid");
-            ctx.ui.add_space(16.0);
-
-            // Sample clips
-            let clips = vec![
-                ClipCell::new("Intro"),
-                ClipCell::new("Verse").with_color(egui::Color32::from_rgb(80, 180, 120)),
-                ClipCell::new("Chorus").with_color(egui::Color32::from_rgb(220, 100, 100)),
-                ClipCell::new("Bridge").with_color(egui::Color32::from_rgb(100, 150, 220)),
-                ClipCell::new("Drop").with_color(egui::Color32::from_rgb(200, 120, 200)),
-                ClipCell::new("Build").with_color(egui::Color32::from_rgb(220, 180, 80)),
-                ClipCell::new("Break"),
-                ClipCell::new("Outro"),
-            ];
-
-            // Animated states for demo
-            let time = ctx.ui.input(|i| i.time);
-            let current = ((time * 0.5) as usize) % clips.len();
-            let queued = vec![(current + 1) % clips.len()];
-
-            ctx.ui.label("4-column grid (with playing/queued state):");
-            if let Some(_clicked) = ClipGrid::new(&clips, 4)
-                .current(Some(current))
-                .queued(&queued)
-                .cell_size(80.0, 50.0)
-                .show_index(true)
-                .show(ctx.ui)
-            {
-                // Handle clip click
-            }
-
-            ctx.ui.add_space(16.0);
-
-            ctx.ui.label("2-column grid (compact):");
-            ClipGrid::new(&clips[..4], 2)
-                .cell_size(100.0, 40.0)
-                .show(ctx.ui);
-
-            ctx.ui.add_space(16.0);
-            ctx.ui.separator();
-            ctx.ui.add_space(8.0);
-
-            ctx.ui.label("Usage:");
-            Code::new(r#"let clips = vec![
-    ClipCell::new("Intro"),
-    ClipCell::new("Verse").with_color(Color32::GREEN),
-];
-
-if let Some(idx) = ClipGrid::new(&clips, 4)
-    .current(model.playing)
-    .queued(&model.queue)
-    .show(ctx.ui) {
-    return Some(Msg::PlayClip(idx));
-}"#).show(ctx.ui);
-
-            ctx.ui.add_space(8.0);
-            ctx.ui.label("Features:");
-            ctx.ui.label("• Playing state with pulse animation");
-            ctx.ui.label("• Queued state with indicator");
-            ctx.ui.label("• Custom colors per clip");
-            ctx.ui.label("• Configurable grid columns");
-            ctx.ui.label("• Optional index display");
-
-            ctx.ui.ctx().request_repaint();
-        }
-
-        "Plot" => {
-            ctx.ui.heading("Plot");
-            ctx.ui.label("egui_plot wrapper with theme integration");
-            ctx.ui.add_space(16.0);
-
-            // Generate sample data
-            let time = ctx.ui.input(|i| i.time) as f64;
-
-            // LinePlot - Waveform style
-            ctx.ui.label("LinePlot (waveform):");
-            let samples: Vec<f64> = (0..200)
-                .map(|i| {
-                    let t = i as f64 * 0.05 + time;
-                    (t * 2.0).sin() * 0.5 + (t * 5.0).sin() * 0.3
-                })
-                .collect();
-            LinePlot::new("waveform", &samples)
-                .size(300.0, 80.0)
-                .fill(true)
-                .show(ctx.ui);
-
-            ctx.ui.add_space(16.0);
-
-            // EnvelopePlot - ADSR
-            ctx.ui.label("EnvelopePlot (ADSR):");
-            let envelope = vec![
-                (0.0, 0.0),   // Start
-                (0.1, 1.0),   // Attack
-                (0.3, 0.7),   // Decay -> Sustain
-                (0.7, 0.7),   // Sustain
-                (1.0, 0.0),   // Release
-            ];
-            EnvelopePlot::new("adsr", &envelope)
-                .size(300.0, 80.0)
-                .show(ctx.ui);
-
-            ctx.ui.add_space(16.0);
-
-            // AutomationPlot
-            ctx.ui.label("AutomationPlot (parameter):");
-            let automation = vec![
-                (0.0, 0.5),
-                (0.2, 0.8),
-                (0.4, 0.3),
-                (0.6, 0.9),
-                (0.8, 0.4),
-                (1.0, 0.6),
-            ];
-            AutomationPlot::new("automation", &automation)
-                .size(300.0, 60.0)
-                .show_points(true)
-                .show(ctx.ui);
-
-            ctx.ui.add_space(16.0);
-
-            // FrequencyPlot - EQ curve
-            ctx.ui.label("FrequencyPlot (EQ curve):");
-            let eq_curve: Vec<(f64, f64)> = (0..100)
-                .map(|i| {
-                    let freq = 20.0 * (1000.0_f64).powf(i as f64 / 100.0);
-                    // Simple low-shelf + high-shelf simulation
-                    let db = if freq < 200.0 {
-                        3.0
-                    } else if freq > 8000.0 {
-                        -2.0
-                    } else {
-                        0.0
-                    };
-                    (freq, db)
-                })
-                .collect();
-            FrequencyPlot::new("eq", &eq_curve)
-                .size(300.0, 100.0)
-                .db_range(-12.0, 12.0)
-                .show(ctx.ui);
-
-            ctx.ui.add_space(16.0);
-
-            // BarPlot
-            ctx.ui.label("BarPlot (spectrum bins):");
-            let bars: Vec<f64> = (0..16)
-                .map(|i| {
-                    let t = time + i as f64 * 0.1;
-                    (t * 2.0).sin().abs() * 0.8 + 0.2
-                })
-                .collect();
-            BarPlot::new("bars", &bars)
-                .size(300.0, 80.0)
-                .show(ctx.ui);
-
-            ctx.ui.add_space(16.0);
-            ctx.ui.separator();
-            ctx.ui.add_space(8.0);
-
-            ctx.ui.label("Usage:");
-            Code::new(r#"// Line plot
-LinePlot::new("id", &samples)
-    .fill(true)
-    .show(ctx.ui);
-
-// Envelope (ADSR)
-EnvelopePlot::new("env", &[(0.0, 0.0), (0.1, 1.0), ...])
-    .show(ctx.ui);
-
-// Frequency response
-FrequencyPlot::new("eq", &curve)
-    .db_range(-24.0, 24.0)
-    .show(ctx.ui);"#).show(ctx.ui);
-
-            ctx.ui.add_space(8.0);
-            ctx.ui.label("Plot types:");
-            ctx.ui.label("• LinePlot - Waveforms, signals");
-            ctx.ui.label("• EnvelopePlot - ADSR, modulation");
-            ctx.ui.label("• AutomationPlot - DAW automation lanes");
-            ctx.ui.label("• FrequencyPlot - EQ, spectrum");
-            ctx.ui.label("• BarPlot - Histogram, spectrum bins");
-
-            ctx.ui.ctx().request_repaint();
         }
 
         "Link" => {
@@ -2166,6 +1685,285 @@ FrequencyPlot::new("eq", &curve)
             ListItem::new("Inbox").icon(icons::HASH).badge("12").on_click(ctx, Msg::ButtonClicked);
             ListItem::new("Notifications").icon(icons::INFO).badge("3").on_click(ctx, Msg::ButtonClicked);
             ListItem::new("Updates").icon(icons::ARROW_RIGHT).badge("New").on_click(ctx, Msg::ButtonClicked);
+        }
+
+        _ => {
+            ctx.ui.label("Component not implemented");
+        }
+    }
+}
+
+fn render_audio_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
+    match AUDIO_ATOMS[model.active_component] {
+        "Waveform" => {
+            ctx.ui.heading("Waveform");
+            ctx.ui.label("Audio waveform visualization for EDM/VJ applications");
+            ctx.ui.add_space(16.0);
+
+            let time = ctx.ui.input(|i| i.time) as f32;
+            let samples: Vec<f32> = (0..128)
+                .map(|i| {
+                    let t = i as f32 / 128.0 * std::f32::consts::PI * 4.0 + time * 2.0;
+                    (t.sin() * 0.6 + (t * 2.0).sin() * 0.3 + (t * 3.0).sin() * 0.1)
+                })
+                .collect();
+
+            ctx.ui.label("Line style:");
+            Waveform::new(&samples).height(60.0).show(ctx.ui);
+            ctx.ui.add_space(12.0);
+
+            ctx.ui.label("Filled style:");
+            Waveform::new(&samples).height(60.0).filled().show(ctx.ui);
+            ctx.ui.add_space(12.0);
+
+            ctx.ui.label("Bars style:");
+            Waveform::new(&samples).height(60.0).bars().show(ctx.ui);
+        }
+
+        "Spectrum" => {
+            ctx.ui.heading("Spectrum");
+            ctx.ui.label("Frequency spectrum analyzer");
+            ctx.ui.add_space(16.0);
+
+            let time = ctx.ui.input(|i| i.time) as f32;
+            let fft_bins: Vec<f32> = (0..64)
+                .map(|i| {
+                    let freq = i as f32 / 64.0;
+                    let base = (1.0 - freq).powf(1.5);
+                    let pulse = (time * 2.0 + i as f32 * 0.1).sin() * 0.5 + 0.5;
+                    (base * pulse * 0.8).clamp(0.0, 1.0)
+                })
+                .collect();
+
+            Spectrum::new(&fft_bins).height(80.0).show(ctx.ui);
+        }
+
+        "LevelMeter" => {
+            ctx.ui.heading("LevelMeter");
+            ctx.ui.label("Audio level meter with peak hold");
+            ctx.ui.add_space(16.0);
+
+            let time = ctx.ui.input(|i| i.time) as f32;
+            let level_db = -60.0 + (time * 1.5).sin() * 30.0 + 30.0;
+
+            ctx.horizontal(|ctx| {
+                LevelMeter::new().size(20.0, 120.0).show(ctx.ui, level_db);
+                ctx.ui.add_space(8.0);
+                LevelMeter::new().size(20.0, 120.0).show(ctx.ui, level_db - 6.0);
+            });
+
+            ctx.ui.ctx().request_repaint();
+        }
+
+        "Oscilloscope" => {
+            ctx.ui.heading("Oscilloscope");
+            ctx.ui.label("Real-time signal visualization");
+            ctx.ui.add_space(16.0);
+
+            let time = ctx.ui.input(|i| i.time) as f32;
+            let samples: Vec<f32> = (0..256)
+                .map(|i| {
+                    let t = i as f32 / 256.0 * std::f32::consts::PI * 8.0 + time * 4.0;
+                    t.sin()
+                })
+                .collect();
+
+            Oscilloscope::new(&samples).height(100.0).show(ctx.ui);
+
+            ctx.ui.ctx().request_repaint();
+        }
+
+        "BpmDisplay" => {
+            ctx.ui.heading("BpmDisplay");
+            ctx.ui.label("Large BPM display for DJ/VJ applications");
+            ctx.ui.add_space(16.0);
+
+            BpmDisplay::new().show(ctx.ui, 128.0);
+        }
+
+        "Transport" => {
+            ctx.ui.heading("Transport");
+            ctx.ui.label("Transport controls (Play/Pause/Stop/Record)");
+            ctx.ui.add_space(16.0);
+            ctx.ui.label("TODO: Implement TransportBar demo");
+        }
+
+        "BeatSync" => {
+            ctx.ui.heading("BeatSync");
+            ctx.ui.label("Beat synchronization and tap tempo");
+            ctx.ui.add_space(16.0);
+            ctx.ui.label("TODO: Implement BeatSync demo");
+        }
+
+        "StepSeq" => {
+            ctx.ui.heading("StepSeq");
+            ctx.ui.label("Step sequencer for pattern creation");
+            ctx.ui.add_space(16.0);
+            ctx.ui.label("TODO: Implement StepSeq demo");
+        }
+
+        "SamplePad" => {
+            ctx.ui.heading("SamplePad");
+            ctx.ui.label("Sample trigger pads");
+            ctx.ui.add_space(16.0);
+            ctx.ui.label("TODO: Implement SamplePad demo");
+        }
+
+        _ => {
+            ctx.ui.label("Component not implemented");
+        }
+    }
+}
+
+fn render_midi_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
+    match MIDI_ATOMS[model.active_component] {
+        "MidiKeyboard" => {
+            ctx.ui.heading("MidiKeyboard");
+            ctx.ui.label("Interactive MIDI keyboard");
+            ctx.ui.add_space(16.0);
+            ctx.ui.label("TODO: Implement MidiKeyboard demo");
+        }
+
+        "MidiMonitor" => {
+            ctx.ui.heading("MidiMonitor");
+            ctx.ui.label("MIDI message monitor");
+            ctx.ui.add_space(16.0);
+            ctx.ui.label("TODO: Implement MidiMonitor demo");
+        }
+
+        "MidiMapper" => {
+            ctx.ui.heading("MidiMapper");
+            ctx.ui.label("MIDI CC/note parameter mapping");
+            ctx.ui.add_space(16.0);
+            ctx.ui.label("TODO: Implement MidiMapper demo");
+        }
+
+        "PianoRoll" => {
+            ctx.ui.heading("PianoRoll");
+            ctx.ui.label("MIDI note editor");
+            ctx.ui.add_space(16.0);
+            ctx.ui.label("TODO: Implement PianoRoll demo");
+        }
+
+        _ => {
+            ctx.ui.label("Component not implemented");
+        }
+    }
+}
+
+fn render_mixer_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
+    match MIXER_ATOMS[model.active_component] {
+        "ChannelStrip" => {
+            ctx.ui.heading("ChannelStrip");
+            ctx.ui.label("Mixer channel strip with fader, pan, mute/solo");
+            ctx.ui.add_space(16.0);
+            ctx.ui.label("TODO: Implement ChannelStrip demo");
+        }
+
+        "CrossFader" => {
+            ctx.ui.heading("CrossFader");
+            ctx.ui.label("DJ-style crossfader");
+            ctx.ui.add_space(16.0);
+            ctx.ui.label("TODO: Implement CrossFader demo");
+        }
+
+        "EffectRack" => {
+            ctx.ui.heading("EffectRack");
+            ctx.ui.label("Effect chain management");
+            ctx.ui.add_space(16.0);
+            ctx.ui.label("TODO: Implement EffectRack demo");
+        }
+
+        "EnvelopeEditor" => {
+            ctx.ui.heading("EnvelopeEditor");
+            ctx.ui.label("ADSR envelope editor");
+            ctx.ui.add_space(16.0);
+            ctx.ui.label("TODO: Implement EnvelopeEditor demo");
+        }
+
+        "AutomationLane" => {
+            ctx.ui.heading("AutomationLane");
+            ctx.ui.label("Parameter automation curve editor");
+            ctx.ui.add_space(16.0);
+            ctx.ui.label("TODO: Implement AutomationLane demo");
+        }
+
+        _ => {
+            ctx.ui.label("Component not implemented");
+        }
+    }
+}
+
+fn render_visual_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
+    match VISUAL_ATOMS[model.active_component] {
+        "ClipGrid" => {
+            ctx.ui.heading("ClipGrid");
+            ctx.ui.label("Clip launcher grid (Ableton-style)");
+            ctx.ui.add_space(16.0);
+            ctx.ui.label("TODO: Implement ClipGrid demo");
+        }
+
+        "Timeline" => {
+            ctx.ui.heading("Timeline");
+            ctx.ui.label("Timeline with playhead, markers, and regions");
+            ctx.ui.add_space(16.0);
+            ctx.ui.label("TODO: Implement Timeline demo");
+        }
+
+        "Preview" => {
+            ctx.ui.heading("Preview");
+            ctx.ui.label("Video preview with aspect ratio control");
+            ctx.ui.add_space(16.0);
+            ctx.ui.label("TODO: Implement Preview demo");
+        }
+
+        "LayerStack" => {
+            ctx.ui.heading("LayerStack");
+            ctx.ui.label("Layer management with blend modes");
+            ctx.ui.add_space(16.0);
+            ctx.ui.label("TODO: Implement LayerStack demo");
+        }
+
+        "ColorWheel" => {
+            ctx.ui.heading("ColorWheel");
+            ctx.ui.label("HSV color picker");
+            ctx.ui.add_space(16.0);
+            ctx.ui.label("TODO: Implement ColorWheel demo");
+        }
+
+        "GradientEditor" => {
+            ctx.ui.heading("GradientEditor");
+            ctx.ui.label("Gradient stop editing");
+            ctx.ui.add_space(16.0);
+            ctx.ui.label("TODO: Implement GradientEditor demo");
+        }
+
+        "MaskEditor" => {
+            ctx.ui.heading("MaskEditor");
+            ctx.ui.label("Mask shape editing");
+            ctx.ui.add_space(16.0);
+            ctx.ui.label("TODO: Implement MaskEditor demo");
+        }
+
+        "TransformGizmo" => {
+            ctx.ui.heading("TransformGizmo");
+            ctx.ui.label("2D transform handles");
+            ctx.ui.add_space(16.0);
+            ctx.ui.label("TODO: Implement TransformGizmo demo");
+        }
+
+        "MediaBrowser" => {
+            ctx.ui.heading("MediaBrowser");
+            ctx.ui.label("Thumbnail grid media selection");
+            ctx.ui.add_space(16.0);
+            ctx.ui.label("TODO: Implement MediaBrowser demo");
+        }
+
+        "OutputRouter" => {
+            ctx.ui.heading("OutputRouter");
+            ctx.ui.label("Multi-output routing matrix");
+            ctx.ui.add_space(16.0);
+            ctx.ui.label("TODO: Implement OutputRouter demo");
         }
 
         _ => {
