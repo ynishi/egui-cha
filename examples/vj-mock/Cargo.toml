@@ -5,6 +5,6 @@ edition = "2021"
 
 [dependencies]
 egui-cha.workspace = true
-egui-cha-ds.workspace = true
+egui-cha-ds = { workspace = true, features = ["studio"] }
 eframe.workspace = true
 tracing-subscriber = "0.3"
