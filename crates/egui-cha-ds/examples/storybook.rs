@@ -38,6 +38,9 @@ struct Model {
     fader_value4: f64,
     xypad_value: (f64, f64),
     xypad_value2: (f64, f64),
+    arc_value: f64,
+    arc_value2: f64,
+    arc_value3: f64,
     input_value: String,
     select_value: usize,
 
@@ -170,6 +173,11 @@ enum Msg {
     XYPadChanged((f64, f64)),
     XYPad2Changed((f64, f64)),
 
+    // ArcSlider
+    ArcChanged(f64),
+    Arc2Changed(f64),
+    Arc3Changed(f64),
+
     // Input
     InputChanged(String),
 
@@ -293,6 +301,7 @@ const ATOMS: &[&str] = &[
     "Waveform",
     "Spectrum",
     "LevelMeter",
+    "ArcSlider",
     "Link",
     "Code",
     "Text",
@@ -464,6 +473,15 @@ impl App for StorybookApp {
             }
             Msg::XYPad2Changed(v) => {
                 model.xypad_value2 = v;
+            }
+            Msg::ArcChanged(v) => {
+                model.arc_value = v;
+            }
+            Msg::Arc2Changed(v) => {
+                model.arc_value2 = v;
+            }
+            Msg::Arc3Changed(v) => {
+                model.arc_value3 = v;
             }
             Msg::InputChanged(v) => {
                 model.input_value = v;
@@ -1374,6 +1392,65 @@ fn render_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
             // Request repaint for animation
             ctx.ui.ctx().request_repaint();
+        }
+
+        "ArcSlider" => {
+            ctx.ui.heading("ArcSlider");
+            ctx.ui.label("Modern arc-shaped slider for synthesizer-style controls");
+            ctx.ui.add_space(16.0);
+
+            ctx.horizontal(|ctx| {
+                // Standard arc
+                ctx.vertical(|ctx| {
+                    ctx.ui.label("Standard:");
+                    ArcSlider::new(0.0..=100.0)
+                        .label("Mix")
+                        .suffix("%")
+                        .show_with(ctx, model.arc_value, Msg::ArcChanged);
+                });
+
+                ctx.ui.add_space(24.0);
+
+                // Small size
+                ctx.vertical(|ctx| {
+                    ctx.ui.label("Small:");
+                    ArcSlider::new(0.0..=1.0)
+                        .small()
+                        .label("Pan")
+                        .show_with(ctx, model.arc_value2, Msg::Arc2Changed);
+                });
+
+                ctx.ui.add_space(24.0);
+
+                // Large with thick arc
+                ctx.vertical(|ctx| {
+                    ctx.ui.label("Large + Thick:");
+                    ArcSlider::new(-24.0..=24.0)
+                        .large()
+                        .thickness(1.5)
+                        .suffix("dB")
+                        .label("Gain")
+                        .show_with(ctx, model.arc_value3, Msg::Arc3Changed);
+                });
+            });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.label("Usage:");
+            Code::new(r#"ArcSlider::new(0.0..=100.0)
+    .label("Mix")
+    .suffix("%")
+    .show_with(ctx, model.mix, Msg::SetMix);"#).show(ctx.ui);
+
+            ctx.ui.add_space(8.0);
+            ctx.ui.label("Features:");
+            ctx.ui.label("• Drag up/down or left/right to adjust");
+            ctx.ui.label("• Double-click to reset to center");
+            ctx.ui.label("• Size variants (small/medium/large)");
+            ctx.ui.label("• Customizable arc thickness");
+            ctx.ui.label("• Optional value suffix (%, dB, etc.)");
         }
 
         "Link" => {

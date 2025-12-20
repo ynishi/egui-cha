@@ -50,6 +50,7 @@
 //! };
 //! ```
 
+mod arc_slider;
 mod badge;
 mod button;
 mod checkbox;
@@ -72,6 +73,7 @@ mod validated_input;
 mod waveform;
 mod xypad;
 
+pub use arc_slider::{ArcSlider, ArcSliderSize, ArcStyle};
 pub use badge::{Badge, BadgeVariant};
 pub use button::{Button, ButtonVariant};
 pub use checkbox::Checkbox;
