@@ -1,6 +1,6 @@
 //! Core App trait - The heart of TEA
 
-use crate::{sub::Sub, Cmd, ViewCtx};
+use crate::{error::FrameworkError, sub::Sub, Cmd, ViewCtx};
 
 /// The main application trait following TEA (The Elm Architecture)
 ///
@@ -66,5 +66,28 @@ pub trait App: Sized + 'static {
     /// ```
     fn subscriptions(_model: &Self::Model) -> Sub<Self::Msg> {
         Sub::none()
+    }
+
+    /// Handle framework errors
+    ///
+    /// Called when the framework encounters an internal error (task panic,
+    /// runtime failure, etc.). Override this to integrate with your app's
+    /// error handling.
+    ///
+    /// Default implementation logs to tracing and continues.
+    ///
+    /// # Example
+    /// ```ignore
+    /// fn on_framework_error(model: &mut Model, err: FrameworkError) -> Cmd<Msg> {
+    ///     // Add to your error console
+    ///     model.errors.push_with_level(&err.message, err.severity.into());
+    ///
+    ///     // Or convert to your app's error type
+    ///     Cmd::msg(Msg::Error(err.format_message()))
+    /// }
+    /// ```
+    fn on_framework_error(_model: &mut Self::Model, err: FrameworkError) -> Cmd<Self::Msg> {
+        err.log();
+        Cmd::none()
     }
 }

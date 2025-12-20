@@ -54,7 +54,7 @@ fn update(model: &mut Model, msg: Msg) -> Cmd<Msg> {
 - **Router**: Built-in navigation with history (back/forward)
 - **Design System**: Themed components following Atomic Design principles
 - **Icon Support**: Phosphor Icons integration (embedded font)
-- **Error Handling**: Structured error handling with `Cmd::try_task` and `ErrorConsole`
+- **Error Handling**: Structured error handling with `Cmd::try_task`, `ErrorConsole`, and `on_framework_error`
 - **Testing Utilities**: `TestRunner` for unit testing your app logic
 
 ## Installation
@@ -143,7 +143,9 @@ impl App for MyApp {
 | Component | Description |
 |-----------|-------------|
 | `App` | Main application trait with `init`, `update`, `view` |
-| `Cmd` | Side effects: `task`, `delay`, `try_task`, `from_result` |
+| `Cmd` | Side effects: `task`, `delay`, `try_task`, `from_result`, `retry` |
+| `Severity` | Error levels: Debug, Info, Warn, Error, Critical |
+| `FrameworkError` | Framework internal errors with `on_framework_error` hook |
 | `ViewCtx` | UI context with `emit`, `horizontal`, `vertical`, `group` |
 | `Router` | Page navigation with history stack |
 | `Component` | Reusable component trait |
@@ -190,7 +192,7 @@ Theme includes:
 | `Modal` | Dialog overlay |
 | `Table` | Data table component |
 | `Navbar` | Horizontal navigation bar |
-| `ErrorConsole` | Error/Warning/Info message display |
+| `ErrorConsole` | 5-level severity message display (Debug/Info/Warning/Error/Critical) |
 | `Toast` | Temporary notifications with auto-dismiss |
 | `Form` | Structured form with validation |
 | `SearchBar` | Search input with submit |
@@ -308,7 +310,7 @@ Icon::gear().color(Color32::RED).show(ctx.ui);
 Icon::new(icons::CHECK).show(ctx.ui);
 ```
 
-Available icons: `HOUSE`, `GEAR`, `HASH`, `INFO`, `USER`, `CHECK`, `WARNING`, `PLUS`, `MINUS`, `X`, `ARROW_LEFT`, `ARROW_RIGHT`
+Available icons: `HOUSE`, `GEAR`, `HASH`, `INFO`, `USER`, `CHECK`, `WARNING`, `PLUS`, `MINUS`, `X`, `ARROW_LEFT`, `ARROW_RIGHT`, `FIRE`, `BUG`, `WRENCH`, `X_CIRCLE`
 
 ## Testing
 

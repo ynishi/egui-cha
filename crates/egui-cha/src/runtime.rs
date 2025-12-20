@@ -1,6 +1,10 @@
 //! Runtime - Integration with eframe
 
-use crate::{sub::Sub, App, Cmd, ViewCtx};
+use crate::{
+    error::{FrameworkError, Severity},
+    sub::Sub,
+    App, Cmd, ViewCtx,
+};
 use std::collections::{HashMap, HashSet};
 use std::sync::mpsc;
 use std::time::Duration;
@@ -101,6 +105,9 @@ struct TeaRuntime<A: App> {
     pending_msgs: Vec<A::Msg>,
     msg_receiver: mpsc::Receiver<A::Msg>,
     msg_sender: mpsc::Sender<A::Msg>,
+    /// Channel for framework errors
+    err_receiver: mpsc::Receiver<FrameworkError>,
+    err_sender: mpsc::Sender<FrameworkError>,
     tokio_runtime: TokioRuntime,
     /// Active interval subscriptions
     active_intervals: HashMap<&'static str, IntervalHandle>,
@@ -124,6 +131,7 @@ impl<A: App> TeaRuntime<A> {
 
         let (model, init_cmd) = A::init();
         let (msg_sender, msg_receiver) = mpsc::channel();
+        let (err_sender, err_receiver) = mpsc::channel();
 
         let tokio_runtime = TokioRuntime::new().expect("Failed to create tokio runtime");
 
@@ -132,6 +140,8 @@ impl<A: App> TeaRuntime<A> {
             pending_msgs: Vec::new(),
             msg_receiver,
             msg_sender,
+            err_receiver,
+            err_sender,
             tokio_runtime,
             active_intervals: HashMap::new(),
             repaint_mode,
@@ -170,10 +180,33 @@ impl<A: App> TeaRuntime<A> {
                 }
             }
             Cmd::Task(future) => {
-                let sender = self.msg_sender.clone();
+                let msg_sender = self.msg_sender.clone();
+                let err_sender = self.err_sender.clone();
+
                 self.tokio_runtime.spawn(async move {
-                    let msg = future.await;
-                    let _ = sender.send(msg);
+                    // Catch panics in async tasks
+                    let result = tokio::task::spawn(future).await;
+
+                    match result {
+                        Ok(msg) => {
+                            let _ = msg_sender.send(msg);
+                        }
+                        Err(join_error) => {
+                            // Task panicked or was cancelled
+                            let err = if join_error.is_panic() {
+                                FrameworkError::command(
+                                    Severity::Error,
+                                    format!("Task panicked: {}", join_error),
+                                )
+                            } else {
+                                FrameworkError::command(
+                                    Severity::Warn,
+                                    "Task was cancelled".to_string(),
+                                )
+                            };
+                            let _ = err_sender.send(err);
+                        }
+                    }
                 });
             }
             Cmd::Msg(msg) => {
@@ -192,6 +225,14 @@ impl<A: App> TeaRuntime<A> {
         let msgs = std::mem::take(&mut self.pending_msgs);
         for msg in msgs {
             let cmd = A::update(&mut self.model, msg);
+            self.execute_cmd(cmd);
+        }
+    }
+
+    /// Process framework errors by calling App::on_framework_error
+    fn process_framework_errors(&mut self) {
+        while let Ok(err) = self.err_receiver.try_recv() {
+            let cmd = A::on_framework_error(&mut self.model, err);
             self.execute_cmd(cmd);
         }
     }
@@ -254,6 +295,9 @@ impl<A: App> eframe::App for TeaRuntime<A> {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Process any pending messages from commands
         self.process_pending_messages();
+
+        // Process framework errors
+        self.process_framework_errors();
 
         // Process subscriptions (start/stop intervals based on model state)
         let sub = A::subscriptions(&self.model);

@@ -109,6 +109,13 @@ pub mod icons {
     pub const LINK_SIMPLE: &str = "\u{e2e6}";
     pub const EYE: &str = "\u{e220}";
     pub const EYE_SLASH: &str = "\u{e222}";
+
+    // Status / Alerts
+    pub const FIRE: &str = "\u{e242}";
+    pub const BUG: &str = "\u{e5f4}";
+    pub const WRENCH: &str = "\u{e5d4}";
+    pub const X_CIRCLE: &str = "\u{e4f8}";
+    pub const SKULL: &str = "\u{e916}";
 }
 
 /// Icon component using Phosphor Icons
@@ -176,6 +183,18 @@ impl Icon {
     }
     pub fn record() -> Self {
         Self::new(icons::RECORD)
+    }
+    pub fn fire() -> Self {
+        Self::new(icons::FIRE)
+    }
+    pub fn bug() -> Self {
+        Self::new(icons::BUG)
+    }
+    pub fn wrench() -> Self {
+        Self::new(icons::WRENCH)
+    }
+    pub fn x_circle() -> Self {
+        Self::new(icons::X_CIRCLE)
     }
 
     /// Set icon size
