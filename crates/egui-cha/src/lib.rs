@@ -42,7 +42,7 @@ pub use sub::Sub;
 pub use view_ctx::ViewCtx;
 
 #[cfg(feature = "eframe")]
-pub use runtime::{run, RunConfig};
+pub use runtime::{run, RepaintMode, RunConfig};
 
 /// Prelude for convenient imports
 pub mod prelude {
@@ -57,7 +57,7 @@ pub mod prelude {
     pub use egui::{Key, KeyboardShortcut, Modifiers};
 
     #[cfg(feature = "eframe")]
-    pub use crate::RunConfig;
+    pub use crate::{RepaintMode, RunConfig};
 }
 
 /// Testing utilities prelude

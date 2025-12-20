@@ -90,7 +90,11 @@ fn vj_theme() -> Theme {
 
 fn main() -> eframe::Result<()> {
     tracing_subscriber::fmt::init();
-    egui_cha::run::<VjApp>(RunConfig::new("VJ Mock").with_size(1200.0, 900.0))
+    egui_cha::run::<VjApp>(
+        RunConfig::new("VJ Mock")
+            .with_size(1200.0, 900.0)
+            .with_repaint_mode(RepaintMode::FixedFps(60)),
+    )
 }
 
 // ============================================================

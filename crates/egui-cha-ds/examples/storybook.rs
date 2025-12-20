@@ -275,6 +275,7 @@ const FRAMEWORK: &[&str] = &[
     "Shortcuts",
     "Dynamic Bindings",
     "ScrollArea",
+    "RepaintMode",
 ];
 
 impl App for StorybookApp {
@@ -2093,6 +2094,105 @@ fn render_framework(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.label("- .always_show_scroll() / .hide_scroll()");
             ctx.ui.label("- .animated(bool)");
             ctx.ui.label("- .id_salt(id) for multiple scroll areas");
+        }
+
+        "RepaintMode" => {
+            ctx.ui.heading("RepaintMode");
+            ctx.ui.label("Control frame rate and repaint behavior");
+            ctx.ui.add_space(8.0);
+
+            // Get frame stats before borrowing ui
+            let egui_ctx = ctx.ui.ctx().clone();
+            let frame_time = egui_ctx.input(|i| i.stable_dt);
+            let fps = if frame_time > 0.0 { 1.0 / frame_time } else { 0.0 };
+            let t = egui_ctx.input(|i| i.time);
+            let progress = ((t * 2.0).sin() * 0.5 + 0.5) as f32;
+
+            Card::new().show(ctx.ui, |ui| {
+                ui.horizontal(|ui| {
+                    ui.strong("Live Stats:");
+                    Badge::info(&format!("FPS: {:.1}", fps)).show(ui);
+                    ui.separator();
+                    ui.label(format!("Frame time: {:.1}ms", frame_time * 1000.0));
+                });
+
+                ui.add_space(8.0);
+
+                // Animated progress bar
+                ui.horizontal(|ui| {
+                    ui.label("Animation:");
+                    ui.add(egui::ProgressBar::new(progress).desired_width(200.0));
+                });
+
+                ui.add_space(4.0);
+                ui.label("(Move mouse or interact to see Reactive mode in action)");
+            });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "pub enum RepaintMode {\n    Reactive,      // Event-driven (default)\n    FixedFps(u32), // Fixed frame rate\n    VSync,         // Monitor refresh rate\n}"
+            ).show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Usage:");
+            ctx.ui.add_space(4.0);
+
+            Code::new(
+                "// Default: Reactive (power-efficient)\negui_cha::run::<MyApp>(RunConfig::new(\"App\"))\n\n// Fixed 60 FPS (animations, VJ software)\negui_cha::run::<MyApp>(\n    RunConfig::new(\"VJ App\")\n        .with_repaint_mode(RepaintMode::FixedFps(60))\n)\n\n// VSync (smooth, monitor-synced)\negui_cha::run::<MyApp>(\n    RunConfig::new(\"Game\")\n        .with_repaint_mode(RepaintMode::VSync)\n)"
+            ).show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Mode Comparison:");
+            ctx.ui.add_space(4.0);
+
+            egui::Grid::new("repaint_mode_grid")
+                .num_columns(3)
+                .spacing([20.0, 4.0])
+                .show(ctx.ui, |ui| {
+                    ui.strong("Mode");
+                    ui.strong("Use Case");
+                    ui.strong("Power");
+                    ui.end_row();
+
+                    ui.label("Reactive");
+                    ui.label("Standard UI apps, forms");
+                    ui.label("Low (best)");
+                    ui.end_row();
+
+                    ui.label("FixedFps(30)");
+                    ui.label("Light animations");
+                    ui.label("Medium");
+                    ui.end_row();
+
+                    ui.label("FixedFps(60)");
+                    ui.label("VJ software, real-time viz");
+                    ui.label("Medium-High");
+                    ui.end_row();
+
+                    ui.label("VSync");
+                    ui.label("Games, smooth animations");
+                    ui.label("High");
+                    ui.end_row();
+                });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Notes:");
+            ctx.ui.label("• Reactive: Only repaints on user input or pending messages");
+            ctx.ui.label("• FixedFps: Uses request_repaint_after() for consistent timing");
+            ctx.ui.label("• VSync: Repaints every frame at monitor refresh rate");
+            ctx.ui.label("• This storybook uses Reactive mode (default)");
         }
 
         _ => {

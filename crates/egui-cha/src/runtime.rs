@@ -7,6 +7,26 @@ use std::time::Duration;
 use tokio::runtime::Runtime as TokioRuntime;
 use tokio::task::JoinHandle;
 
+/// Repaint mode for controlling frame rate
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum RepaintMode {
+    /// Event-driven (default) - only repaint on user input or pending messages.
+    /// Most power-efficient, ideal for standard UI applications.
+    Reactive,
+    /// Fixed FPS - repaint at specified frames per second.
+    /// Useful for animations, VJ software, or real-time visualizations.
+    FixedFps(u32),
+    /// VSync - repaint at monitor refresh rate.
+    /// Smooth rendering synced to display, uses more resources.
+    VSync,
+}
+
+impl Default for RepaintMode {
+    fn default() -> Self {
+        Self::Reactive
+    }
+}
+
 /// Configuration for running the app
 pub struct RunConfig {
     /// Window title
@@ -15,6 +35,8 @@ pub struct RunConfig {
     pub initial_size: Option<[f32; 2]>,
     /// Enable persistence
     pub persistence: bool,
+    /// Repaint mode
+    pub repaint_mode: RepaintMode,
 }
 
 impl Default for RunConfig {
@@ -23,6 +45,7 @@ impl Default for RunConfig {
             title: "egui-cha App".to_string(),
             initial_size: Some([800.0, 600.0]),
             persistence: false,
+            repaint_mode: RepaintMode::default(),
         }
     }
 }
@@ -47,6 +70,12 @@ impl RunConfig {
         self.persistence = true;
         self
     }
+
+    /// Set repaint mode
+    pub fn with_repaint_mode(mut self, mode: RepaintMode) -> Self {
+        self.repaint_mode = mode;
+        self
+    }
 }
 
 /// Run the TEA application
@@ -57,10 +86,12 @@ pub fn run<A: App>(config: RunConfig) -> eframe::Result<()> {
         ..Default::default()
     };
 
+    let repaint_mode = config.repaint_mode;
+
     eframe::run_native(
         &config.title,
         options,
-        Box::new(|cc| Ok(Box::new(TeaRuntime::<A>::new(cc)))),
+        Box::new(move |cc| Ok(Box::new(TeaRuntime::<A>::new(cc, repaint_mode)))),
     )
 }
 
@@ -73,6 +104,8 @@ struct TeaRuntime<A: App> {
     tokio_runtime: TokioRuntime,
     /// Active interval subscriptions
     active_intervals: HashMap<&'static str, IntervalHandle>,
+    /// Repaint mode
+    repaint_mode: RepaintMode,
 }
 
 /// Handle for a running interval
@@ -85,7 +118,7 @@ struct IntervalHandle {
 const PHOSPHOR_FONT: &[u8] = include_bytes!("../../../assets/fonts/Phosphor.ttf");
 
 impl<A: App> TeaRuntime<A> {
-    fn new(cc: &eframe::CreationContext<'_>) -> Self {
+    fn new(cc: &eframe::CreationContext<'_>, repaint_mode: RepaintMode) -> Self {
         // Set up fonts
         Self::setup_fonts(&cc.egui_ctx);
 
@@ -101,6 +134,7 @@ impl<A: App> TeaRuntime<A> {
             msg_sender,
             tokio_runtime,
             active_intervals: HashMap::new(),
+            repaint_mode,
         };
 
         // Execute initial command
@@ -236,9 +270,23 @@ impl<A: App> eframe::App for TeaRuntime<A> {
         // Queue view messages for next frame
         self.pending_msgs.extend(view_msgs);
 
-        // Request repaint if there are pending messages or active intervals
-        if !self.pending_msgs.is_empty() || !self.active_intervals.is_empty() {
-            ctx.request_repaint();
+        // Handle repaint based on mode
+        match self.repaint_mode {
+            RepaintMode::Reactive => {
+                // Only repaint if there are pending messages or active intervals
+                if !self.pending_msgs.is_empty() || !self.active_intervals.is_empty() {
+                    ctx.request_repaint();
+                }
+            }
+            RepaintMode::FixedFps(fps) => {
+                // Request repaint after fixed interval
+                let interval = Duration::from_secs_f64(1.0 / fps as f64);
+                ctx.request_repaint_after(interval);
+            }
+            RepaintMode::VSync => {
+                // Always request repaint for next vsync
+                ctx.request_repaint();
+            }
         }
     }
 }
