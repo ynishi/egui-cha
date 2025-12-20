@@ -70,6 +70,8 @@ mod tabs;
 mod toast;
 #[cfg(feature = "dock")]
 mod dock;
+#[cfg(feature = "snarl")]
+mod snarl;
 
 pub use card::Card;
 #[cfg(feature = "dock")]
@@ -87,3 +89,8 @@ pub use tabs::{TabPanel, Tabs};
 // #[cfg(feature = "tiles")]
 // pub use tiles::{...};  // TODO: egui 0.31 compat
 pub use toast::{ToastContainer, ToastId, ToastPosition, ToastVariant};
+#[cfg(feature = "snarl")]
+pub use snarl::{
+    presets as node_presets, MenuAction, NodeGraph, NodeGraphArea, NodeGraphEvent,
+    NodeGraphStyle, NodeId, InPin, InPinId, OutPin, OutPinId, PinInfo, Snarl, SnarlViewer,
+};

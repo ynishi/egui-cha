@@ -26,6 +26,7 @@ egui = "0.33"
 egui_dock = "0.18"
 egui_extras = "0.33"
 egui_plot = "0.34"
+egui-snarl = "0.9"
 egui_tiles = "0.14"
 eframe = { version = "0.33", default-features = false, features = ["default_fonts", "glow", "persistence"] }
 
