@@ -23,7 +23,7 @@ egui-cha-macros = { path = "crates/egui-cha-macros" }
 
 # Egui ecosystem
 egui = "0.33"
-# egui_dock = "0.18"  # TODO: waiting for egui 0.31 compat
+egui_dock = "0.18"
 egui_extras = "0.33"
 egui_plot = "0.34"
 egui_tiles = "0.14"

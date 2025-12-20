@@ -55,6 +55,8 @@
 //! See [`atoms`](crate::atoms) module for the full theme token reference.
 
 mod card;
+// #[cfg(feature = "dock")]
+// mod dock;  // TODO: waiting for egui 0.31 compatible egui_dock
 mod error_console;
 mod form;
 mod menu;
@@ -63,9 +65,15 @@ mod navbar;
 mod search_bar;
 mod table;
 mod tabs;
+// #[cfg(feature = "tiles")]
+// mod tiles;  // TODO: egui 0.31 compat
 mod toast;
+#[cfg(feature = "dock")]
+mod dock;
 
 pub use card::Card;
+#[cfg(feature = "dock")]
+pub use dock::{layout as dock_layout, DockArea, DockEvent, DockStyle, DockTree, TabInfo};
 pub use error_console::{ErrorConsole, ErrorConsoleMsg, ErrorConsoleState, ErrorEntry, ErrorLevel};
 pub use form::Form;
 pub use menu::{IconMenu, Menu};
@@ -76,4 +84,6 @@ pub use table::{DataTable, Table};
 #[cfg(feature = "extras")]
 pub use table::DataColumnWidth;
 pub use tabs::{TabPanel, Tabs};
+// #[cfg(feature = "tiles")]
+// pub use tiles::{...};  // TODO: egui 0.31 compat
 pub use toast::{ToastContainer, ToastId, ToastPosition, ToastVariant};

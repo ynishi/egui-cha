@@ -4,7 +4,8 @@
 
 use egui_cha::prelude::*;
 use egui_cha_ds::prelude::*;
-use egui_cha_ds::{ConfirmResult, ToastContainer, ToastId};
+use egui_cha_ds::{dock_layout, ConfirmResult, DockArea, DockEvent, DockTree, ToastContainer, ToastId};
+use std::cell::RefCell;
 use std::time::Duration;
 
 fn main() -> eframe::Result<()> {
@@ -133,6 +134,9 @@ struct Model {
 
     // ErrorConsole demo
     error_console: ErrorConsoleState,
+
+    // Dock demo (RefCell for interior mutability in view)
+    dock: RefCell<DockTree<DemoPane>>,
 }
 
 /// Demo action for dynamic bindings showcase
@@ -142,6 +146,16 @@ enum DemoAction {
     Decrement,
     Reset,
     Save,
+}
+
+/// Demo pane for dock showcase
+#[derive(Clone, Debug, PartialEq, Default)]
+enum DemoPane {
+    #[default]
+    Browser,
+    Editor,
+    Console,
+    Inspector,
 }
 
 #[derive(Clone, Debug)]
@@ -289,6 +303,9 @@ enum Msg {
     // ErrorConsole demo
     ErrorConsolePush(ErrorLevel),
     ErrorConsoleMsg(ErrorConsoleMsg),
+
+    // Dock
+    DockEvent(DockEvent<DemoPane>),
 }
 
 const CATEGORIES: &[&str] = &["Atoms", "Semantics", "Molecules", "Framework", "Theme"];
@@ -343,6 +360,7 @@ const MOLECULES: &[&str] = &[
     "Form",
     "Columns",
     "Conditionals",
+    "Dock",
 ];
 
 const FRAMEWORK: &[&str] = &[
@@ -431,6 +449,13 @@ impl App for StorybookApp {
                 shadow_blur: 4.0,
                 overlay_dim: 0.5,
                 bindings,
+                dock: RefCell::new(dock_layout::three_column(
+                    DemoPane::Browser,
+                    DemoPane::Editor,
+                    DemoPane::Inspector,
+                    0.2,
+                    0.2,
+                )),
                 ..Default::default()
             },
             Cmd::none(),
@@ -815,6 +840,22 @@ impl App for StorybookApp {
                 ErrorConsoleMsg::Dismiss(i) => model.error_console.dismiss(i),
                 ErrorConsoleMsg::DismissAll => model.error_console.clear(),
             },
+
+            Msg::DockEvent(event) => {
+                // Handle dock events (tab closed, add clicked, etc.)
+                match event {
+                    DockEvent::TabClosed(_tab) => {
+                        // Tab was closed - could add it back or handle
+                    }
+                    DockEvent::AddClicked { surface: _, node: _ } => {
+                        // Add button clicked - could add a new tab
+                        model.dock.borrow_mut().push(DemoPane::Console);
+                    }
+                    DockEvent::FocusChanged => {
+                        // Focus changed
+                    }
+                }
+            }
         }
         Cmd::none()
     }
@@ -2945,6 +2986,101 @@ Strip::horizontal()
                 Icon::arrow_left().show_ctx(ctx);
                 ctx.ui.label("Content below stays in place");
             });
+        }
+
+        "Dock" => {
+            ctx.ui.heading("Dock");
+            ctx.ui.label("Dockable panel layout with tabs (wraps egui_dock)");
+            ctx.ui.add_space(8.0);
+
+            Code::new(r#"// Create dock layout
+let dock = dock_layout::three_column(
+    Pane::Browser,
+    Pane::Editor,
+    Pane::Inspector,
+    0.2, 0.2,
+);
+
+// Show dock area
+DockArea::new(&mut model.dock)
+    .show_close_buttons(true)
+    .show_add_buttons(true)
+    .show(ui, |ui, pane| {
+        match pane {
+            Pane::Browser => ui.label("Browser"),
+            Pane::Editor => ui.label("Editor"),
+            _ => ui.label("Other"),
+        }
+    });"#).show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Interactive Demo:");
+            ctx.ui.label("Try dragging tabs, closing them, or clicking + to add new tabs.");
+            ctx.ui.add_space(8.0);
+
+            // Use fixed-size area for dock
+            let available = ctx.ui.available_size();
+            let dock_height = 350.0_f32.min(available.y - 50.0).max(200.0);
+
+            egui::Frame::default()
+                .stroke(egui::Stroke::new(1.0, ctx.ui.visuals().widgets.noninteractive.bg_stroke.color))
+                .inner_margin(4.0)
+                .show(ctx.ui, |ui| {
+                    ui.set_min_size(egui::vec2(available.x - 20.0, dock_height));
+
+                    DockArea::new(&mut model.dock.borrow_mut())
+                        .show_close_buttons(true)
+                        .show_add_buttons(true)
+                        .tabs_are_draggable(true)
+                        .show(ui, |ui, pane| {
+                            match pane {
+                                DemoPane::Browser => {
+                                    ui.heading("Browser");
+                                    ui.label("File browser pane");
+                                    ui.separator();
+                                    ui.label("📁 src/");
+                                    ui.label("  📄 main.rs");
+                                    ui.label("  📄 lib.rs");
+                                    ui.label("📁 tests/");
+                                }
+                                DemoPane::Editor => {
+                                    ui.heading("Editor");
+                                    ui.label("Code editor pane");
+                                    ui.separator();
+                                    ui.code("fn main() {\n    println!(\"Hello!\");\n}");
+                                }
+                                DemoPane::Console => {
+                                    ui.heading("Console");
+                                    ui.label("Terminal/console pane");
+                                    ui.separator();
+                                    ui.label("> cargo run");
+                                    ui.label("   Compiling...");
+                                    ui.label("   Finished");
+                                }
+                                DemoPane::Inspector => {
+                                    ui.heading("Inspector");
+                                    ui.label("Property inspector pane");
+                                    ui.separator();
+                                    ui.label("Name: main.rs");
+                                    ui.label("Size: 256 bytes");
+                                    ui.label("Modified: Today");
+                                }
+                            }
+                        });
+                });
+
+            ctx.ui.add_space(16.0);
+
+            ctx.ui.strong("Layout Helpers:");
+            Code::new(r#"// Preset layouts
+dock_layout::left_right(left, right, 0.3);
+dock_layout::top_bottom(top, bottom, 0.7);
+dock_layout::three_column(l, c, r, 0.2, 0.2);
+dock_layout::daw(browser, main, inspector, timeline);
+dock_layout::vscode(sidebar, editors, terminals);"#).show(ctx.ui);
         }
 
         _ => {
