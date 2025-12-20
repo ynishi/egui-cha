@@ -195,7 +195,7 @@ impl<'a> BpmDisplay<'a> {
         };
 
         // Measure text width
-        let text_width = ui.fonts(|f| {
+        let text_width = ui.fonts_mut(|f| {
             f.glyph_width(&egui::FontId::monospace(font_size), '0') * value_text.len() as f32
         });
 

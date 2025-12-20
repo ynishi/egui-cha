@@ -84,7 +84,7 @@ impl<'a> LinePlot<'a> {
             .map(|(i, &y)| [i as f64, y])
             .collect();
 
-        let mut line = Line::new(plot_points)
+        let mut line = Line::new(self.id, plot_points)
             .color(line_color)
             .width(1.5);
 
@@ -158,7 +158,7 @@ impl<'a> EnvelopePlot<'a> {
             .map(|&(x, y)| [x, y])
             .collect();
 
-        let line = Line::new(plot_points)
+        let line = Line::new(self.id, plot_points)
             .color(line_color)
             .width(2.0)
             .fill(0.0);
@@ -240,7 +240,7 @@ impl<'a> AutomationPlot<'a> {
             .map(|&(x, y)| [x, y])
             .collect();
 
-        let line = Line::new(plot_points)
+        let line = Line::new(self.id, plot_points)
             .color(line_color)
             .width(1.5);
 
@@ -264,7 +264,7 @@ impl<'a> AutomationPlot<'a> {
                         .iter()
                         .map(|&(x, y)| [x, y])
                         .collect();
-                    let points = egui_plot::Points::new(point_data)
+                    let points = egui_plot::Points::new(format!("{}_points", self.id), point_data)
                         .radius(4.0)
                         .color(line_color);
                     plot_ui.points(points);
@@ -339,16 +339,19 @@ impl<'a> FrequencyPlot<'a> {
                 .collect()
         };
 
-        let line = Line::new(plot_points)
+        let line = Line::new(self.id, plot_points)
             .color(line_color)
             .width(2.0)
             .fill(0.0);
 
         // Draw 0dB reference line
-        let zero_line = Line::new(PlotPoints::from_iter([
-            [1.0_f64.log10(), 0.0],
-            [20000.0_f64.log10(), 0.0],
-        ]))
+        let zero_line = Line::new(
+            format!("{}_zero", self.id),
+            PlotPoints::from_iter([
+                [1.0_f64.log10(), 0.0],
+                [20000.0_f64.log10(), 0.0],
+            ]),
+        )
         .color(theme.border)
         .width(1.0);
 
@@ -425,7 +428,7 @@ impl<'a> BarPlot<'a> {
             })
             .collect();
 
-        let chart = egui_plot::BarChart::new(bars);
+        let chart = egui_plot::BarChart::new(self.id, bars);
 
         Plot::new(self.id)
             .height(self.size.y)

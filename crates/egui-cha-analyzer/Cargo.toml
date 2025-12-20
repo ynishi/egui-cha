@@ -11,8 +11,8 @@ quote = "1.0"
 proc-macro2 = "1.0"
 
 [dev-dependencies]
-egui-cha = { path = "../egui-cha" }
-egui-cha-ds = { path = "../egui-cha-ds" }
-eframe = "0.31"
-egui = "0.31"
+egui-cha.workspace = true
+egui-cha-ds.workspace = true
+eframe.workspace = true
+egui.workspace = true
 tracing-subscriber = "0.3"

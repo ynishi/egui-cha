@@ -254,7 +254,7 @@ impl ToastContainer {
         }
 
         let theme = Theme::current(ctx.ui.ctx());
-        let screen_rect = ctx.ui.ctx().screen_rect();
+        let screen_rect = ctx.ui.ctx().content_rect();
 
         // Calculate starting position
         let anchor = self.position.anchor();

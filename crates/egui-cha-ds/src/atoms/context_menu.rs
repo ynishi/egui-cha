@@ -91,7 +91,7 @@ impl ContextMenuExt for Response {
                         let text = egui::RichText::new(&label).color(text_color);
                         if ui.button(text).clicked() {
                             ctx.emit(msg);
-                            ui.close_menu();
+                            ui.close();
                         }
                     }
                     ContextMenuItem::Separator => {

@@ -11,6 +11,8 @@ default = ["macros", "plot", "extras"]
 macros = ["dep:egui-cha-macros"]
 plot = ["dep:egui_plot"]
 extras = ["dep:egui_extras"]
+# tiles = ["dep:egui_tiles"]  # TODO: egui 0.31 compat
+# dock = ["dep:egui_dock"]    # TODO: egui 0.31 compat
 
 [dependencies]
 egui-cha = { workspace = true, features = ["tokio"] }
@@ -18,6 +20,8 @@ egui.workspace = true
 egui-cha-macros = { workspace = true, optional = true }
 egui_plot = { workspace = true, optional = true }
 egui_extras = { workspace = true, optional = true }
+# egui_tiles = { workspace = true, optional = true }  # TODO: egui 0.31 compat
+# egui_dock = { workspace = true, optional = true }   # TODO: egui 0.31 compat
 
 [dev-dependencies]
 egui-cha = { workspace = true, features = ["eframe"] }

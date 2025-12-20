@@ -35,7 +35,8 @@
 //!     });
 //! ```
 
-use egui::{scroll_area::ScrollBarVisibility, Ui};
+use egui::scroll_area::{ScrollBarVisibility, ScrollSource};
+use egui::Ui;
 
 use crate::ViewCtx;
 
@@ -243,7 +244,11 @@ impl ScrollArea {
         area = area.auto_shrink(self.auto_shrink);
         area = area.scroll_bar_visibility(self.scroll_bar_visibility);
         area = area.animated(self.animated);
-        area = area.enable_scrolling(self.enable_scrolling);
+        area = area.scroll_source(if self.enable_scrolling {
+            ScrollSource::ALL
+        } else {
+            ScrollSource::NONE
+        });
 
         if let Some(offset) = self.scroll_offset {
             area = area.vertical_scroll_offset(offset.y);

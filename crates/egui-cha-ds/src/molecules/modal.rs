@@ -49,7 +49,7 @@ impl<'a> Modal<'a> {
         let mut close_requested = false;
 
         // Backdrop - use theme's overlay_dim
-        let screen_rect = ui.ctx().screen_rect();
+        let screen_rect = ui.ctx().content_rect();
         let backdrop_alpha = (theme.overlay_dim * 255.0) as u8;
         let backdrop_color = Color32::from_rgba_unmultiplied(0, 0, 0, backdrop_alpha);
 

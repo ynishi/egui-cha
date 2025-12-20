@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-egui-cha = { path = "../../crates/egui-cha", features = ["eframe"] }
-egui-cha-ds = { path = "../../crates/egui-cha-ds" }
-eframe = "0.31"
+egui-cha.workspace = true
+egui-cha-ds.workspace = true
+eframe.workspace = true
 tracing-subscriber = "0.3"

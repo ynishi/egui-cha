@@ -290,7 +290,7 @@ impl<'a> ButtonGroup<'a> {
         theme: &Theme,
     ) -> Response {
         // Calculate text size for button width
-        let text_width = ui.fonts(|f| {
+        let text_width = ui.fonts_mut(|f| {
             f.glyph_width(&egui::FontId::proportional(font_size), 'M') * label.len() as f32
         });
         let button_width = if min_width > 0.0 {
