@@ -58,6 +58,7 @@ struct Model {
 
     // Tabs demo
     tabs_index: usize,
+    menu_index: usize,
 
     // Table demo
     table_data: Vec<(String, i32, bool)>,
@@ -175,6 +176,9 @@ enum Msg {
     // Tabs
     TabChanged(usize),
 
+    // Menu
+    MenuChanged(usize),
+
     // === Framework Demo Messages ===
 
     // Cmd::delay demo
@@ -264,6 +268,7 @@ const ATOMS: &[&str] = &[
     "Text",
     "Tooltip",
     "Context Menu",
+    "ListItem",
 ];
 
 const SEMANTICS: &[&str] = &[
@@ -279,6 +284,7 @@ const SEMANTICS: &[&str] = &[
 const MOLECULES: &[&str] = &[
     "Card",
     "Tabs",
+    "Menu",
     "Modal",
     "Table",
     "Navbar",
@@ -487,6 +493,9 @@ impl App for StorybookApp {
             }
             Msg::TabChanged(idx) => {
                 model.tabs_index = idx;
+            }
+            Msg::MenuChanged(idx) => {
+                model.menu_index = idx;
             }
 
             // === Framework Demo ===
@@ -1151,6 +1160,60 @@ fn render_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             }
         }
 
+        "ListItem" => {
+            ctx.ui.heading("ListItem");
+            ctx.ui.label("Selectable list item with optional icon and badge");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "// Basic usage\nListItem::new(\"Item\").on_click(ctx, Msg::Select);\n\n// With icon and selection\nListItem::new(\"Settings\")\n    .icon(icons::GEAR)\n    .selected(is_selected)\n    .on_click(ctx, Msg::Select);\n\n// With badge\nListItem::new(\"Messages\").badge(\"5\").on_click(ctx, Msg::Go);"
+            ).show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Basic Items:");
+            ctx.ui.add_space(8.0);
+
+            ListItem::new("First item").on_click(ctx, Msg::ButtonClicked);
+            ListItem::new("Second item").on_click(ctx, Msg::ButtonClicked);
+            ListItem::new("Third item").on_click(ctx, Msg::ButtonClicked);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("With Icons:");
+            ctx.ui.add_space(8.0);
+
+            ListItem::new("Home").icon(icons::HOUSE).on_click(ctx, Msg::ButtonClicked);
+            ListItem::new("Settings").icon(icons::GEAR).on_click(ctx, Msg::ButtonClicked);
+            ListItem::new("User").icon(icons::USER).on_click(ctx, Msg::ButtonClicked);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Selection State:");
+            ctx.ui.add_space(8.0);
+
+            ListItem::new("Selected item").icon(icons::CHECK).selected(true).on_click(ctx, Msg::ButtonClicked);
+            ListItem::new("Normal item").icon(icons::HASH).selected(false).on_click(ctx, Msg::ButtonClicked);
+            ListItem::new("Disabled item").icon(icons::X).disabled(true).on_click(ctx, Msg::ButtonClicked);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("With Badges:");
+            ctx.ui.add_space(8.0);
+
+            ListItem::new("Inbox").icon(icons::HASH).badge("12").on_click(ctx, Msg::ButtonClicked);
+            ListItem::new("Notifications").icon(icons::INFO).badge("3").on_click(ctx, Msg::ButtonClicked);
+            ListItem::new("Updates").icon(icons::ARROW_RIGHT).badge("New").on_click(ctx, Msg::ButtonClicked);
+        }
+
         _ => {
             ctx.ui.label("Component not implemented");
         }
@@ -1553,6 +1616,59 @@ fn render_molecule(model: &Model, ctx: &mut ViewCtx<Msg>) {
                 ctx.ui.label("Content of the third tab.");
                 Button::primary("Action").on_click(ctx, Msg::ButtonClicked);
             });
+        }
+
+        "Menu" => {
+            ctx.ui.heading("Menu");
+            ctx.ui.label("Vertical tabs / navigation menu (like Tabs but vertical)");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "// Simple menu (like vertical Tabs)\nMenu::new(&[\"Home\", \"Settings\", \"Profile\"])\n    .show_with(ctx, model.active, Msg::MenuChanged);\n\n// With icons\nIconMenu::new(&[\n    (\"Home\", icons::HOUSE),\n    (\"Settings\", icons::GEAR),\n]).show_with(ctx, model.active, Msg::Changed);"
+            ).show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Basic Menu:");
+            ctx.ui.add_space(8.0);
+
+            ctx.horizontal(|ctx| {
+                // Left: Menu
+                ctx.vertical(|ctx| {
+                    Menu::new(&["Overview", "Components", "Settings", "Help"])
+                        .show_with(ctx, model.menu_index, Msg::MenuChanged);
+                });
+
+                ctx.ui.add_space(16.0);
+
+                // Right: Content
+                ctx.vertical(|ctx| {
+                    ctx.ui.label(format!("Selected: {}", ["Overview", "Components", "Settings", "Help"][model.menu_index]));
+                    ctx.ui.add_space(8.0);
+                    match model.menu_index {
+                        0 => ctx.ui.label("Welcome to the overview page."),
+                        1 => ctx.ui.label("Browse available components."),
+                        2 => ctx.ui.label("Configure your preferences."),
+                        _ => ctx.ui.label("Get help and support."),
+                    };
+                });
+            });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("IconMenu:");
+            ctx.ui.add_space(8.0);
+
+            IconMenu::new(&[
+                ("Home", icons::HOUSE),
+                ("Settings", icons::GEAR),
+                ("User", icons::USER),
+                ("Info", icons::INFO),
+            ]).show_with(ctx, model.menu_index, Msg::MenuChanged);
         }
 
         "Modal" => {
