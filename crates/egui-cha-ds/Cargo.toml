@@ -7,12 +7,23 @@ license.workspace = true
 rust-version.workspace = true
 
 [features]
-default = ["macros", "plot", "extras"]
+default = ["macros", "plot", "extras", "studio"]
 macros = ["dep:egui-cha-macros"]
 plot = ["dep:egui_plot"]
 extras = ["dep:egui_extras"]
 # tiles = ["dep:egui_tiles"]  # TODO: egui 0.31 compat
 dock = ["dep:egui_dock"]
+
+# VJ/DAW component features
+audio = []   # Audio visualization (BPM, transport, waveform, etc.)
+midi = []    # MIDI components (keyboard, piano roll, mapper)
+mixer = []   # Mixer components (channel strip, effects, automation)
+visual = []  # Visual editing (layers, masks, color wheel)
+
+# Convenience bundles
+vj = ["audio", "visual"]           # VJ-focused components
+daw = ["audio", "midi", "mixer"]   # DAW-focused components
+studio = ["vj", "daw"]             # All VJ/DAW components
 
 [dependencies]
 egui-cha = { workspace = true, features = ["tokio"] }
