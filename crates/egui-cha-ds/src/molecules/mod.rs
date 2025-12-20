@@ -73,5 +73,7 @@ pub use modal::{ConfirmDialog, ConfirmResult, Modal};
 pub use navbar::{navbar, sidebar, Navbar};
 pub use search_bar::SearchBar;
 pub use table::{DataTable, Table};
+#[cfg(feature = "extras")]
+pub use table::DataColumnWidth;
 pub use tabs::{TabPanel, Tabs};
 pub use toast::{ToastContainer, ToastId, ToastPosition, ToastVariant};

@@ -7,15 +7,17 @@ license.workspace = true
 rust-version.workspace = true
 
 [features]
-default = ["macros", "plot"]
+default = ["macros", "plot", "extras"]
 macros = ["dep:egui-cha-macros"]
 plot = ["dep:egui_plot"]
+extras = ["dep:egui_extras"]
 
 [dependencies]
 egui-cha = { workspace = true, features = ["tokio"] }
 egui.workspace = true
 egui-cha-macros = { workspace = true, optional = true }
 egui_plot = { workspace = true, optional = true }
+egui_extras = { workspace = true, optional = true }
 
 [dev-dependencies]
 egui-cha = { workspace = true, features = ["eframe"] }

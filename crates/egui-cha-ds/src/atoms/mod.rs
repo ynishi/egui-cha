@@ -68,6 +68,8 @@ mod link;
 mod oscilloscope;
 #[cfg(feature = "plot")]
 mod plot;
+#[cfg(feature = "extras")]
+mod extras;
 mod list_item;
 mod select;
 mod slider;
@@ -99,6 +101,10 @@ pub use oscilloscope::{Oscilloscope, ScopeMode, TriggerMode};
 pub use plot::{AutomationPlot, BarPlot, EnvelopePlot, FrequencyPlot, LinePlot};
 #[cfg(feature = "plot")]
 pub use plot::raw as plot_raw;
+#[cfg(feature = "extras")]
+pub use extras::{ColumnWidth, Strip, StripDirection, StripSize};
+#[cfg(feature = "extras")]
+pub use extras::raw as extras_raw;
 pub use list_item::{ListItem, ListItemSize};
 pub use select::Select;
 pub use slider::Slider;
