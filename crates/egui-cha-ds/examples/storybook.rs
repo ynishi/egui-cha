@@ -292,6 +292,7 @@ const ATOMS: &[&str] = &[
     "XYPad",
     "Waveform",
     "Spectrum",
+    "LevelMeter",
     "Link",
     "Code",
     "Text",
@@ -1288,6 +1289,91 @@ fn render_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
     .rainbow()
     .peak_hold(true)
     .show(ctx.ui);"#).show(ctx.ui);
+        }
+
+        "LevelMeter" => {
+            ctx.ui.heading("LevelMeter");
+            ctx.ui.label("VU/Peak meter for audio level visualization");
+            ctx.ui.add_space(16.0);
+
+            // Animated level values
+            let time = ctx.ui.input(|i| i.time) as f32;
+            let left_db = -60.0 + (time * 1.3).sin() * 30.0 + (time * 3.7).sin() * 15.0 + 30.0;
+            let right_db = -60.0 + (time * 1.5).sin() * 30.0 + (time * 4.1).sin() * 15.0 + 28.0;
+            let left_db = left_db.clamp(-60.0, 6.0);
+            let right_db = right_db.clamp(-60.0, 6.0);
+
+            // Peak hold (simulate)
+            let left_peak = left_db + 3.0;
+            let right_peak = right_db + 3.0;
+
+            ctx.horizontal(|ctx| {
+                ctx.vertical(|ctx| {
+                    ctx.ui.label("Mono:");
+                    LevelMeter::new()
+                        .size(20.0, 180.0)
+                        .show(ctx.ui, left_db);
+                });
+
+                ctx.ui.add_space(24.0);
+
+                ctx.vertical(|ctx| {
+                    ctx.ui.label("Stereo:");
+                    LevelMeter::new()
+                        .size(32.0, 180.0)
+                        .stereo(true)
+                        .show_stereo(ctx.ui, left_db, right_db);
+                });
+
+                ctx.ui.add_space(24.0);
+
+                ctx.vertical(|ctx| {
+                    ctx.ui.label("With peak hold:");
+                    LevelMeter::new()
+                        .size(32.0, 180.0)
+                        .stereo(true)
+                        .show_stereo_with_peak(ctx.ui, left_db, right_db, left_peak, right_peak);
+                });
+
+                ctx.ui.add_space(24.0);
+
+                ctx.vertical(|ctx| {
+                    ctx.ui.label("No scale:");
+                    LevelMeter::new()
+                        .size(20.0, 180.0)
+                        .show_scale(false)
+                        .show(ctx.ui, right_db);
+                });
+            });
+
+            // Horizontal orientation
+            ctx.ui.add_space(16.0);
+            ctx.ui.label("Horizontal:");
+            LevelMeter::new()
+                .size(200.0, 20.0)
+                .orientation(MeterOrientation::Horizontal)
+                .show_scale(false)
+                .show(ctx.ui, left_db);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.label("Usage:");
+            Code::new(r#"LevelMeter::new()
+    .stereo(true)
+    .show_stereo_with_peak(ui, left_db, right_db, left_peak, right_peak);"#).show(ctx.ui);
+
+            ctx.ui.add_space(8.0);
+            ctx.ui.label("Features:");
+            ctx.ui.label("• Green/Yellow/Red color zones");
+            ctx.ui.label("• Configurable dB range");
+            ctx.ui.label("• Peak hold indicator");
+            ctx.ui.label("• Optional dB scale");
+            ctx.ui.label("• Vertical or horizontal orientation");
+
+            // Request repaint for animation
+            ctx.ui.ctx().request_repaint();
         }
 
         "Link" => {
