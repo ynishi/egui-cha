@@ -1,10 +1,11 @@
 //! Waveform atom - Audio waveform visualization for EDM/VJ applications
 //!
-//! Displays audio sample data as a waveform. Optimized for real-time visualization
-//! at 60fps.
+//! Displays audio sample data as a waveform. Uses egui_plot internally for
+//! smooth, anti-aliased rendering at 60fps.
 //!
 //! # Features
-//! - Line or filled waveform styles
+//! - Line or filled waveform styles (smooth via egui_plot)
+//! - Bars style for discrete visualization
 //! - Configurable height and color
 //! - Theme-aware styling
 //! - Supports mono and stereo display
@@ -13,32 +14,35 @@
 //! ```ignore
 //! // Basic waveform
 //! Waveform::new(&audio_samples)
-//!     .show(ctx);
+//!     .show(ui);
 //!
 //! // With custom styling
 //! Waveform::new(&samples)
 //!     .height(80.0)
-//!     .filled(true)
+//!     .filled()
 //!     .color(theme.primary)
-//!     .show(ctx);
+//!     .show(ui);
 //!
 //! // Stereo waveform
 //! Waveform::stereo(&left_samples, &right_samples)
-//!     .show(ctx);
+//!     .show(ui);
 //! ```
 
 use crate::Theme;
 use egui::{Color32, Pos2, Rect, Response, Sense, Stroke, Ui, Vec2, Widget};
 
+#[cfg(feature = "plot")]
+use egui_plot::{Line, Plot, PlotPoints};
+
 /// Waveform display style
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum WaveformStyle {
-    /// Line connecting sample points
+    /// Line connecting sample points (smooth, uses egui_plot)
     #[default]
     Line,
-    /// Filled area from center line
+    /// Filled area from center line (smooth, uses egui_plot)
     Filled,
-    /// Bars for each sample
+    /// Bars for each sample (discrete, custom drawing)
     Bars,
 }
 
@@ -52,6 +56,7 @@ pub struct Waveform<'a> {
     color_right: Option<Color32>,
     show_center_line: bool,
     show_grid: bool,
+    line_width: f32,
 }
 
 impl<'a> Waveform<'a> {
@@ -68,6 +73,7 @@ impl<'a> Waveform<'a> {
             color_right: None,
             show_center_line: true,
             show_grid: false,
+            line_width: 1.5,
         }
     }
 
@@ -82,6 +88,7 @@ impl<'a> Waveform<'a> {
             color_right: None,
             show_center_line: true,
             show_grid: false,
+            line_width: 1.5,
         }
     }
 
@@ -133,6 +140,12 @@ impl<'a> Waveform<'a> {
         self
     }
 
+    /// Set line width (default: 1.5)
+    pub fn line_width(mut self, width: f32) -> Self {
+        self.line_width = width;
+        self
+    }
+
     /// Show the waveform
     pub fn show(self, ui: &mut Ui) -> Response {
         let theme = Theme::current(ui.ctx());
@@ -152,17 +165,9 @@ impl<'a> Waveform<'a> {
         );
 
         if ui.is_rect_visible(rect) {
-            let painter = ui.painter();
-
             // Colors
             let primary_color = self.color.unwrap_or(theme.primary);
             let secondary_color = self.color_right.unwrap_or(theme.secondary);
-            let bg_color = theme.bg_secondary;
-            let grid_color = theme.border;
-            let center_line_color = theme.text_muted;
-
-            // Background
-            painter.rect_filled(rect, theme.radius_sm, bg_color);
 
             if self.samples_right.is_some() {
                 // Stereo: draw two waveforms
@@ -175,85 +180,152 @@ impl<'a> Waveform<'a> {
                     Vec2::new(width, height),
                 );
 
-                self.draw_waveform(
-                    painter,
-                    left_rect,
-                    self.samples,
-                    primary_color,
-                    grid_color,
-                    center_line_color,
-                    &theme,
-                );
+                self.draw_waveform_in_rect(ui, left_rect, self.samples, primary_color, &theme);
 
                 if let Some(right_samples) = self.samples_right {
-                    self.draw_waveform(
-                        painter,
-                        right_rect,
-                        right_samples,
-                        secondary_color,
-                        grid_color,
-                        center_line_color,
-                        &theme,
-                    );
+                    self.draw_waveform_in_rect(ui, right_rect, right_samples, secondary_color, &theme);
                 }
             } else {
                 // Mono: single waveform
-                self.draw_waveform(
-                    painter,
-                    rect,
-                    self.samples,
-                    primary_color,
-                    grid_color,
-                    center_line_color,
-                    &theme,
-                );
+                self.draw_waveform_in_rect(ui, rect, self.samples, primary_color, &theme);
             }
-
-            // Border
-            painter.rect_stroke(rect, theme.radius_sm, Stroke::new(theme.border_width, theme.border), egui::StrokeKind::Outside);
         }
 
         response
     }
 
-    fn draw_waveform(
+    fn draw_waveform_in_rect(
         &self,
-        painter: &egui::Painter,
+        ui: &mut Ui,
         rect: Rect,
         samples: &[f32],
         color: Color32,
-        grid_color: Color32,
-        center_line_color: Color32,
         theme: &Theme,
     ) {
         if samples.is_empty() {
             return;
         }
 
+        // For Bars style, use custom drawing
+        if self.style == WaveformStyle::Bars {
+            self.draw_bars_waveform_custom(ui, rect, samples, color, theme);
+            return;
+        }
+
+        // For Line and Filled styles, use egui_plot
+        #[cfg(feature = "plot")]
+        {
+            self.draw_plot_waveform(ui, rect, samples, color, theme);
+        }
+
+        #[cfg(not(feature = "plot"))]
+        {
+            // Fallback to custom drawing if plot feature is not enabled
+            self.draw_line_waveform_custom(ui, rect, samples, color, theme);
+        }
+    }
+
+    #[cfg(feature = "plot")]
+    fn draw_plot_waveform(
+        &self,
+        ui: &mut Ui,
+        rect: Rect,
+        samples: &[f32],
+        color: Color32,
+        theme: &Theme,
+    ) {
+        // Draw background first
+        ui.painter().rect_filled(rect, theme.radius_sm, theme.bg_secondary);
+
+        // Convert samples to plot points
+        let plot_points: PlotPoints = samples
+            .iter()
+            .enumerate()
+            .map(|(i, &sample)| {
+                let x = i as f64 / samples.len().max(1) as f64;
+                let y = sample.clamp(-1.0, 1.0) as f64;
+                [x, y]
+            })
+            .collect();
+
+        // Use unique ID based on rect position
+        let plot_id_str = format!("waveform_{}_{}", rect.min.x as i32, rect.min.y as i32);
+
+        let mut line = Line::new(&plot_id_str, plot_points)
+            .color(color)
+            .width(self.line_width);
+
+        if self.style == WaveformStyle::Filled {
+            line = line.fill(0.0);
+        }
+
+        // Clone values needed in closure
+        let show_center_line = self.show_center_line;
+        let center_line_color = theme.text_muted;
+
+        // Create a child UI positioned at rect
+        let mut child_ui = ui.new_child(
+            egui::UiBuilder::new()
+                .max_rect(rect)
+                .layout(egui::Layout::left_to_right(egui::Align::Center)),
+        );
+
+        Plot::new(&plot_id_str)
+            .height(rect.height())
+            .width(rect.width())
+            .show_axes(false)
+            .show_grid(self.show_grid)
+            .allow_zoom(false)
+            .allow_drag(false)
+            .allow_scroll(false)
+            .allow_boxed_zoom(false)
+            .allow_double_click_reset(false)
+            .show_background(false)
+            .include_y(-1.0)
+            .include_y(1.0)
+            .include_x(0.0)
+            .include_x(1.0)
+            .show(&mut child_ui, |plot_ui| {
+                // Center line
+                if show_center_line {
+                    let center_line_id = format!("{}_center", plot_id_str);
+                    let center_line = Line::new(
+                        center_line_id,
+                        PlotPoints::from_iter([[0.0, 0.0], [1.0, 0.0]]),
+                    )
+                    .color(center_line_color)
+                    .width(0.5);
+                    plot_ui.line(center_line);
+                }
+
+                plot_ui.line(line);
+            });
+
+        // Border (drawn after plot)
+        ui.painter().rect_stroke(
+            rect,
+            theme.radius_sm,
+            Stroke::new(theme.border_width, theme.border),
+            egui::StrokeKind::Outside,
+        );
+    }
+
+    #[cfg(not(feature = "plot"))]
+    fn draw_line_waveform_custom(
+        &self,
+        ui: &mut Ui,
+        rect: Rect,
+        samples: &[f32],
+        color: Color32,
+        theme: &Theme,
+    ) {
+        let painter = ui.painter();
+
+        // Background
+        painter.rect_filled(rect, theme.radius_sm, theme.bg_secondary);
+
         let center_y = rect.center().y;
         let half_height = rect.height() / 2.0 - theme.spacing_xs;
-
-        // Grid
-        if self.show_grid {
-            let grid_stroke = Stroke::new(theme.stroke_width * 0.5, grid_color);
-            // Horizontal grid lines at 25%, 50%, 75%
-            for i in 1..4 {
-                let y = rect.min.y + rect.height() * (i as f32 / 4.0);
-                painter.line_segment(
-                    [Pos2::new(rect.min.x, y), Pos2::new(rect.max.x, y)],
-                    grid_stroke,
-                );
-            }
-            // Vertical grid lines
-            let num_v_lines = 8;
-            for i in 1..num_v_lines {
-                let x = rect.min.x + rect.width() * (i as f32 / num_v_lines as f32);
-                painter.line_segment(
-                    [Pos2::new(x, rect.min.y), Pos2::new(x, rect.max.y)],
-                    grid_stroke,
-                );
-            }
-        }
 
         // Center line
         if self.show_center_line {
@@ -262,34 +334,12 @@ impl<'a> Waveform<'a> {
                     Pos2::new(rect.min.x, center_y),
                     Pos2::new(rect.max.x, center_y),
                 ],
-                Stroke::new(theme.stroke_width * 0.5, center_line_color),
+                Stroke::new(theme.stroke_width * 0.5, theme.text_muted),
             );
         }
 
-        match self.style {
-            WaveformStyle::Line => {
-                self.draw_line_waveform(painter, rect, samples, color, center_y, half_height, theme);
-            }
-            WaveformStyle::Filled => {
-                self.draw_filled_waveform(painter, rect, samples, color, center_y, half_height, theme);
-            }
-            WaveformStyle::Bars => {
-                self.draw_bars_waveform(painter, rect, samples, color, center_y, half_height, theme);
-            }
-        }
-    }
-
-    fn draw_line_waveform(
-        &self,
-        painter: &egui::Painter,
-        rect: Rect,
-        samples: &[f32],
-        color: Color32,
-        center_y: f32,
-        half_height: f32,
-        theme: &Theme,
-    ) {
-        let stroke = Stroke::new(theme.stroke_width * 1.5, color);
+        // Draw waveform
+        let stroke = Stroke::new(self.line_width, color);
         let step = rect.width() / samples.len().max(1) as f32;
 
         let points: Vec<Pos2> = samples
@@ -302,57 +352,46 @@ impl<'a> Waveform<'a> {
             })
             .collect();
 
-        // Draw lines between consecutive points
         for window in points.windows(2) {
             painter.line_segment([window[0], window[1]], stroke);
         }
+
+        // Border
+        painter.rect_stroke(
+            rect,
+            theme.radius_sm,
+            Stroke::new(theme.border_width, theme.border),
+            egui::StrokeKind::Outside,
+        );
     }
 
-    fn draw_filled_waveform(
+    fn draw_bars_waveform_custom(
         &self,
-        painter: &egui::Painter,
+        ui: &mut Ui,
         rect: Rect,
         samples: &[f32],
         color: Color32,
-        center_y: f32,
-        half_height: f32,
         theme: &Theme,
     ) {
-        let step = rect.width() / samples.len().max(1) as f32;
-        let fill_color = Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), 100);
-        let stroke = Stroke::new(theme.stroke_width, color);
+        let painter = ui.painter();
 
-        for (i, &sample) in samples.iter().enumerate() {
-            let x = rect.min.x + step * i as f32;
-            let sample_clamped = sample.clamp(-1.0, 1.0);
-            let y = center_y - sample_clamped * half_height;
+        // Background
+        painter.rect_filled(rect, theme.radius_sm, theme.bg_secondary);
 
-            // Fill from center to sample
-            let fill_rect = if sample_clamped >= 0.0 {
-                Rect::from_min_max(Pos2::new(x, y), Pos2::new(x + step, center_y))
-            } else {
-                Rect::from_min_max(Pos2::new(x, center_y), Pos2::new(x + step, y))
-            };
-            painter.rect_filled(fill_rect, 0.0, fill_color);
+        let center_y = rect.center().y;
+        let half_height = rect.height() / 2.0 - theme.spacing_xs;
 
-            // Top line
+        // Center line
+        if self.show_center_line {
             painter.line_segment(
-                [Pos2::new(x, y), Pos2::new(x + step, y)],
-                stroke,
+                [
+                    Pos2::new(rect.min.x, center_y),
+                    Pos2::new(rect.max.x, center_y),
+                ],
+                Stroke::new(theme.stroke_width * 0.5, theme.text_muted),
             );
         }
-    }
 
-    fn draw_bars_waveform(
-        &self,
-        painter: &egui::Painter,
-        rect: Rect,
-        samples: &[f32],
-        color: Color32,
-        center_y: f32,
-        half_height: f32,
-        theme: &Theme,
-    ) {
         let num_bars = samples.len().min(64); // Max 64 bars
         let samples_per_bar = samples.len() / num_bars.max(1);
         let bar_width = rect.width() / num_bars as f32;
@@ -380,6 +419,14 @@ impl<'a> Waveform<'a> {
 
             painter.rect_filled(bar_rect, theme.radius_sm * 0.5, color);
         }
+
+        // Border
+        painter.rect_stroke(
+            rect,
+            theme.radius_sm,
+            Stroke::new(theme.border_width, theme.border),
+            egui::StrokeKind::Outside,
+        );
     }
 }
 
