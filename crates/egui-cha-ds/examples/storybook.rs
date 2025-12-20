@@ -47,6 +47,15 @@ struct Model {
     theme: Theme,
     theme_index: usize,  // 0: Light, 1: Dark, 2: Pastel, 3: Pastel Dark
 
+    // Theme scale settings
+    spacing_scale: f32,
+    radius_scale: f32,
+    font_scale: f32,
+    stroke_scale: f32,
+    shadow_enabled: bool,
+    shadow_blur: f32,
+    overlay_dim: f32,
+
     // Tabs demo
     tabs_index: usize,
 
@@ -151,6 +160,14 @@ enum Msg {
 
     // Theme
     ToggleTheme,
+    SetSpacingScale(f32),
+    SetRadiusScale(f32),
+    SetFontScale(f32),
+    SetStrokeScale(f32),
+    ToggleShadow,
+    SetShadowBlur(f32),
+    SetOverlayDim(f32),
+    ResetThemeScales,
 
     // Tabs
     TabChanged(usize),
@@ -225,7 +242,7 @@ enum Msg {
     ContextMenuDelete,
 }
 
-const CATEGORIES: &[&str] = &["Atoms", "Semantics", "Molecules", "Framework"];
+const CATEGORIES: &[&str] = &["Atoms", "Semantics", "Molecules", "Framework", "Theme"];
 
 const ATOMS: &[&str] = &[
     "Button",
@@ -278,6 +295,38 @@ const FRAMEWORK: &[&str] = &[
     "RepaintMode",
 ];
 
+const THEME_ITEMS: &[&str] = &[
+    "Scale Controls",
+    "Shadow & Overlay",
+    "Preview",
+];
+
+/// Rebuild theme from model settings
+fn rebuild_theme(model: &mut Model) {
+    let base = match model.theme_index {
+        0 => Theme::light(),
+        1 => Theme::dark(),
+        2 => Theme::pastel(),
+        _ => Theme::pastel_dark(),
+    };
+
+    let mut theme = base
+        .with_spacing_scale(model.spacing_scale)
+        .with_radius_scale(model.radius_scale)
+        .with_font_scale(model.font_scale)
+        .with_stroke_scale(model.stroke_scale);
+
+    // Apply shadow setting
+    if model.shadow_enabled {
+        theme = theme.with_shadow_blur(model.shadow_blur);
+    }
+
+    // Apply overlay_dim
+    theme.overlay_dim = model.overlay_dim;
+
+    model.theme = theme;
+}
+
 impl App for StorybookApp {
     type Model = Model;
     type Msg = Msg;
@@ -310,6 +359,13 @@ impl App for StorybookApp {
                 ],
                 dnd_dropped: Vec::new(),
                 theme: Theme::light(),
+                spacing_scale: 1.0,
+                radius_scale: 1.0,
+                font_scale: 1.0,
+                stroke_scale: 1.0,
+                shadow_enabled: false,
+                shadow_blur: 4.0,
+                overlay_dim: 0.5,
                 bindings,
                 ..Default::default()
             },
@@ -381,12 +437,45 @@ impl App for StorybookApp {
             }
             Msg::ToggleTheme => {
                 model.theme_index = (model.theme_index + 1) % 4;
-                model.theme = match model.theme_index {
-                    0 => Theme::light(),
-                    1 => Theme::dark(),
-                    2 => Theme::pastel(),
-                    _ => Theme::pastel_dark(),
-                };
+                rebuild_theme(model);
+            }
+            Msg::SetSpacingScale(v) => {
+                model.spacing_scale = v;
+                rebuild_theme(model);
+            }
+            Msg::SetRadiusScale(v) => {
+                model.radius_scale = v;
+                rebuild_theme(model);
+            }
+            Msg::SetFontScale(v) => {
+                model.font_scale = v;
+                rebuild_theme(model);
+            }
+            Msg::SetStrokeScale(v) => {
+                model.stroke_scale = v;
+                rebuild_theme(model);
+            }
+            Msg::ToggleShadow => {
+                model.shadow_enabled = !model.shadow_enabled;
+                rebuild_theme(model);
+            }
+            Msg::SetShadowBlur(v) => {
+                model.shadow_blur = v;
+                rebuild_theme(model);
+            }
+            Msg::SetOverlayDim(v) => {
+                model.overlay_dim = v;
+                rebuild_theme(model);
+            }
+            Msg::ResetThemeScales => {
+                model.spacing_scale = 1.0;
+                model.radius_scale = 1.0;
+                model.font_scale = 1.0;
+                model.stroke_scale = 1.0;
+                model.shadow_enabled = false;
+                model.shadow_blur = 4.0;
+                model.overlay_dim = 0.5;
+                rebuild_theme(model);
             }
             Msg::TabChanged(idx) => {
                 model.tabs_index = idx;
@@ -654,7 +743,8 @@ impl App for StorybookApp {
                     0 => ATOMS,
                     1 => SEMANTICS,
                     2 => MOLECULES,
-                    _ => FRAMEWORK,
+                    3 => FRAMEWORK,
+                    _ => THEME_ITEMS,
                 };
                 for (i, comp) in components.iter().enumerate() {
                     if model.active_component == i {
@@ -674,7 +764,8 @@ impl App for StorybookApp {
                         0 => render_atom(model, ctx),
                         1 => render_semantics(model, ctx),
                         2 => render_molecule(model, ctx),
-                        _ => render_framework(model, ctx),
+                        3 => render_framework(model, ctx),
+                        _ => render_theme(model, ctx),
                     }
                 });
 
@@ -2197,6 +2288,219 @@ fn render_framework(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
         _ => {
             ctx.ui.label("Component not implemented");
+        }
+    }
+}
+
+/// Render Theme settings panel
+fn render_theme(model: &Model, ctx: &mut ViewCtx<'_, Msg>) {
+    match THEME_ITEMS[model.active_component] {
+        "Scale Controls" => {
+            ctx.ui.heading("Scale Controls");
+            ctx.ui.label("Adjust spacing, radius, font, and stroke scales");
+            ctx.ui.add_space(8.0);
+
+            // Current theme display
+            let theme_name = match model.theme_index {
+                0 => "Light",
+                1 => "Dark",
+                2 => "Pastel",
+                _ => "Pastel Dark",
+            };
+            ctx.ui.horizontal(|ui| {
+                ui.strong("Base Theme:");
+                Badge::info(theme_name).show(ui);
+            });
+            ctx.ui.add_space(16.0);
+
+            // Sliders for scales
+            let mut spacing = model.spacing_scale;
+            if ctx.ui.add(egui::Slider::new(&mut spacing, 0.5..=2.0).text("Spacing Scale")).changed() {
+                ctx.emit(Msg::SetSpacingScale(spacing));
+            }
+
+            let mut radius = model.radius_scale;
+            if ctx.ui.add(egui::Slider::new(&mut radius, 0.0..=3.0).text("Radius Scale")).changed() {
+                ctx.emit(Msg::SetRadiusScale(radius));
+            }
+
+            let mut font = model.font_scale;
+            if ctx.ui.add(egui::Slider::new(&mut font, 0.5..=2.0).text("Font Scale")).changed() {
+                ctx.emit(Msg::SetFontScale(font));
+            }
+
+            let mut stroke = model.stroke_scale;
+            if ctx.ui.add(egui::Slider::new(&mut stroke, 0.5..=3.0).text("Stroke Scale")).changed() {
+                ctx.emit(Msg::SetStrokeScale(stroke));
+            }
+
+            ctx.ui.add_space(16.0);
+            Button::outline("Reset All").on_click(ctx, Msg::ResetThemeScales);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Current Values:");
+            let theme = &model.theme;
+            egui::Grid::new("scale_values")
+                .num_columns(2)
+                .spacing([20.0, 4.0])
+                .show(ctx.ui, |ui| {
+                    ui.label("spacing_sm:");
+                    ui.label(format!("{:.1}", theme.spacing_sm));
+                    ui.end_row();
+
+                    ui.label("spacing_md:");
+                    ui.label(format!("{:.1}", theme.spacing_md));
+                    ui.end_row();
+
+                    ui.label("radius_md:");
+                    ui.label(format!("{:.1}", theme.radius_md));
+                    ui.end_row();
+
+                    ui.label("font_size_md:");
+                    ui.label(format!("{:.1}", theme.font_size_md));
+                    ui.end_row();
+
+                    ui.label("border_width:");
+                    ui.label(format!("{:.1}", theme.border_width));
+                    ui.end_row();
+                });
+        }
+
+        "Shadow & Overlay" => {
+            ctx.ui.heading("Shadow & Overlay");
+            ctx.ui.label("Configure shadow and modal overlay settings");
+            ctx.ui.add_space(16.0);
+
+            // Shadow toggle
+            ctx.ui.horizontal(|ui| {
+                ui.strong("Shadow:");
+                if model.shadow_enabled {
+                    Badge::success("Enabled").show(ui);
+                } else {
+                    Badge::new("Disabled").show(ui);
+                }
+            });
+
+            let shadow_label = if model.shadow_enabled { "Disable Shadow" } else { "Enable Shadow" };
+            Button::outline(shadow_label).on_click(ctx, Msg::ToggleShadow);
+
+            if model.shadow_enabled {
+                ctx.ui.add_space(8.0);
+                let mut blur = model.shadow_blur;
+                if ctx.ui.add(egui::Slider::new(&mut blur, 1.0..=16.0).text("Shadow Blur")).changed() {
+                    ctx.emit(Msg::SetShadowBlur(blur));
+                }
+            }
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(16.0);
+
+            // Overlay dim
+            ctx.ui.strong("Modal Overlay:");
+            let mut dim = model.overlay_dim;
+            if ctx.ui.add(egui::Slider::new(&mut dim, 0.0..=1.0).text("Overlay Dim")).changed() {
+                ctx.emit(Msg::SetOverlayDim(dim));
+            }
+
+            ctx.ui.add_space(8.0);
+            ctx.ui.label(format!("Current: {:.0}% black overlay", model.overlay_dim * 100.0));
+
+            ctx.ui.add_space(16.0);
+            Button::primary("Test Modal").on_click(ctx, Msg::OpenModal);
+        }
+
+        "Preview" => {
+            ctx.ui.heading("Theme Preview");
+            ctx.ui.label("Live preview of current theme settings");
+            ctx.ui.add_space(16.0);
+
+            // Sample components
+            ctx.ui.strong("Buttons:");
+            ctx.ui.horizontal(|ui| {
+                Button::primary("Primary").show(ui);
+                Button::secondary("Secondary").show(ui);
+                Button::outline("Outline").show(ui);
+                Button::ghost("Ghost").show(ui);
+            });
+
+            ctx.ui.add_space(8.0);
+            ctx.ui.horizontal(|ui| {
+                Button::success("Success").show(ui);
+                Button::warning("Warning").show(ui);
+                Button::danger("Danger").show(ui);
+            });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.strong("Badges:");
+            ctx.ui.horizontal(|ui| {
+                Badge::new("Default").show(ui);
+                Badge::success("Success").show(ui);
+                Badge::warning("Warning").show(ui);
+                Badge::error("Error").show(ui);
+                Badge::info("Info").show(ui);
+            });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.strong("Card:");
+            Card::titled("Sample Card").show(ctx.ui, |ui| {
+                ui.label("This is a card with the current theme applied.");
+                ui.add_space(8.0);
+                ui.horizontal(|ui| {
+                    Button::primary("Action").show(ui);
+                    Button::outline("Cancel").show(ui);
+                });
+            });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.strong("Input:");
+            let mut sample = String::from("Sample text");
+            ctx.ui.text_edit_singleline(&mut sample);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Theme Summary:");
+            egui::Grid::new("theme_summary")
+                .num_columns(2)
+                .spacing([20.0, 4.0])
+                .show(ctx.ui, |ui| {
+                    ui.label("Spacing Scale:");
+                    ui.label(format!("{:.2}x", model.spacing_scale));
+                    ui.end_row();
+
+                    ui.label("Radius Scale:");
+                    ui.label(format!("{:.2}x", model.radius_scale));
+                    ui.end_row();
+
+                    ui.label("Font Scale:");
+                    ui.label(format!("{:.2}x", model.font_scale));
+                    ui.end_row();
+
+                    ui.label("Stroke Scale:");
+                    ui.label(format!("{:.2}x", model.stroke_scale));
+                    ui.end_row();
+
+                    ui.label("Shadow:");
+                    ui.label(if model.shadow_enabled {
+                        format!("blur: {:.0}", model.shadow_blur)
+                    } else {
+                        "Off".to_string()
+                    });
+                    ui.end_row();
+
+                    ui.label("Overlay Dim:");
+                    ui.label(format!("{:.0}%", model.overlay_dim * 100.0));
+                    ui.end_row();
+                });
+        }
+
+        _ => {
+            ctx.ui.label("Theme item not implemented");
         }
     }
 }

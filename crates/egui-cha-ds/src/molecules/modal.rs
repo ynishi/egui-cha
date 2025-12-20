@@ -2,6 +2,8 @@
 
 use egui::{Align2, Area, Color32, Frame, Id, Order, RichText, Ui, Vec2};
 
+use crate::Theme;
+
 /// A modal dialog component
 pub struct Modal<'a> {
     title: Option<&'a str>,
@@ -42,16 +44,14 @@ impl<'a> Modal<'a> {
             return false;
         }
 
+        let theme = Theme::current(ui.ctx());
         let is_dark = ui.ctx().style().visuals.dark_mode;
         let mut close_requested = false;
 
-        // Backdrop
+        // Backdrop - use theme's overlay_dim
         let screen_rect = ui.ctx().screen_rect();
-        let backdrop_color = if is_dark {
-            Color32::from_rgba_unmultiplied(0, 0, 0, 180)
-        } else {
-            Color32::from_rgba_unmultiplied(0, 0, 0, 120)
-        };
+        let backdrop_alpha = (theme.overlay_dim * 255.0) as u8;
+        let backdrop_color = Color32::from_rgba_unmultiplied(0, 0, 0, backdrop_alpha);
 
         Area::new(Id::new("modal_backdrop"))
             .fixed_pos(screen_rect.min)
@@ -86,8 +86,8 @@ impl<'a> Modal<'a> {
                 Frame::new()
                     .fill(bg_color)
                     .stroke(egui::Stroke::new(1.0, border_color))
-                    .corner_radius(8.0)
-                    .inner_margin(egui::Margin::same(20))
+                    .corner_radius(theme.radius_md)
+                    .inner_margin(egui::Margin::same(theme.spacing_md as i8))
                     .show(ui, |ui| {
                         ui.set_width(self.width);
 
@@ -107,7 +107,7 @@ impl<'a> Modal<'a> {
                                     },
                                 );
                             });
-                            ui.add_space(12.0);
+                            ui.add_space(theme.spacing_sm);
                         }
 
                         // Content
@@ -176,11 +176,12 @@ impl<'a> ConfirmDialog<'a> {
 
         use crate::atoms::Button;
 
+        let theme = Theme::current(ui.ctx());
         let mut result = ConfirmResult::None;
 
         let close_requested = Modal::titled(self.title).show(ui, open, |ui| {
             ui.label(self.message);
-            ui.add_space(16.0);
+            ui.add_space(theme.spacing_md);
 
             ui.horizontal(|ui| {
                 if self.danger {

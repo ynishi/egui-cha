@@ -76,6 +76,10 @@ fn vj_theme() -> Theme {
         radius_md: 4.0,
         radius_lg: 6.0,
 
+        // Stroke / Border width
+        border_width: 1.0,
+        stroke_width: 1.0,
+
         // Typography
         font_size_xs: 10.0,
         font_size_sm: 12.0,
@@ -85,6 +89,11 @@ fn vj_theme() -> Theme {
         font_size_2xl: 24.0,
         font_size_3xl: 30.0,
         line_height: 1.4,
+
+        // Overlay / Surface (VJ style: darker overlay)
+        overlay_dim: 0.8,
+        surface_alpha: 1.0,
+        shadow_blur: None, // Lightweight: no shadow
     }
 }
 

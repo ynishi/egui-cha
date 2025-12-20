@@ -3,29 +3,31 @@
 use egui::Ui;
 use egui_cha::ViewCtx;
 
+use crate::Theme;
+
 /// A card container with optional header
 pub struct Card<'a> {
     title: Option<&'a str>,
-    padding: f32,
+    padding: Option<f32>,
 }
 
 impl<'a> Card<'a> {
     pub fn new() -> Self {
         Self {
             title: None,
-            padding: 16.0,
+            padding: None,
         }
     }
 
     pub fn titled(title: &'a str) -> Self {
         Self {
             title: Some(title),
-            padding: 16.0,
+            padding: None,
         }
     }
 
     pub fn padding(mut self, padding: f32) -> Self {
-        self.padding = padding;
+        self.padding = Some(padding);
         self
     }
 
@@ -35,11 +37,12 @@ impl<'a> Card<'a> {
         ctx: &mut ViewCtx<'_, Msg>,
         content: impl FnOnce(&mut ViewCtx<'_, Msg>) -> R,
     ) -> R {
+        let theme = Theme::current(ctx.ui.ctx());
         ctx.group(|ctx| {
             if let Some(title) = self.title {
                 ctx.ui.heading(title);
                 ctx.ui.separator();
-                ctx.ui.add_space(8.0);
+                ctx.ui.add_space(theme.spacing_sm);
             }
             content(ctx)
         })
@@ -47,13 +50,15 @@ impl<'a> Card<'a> {
 
     /// Show card with content (Ui version)
     pub fn show<R>(self, ui: &mut Ui, content: impl FnOnce(&mut Ui) -> R) -> R {
+        let theme = Theme::current(ui.ctx());
+        let padding = self.padding.unwrap_or(theme.spacing_md);
         egui::Frame::group(ui.style())
-            .inner_margin(self.padding)
+            .inner_margin(padding)
             .show(ui, |ui| {
                 if let Some(title) = self.title {
                     ui.heading(title);
                     ui.separator();
-                    ui.add_space(8.0);
+                    ui.add_space(theme.spacing_sm);
                 }
                 content(ui)
             })

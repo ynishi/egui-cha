@@ -57,7 +57,10 @@ impl<'a> Badge<'a> {
         egui::Frame::new()
             .fill(bg_color)
             .corner_radius(theme.radius_sm)
-            .inner_margin(egui::Margin::symmetric(8, 2))
+            .inner_margin(egui::Margin::symmetric(
+                theme.spacing_sm as i8,
+                (theme.spacing_xs / 2.0) as i8,
+            ))
             .show(ui, |ui| {
                 ui.label(
                     RichText::new(self.text)

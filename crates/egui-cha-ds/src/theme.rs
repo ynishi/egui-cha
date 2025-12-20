@@ -82,6 +82,10 @@ pub struct Theme {
     pub radius_md: f32,
     pub radius_lg: f32,
 
+    // Stroke / Border width
+    pub border_width: f32,
+    pub stroke_width: f32,
+
     // Typography - Font sizes
     pub font_size_xs: f32,
     pub font_size_sm: f32,
@@ -93,6 +97,14 @@ pub struct Theme {
 
     // Typography - Line height multiplier
     pub line_height: f32,
+
+    // Overlay / Surface
+    /// Dim amount for modal backdrop (0.0 = transparent, 1.0 = opaque black)
+    pub overlay_dim: f32,
+    /// Alpha for floating surfaces like dropdowns (0.0 = transparent, 1.0 = opaque)
+    pub surface_alpha: f32,
+    /// Shadow blur radius. None = no shadow (lightweight), Some(4.0) = subtle shadow
+    pub shadow_blur: Option<f32>,
 }
 
 impl Default for Theme {
@@ -152,17 +164,21 @@ impl Theme {
             border: Color32::from_rgb(229, 231, 235),
             border_focus: Color32::from_rgb(59, 130, 246),
 
-            // Spacing
-            spacing_xs: 4.0,
-            spacing_sm: 8.0,
-            spacing_md: 16.0,
-            spacing_lg: 24.0,
-            spacing_xl: 32.0,
+            // Spacing (modern, spacious)
+            spacing_xs: 6.0,
+            spacing_sm: 12.0,
+            spacing_md: 20.0,
+            spacing_lg: 32.0,
+            spacing_xl: 48.0,
 
             // Radius
             radius_sm: 4.0,
             radius_md: 8.0,
             radius_lg: 12.0,
+
+            // Stroke / Border width
+            border_width: 1.0,
+            stroke_width: 1.0,
 
             // Typography
             font_size_xs: 10.0,
@@ -173,6 +189,11 @@ impl Theme {
             font_size_2xl: 24.0,
             font_size_3xl: 30.0,
             line_height: 1.4,
+
+            // Overlay / Surface
+            overlay_dim: 0.5,
+            surface_alpha: 1.0,
+            shadow_blur: None, // Lightweight: no shadow
         }
     }
 
@@ -226,17 +247,21 @@ impl Theme {
             border: Color32::from_rgb(55, 65, 81),
             border_focus: Color32::from_rgb(96, 165, 250),
 
-            // Spacing (same as light)
-            spacing_xs: 4.0,
-            spacing_sm: 8.0,
-            spacing_md: 16.0,
-            spacing_lg: 24.0,
-            spacing_xl: 32.0,
+            // Spacing (modern, spacious - same as light)
+            spacing_xs: 6.0,
+            spacing_sm: 12.0,
+            spacing_md: 20.0,
+            spacing_lg: 32.0,
+            spacing_xl: 48.0,
 
             // Radius (same as light)
             radius_sm: 4.0,
             radius_md: 8.0,
             radius_lg: 12.0,
+
+            // Stroke / Border width (same as light)
+            border_width: 1.0,
+            stroke_width: 1.0,
 
             // Typography (same as light)
             font_size_xs: 10.0,
@@ -247,6 +272,11 @@ impl Theme {
             font_size_2xl: 24.0,
             font_size_3xl: 30.0,
             line_height: 1.4,
+
+            // Overlay / Surface (darker for dark theme)
+            overlay_dim: 0.7,
+            surface_alpha: 1.0,
+            shadow_blur: None, // Lightweight: no shadow
         }
     }
 
@@ -322,16 +352,42 @@ impl Theme {
         visuals.selection.bg_fill = self.primary.linear_multiply(0.3);
         visuals.selection.stroke.color = self.primary;
 
+        // Stroke widths - Apply to all widget states
+        visuals.widgets.noninteractive.bg_stroke.width = self.border_width;
+        visuals.widgets.noninteractive.fg_stroke.width = self.stroke_width;
+        visuals.widgets.inactive.bg_stroke.width = self.border_width;
+        visuals.widgets.inactive.fg_stroke.width = self.stroke_width;
+        visuals.widgets.hovered.bg_stroke.width = self.border_width;
+        visuals.widgets.hovered.fg_stroke.width = self.stroke_width;
+        visuals.widgets.active.bg_stroke.width = self.border_width;
+        visuals.widgets.active.fg_stroke.width = self.stroke_width;
+        visuals.widgets.open.bg_stroke.width = self.border_width;
+        visuals.widgets.open.fg_stroke.width = self.stroke_width;
+        visuals.selection.stroke.width = self.stroke_width;
+
         // Window
         visuals.window_stroke.color = self.border;
-        visuals.window_shadow.color = if self.variant == ThemeVariant::Dark {
-            Color32::from_black_alpha(100)
-        } else {
-            Color32::from_black_alpha(40)
-        };
+        visuals.window_stroke.width = self.border_width;
 
-        // Popup
-        visuals.popup_shadow.color = visuals.window_shadow.color;
+        // Shadow - configurable via shadow_blur
+        match self.shadow_blur {
+            None => {
+                // Lightweight: no shadow
+                visuals.window_shadow = egui::Shadow::NONE;
+                visuals.popup_shadow = egui::Shadow::NONE;
+            }
+            Some(blur) => {
+                // Subtle fixed shadow
+                let alpha = if self.variant == ThemeVariant::Dark { 60 } else { 30 };
+                visuals.window_shadow = egui::Shadow {
+                    offset: [0, 2],
+                    blur: blur as u8,
+                    spread: 0,
+                    color: Color32::from_black_alpha(alpha),
+                };
+                visuals.popup_shadow = visuals.window_shadow;
+            }
+        }
 
         // Typography - Configure text styles
         style.text_styles.insert(
@@ -355,7 +411,96 @@ impl Theme {
             FontId::monospace(self.font_size_md),
         );
 
+        // Spacing - Apply theme spacing to egui
+        style.spacing.item_spacing = egui::vec2(self.spacing_sm, self.spacing_sm);
+        style.spacing.window_margin = egui::Margin::same(self.spacing_md as i8);
+        style.spacing.button_padding = egui::vec2(self.spacing_sm, self.spacing_xs);
+        style.spacing.menu_margin = egui::Margin::same(self.spacing_sm as i8);
+        style.spacing.indent = self.spacing_md;
+        style.spacing.icon_spacing = self.spacing_xs;
+        style.spacing.icon_width = self.spacing_md;
+
         ctx.set_style(style);
+    }
+
+    /// Apply a scale factor to all spacing values
+    ///
+    /// # Example
+    /// ```
+    /// use egui_cha_ds::Theme;
+    ///
+    /// // Compact theme (75% spacing)
+    /// let compact = Theme::dark().with_scale(0.75);
+    ///
+    /// // Spacious theme (125% spacing)
+    /// let spacious = Theme::light().with_scale(1.25);
+    /// ```
+    pub fn with_scale(mut self, scale: f32) -> Self {
+        self.spacing_xs *= scale;
+        self.spacing_sm *= scale;
+        self.spacing_md *= scale;
+        self.spacing_lg *= scale;
+        self.spacing_xl *= scale;
+        self
+    }
+
+    /// Apply a scale factor to spacing values only
+    pub fn with_spacing_scale(mut self, scale: f32) -> Self {
+        self.spacing_xs *= scale;
+        self.spacing_sm *= scale;
+        self.spacing_md *= scale;
+        self.spacing_lg *= scale;
+        self.spacing_xl *= scale;
+        self
+    }
+
+    /// Apply a scale factor to border radius values
+    pub fn with_radius_scale(mut self, scale: f32) -> Self {
+        self.radius_sm *= scale;
+        self.radius_md *= scale;
+        self.radius_lg *= scale;
+        self
+    }
+
+    /// Apply a scale factor to font sizes
+    pub fn with_font_scale(mut self, scale: f32) -> Self {
+        self.font_size_xs *= scale;
+        self.font_size_sm *= scale;
+        self.font_size_md *= scale;
+        self.font_size_lg *= scale;
+        self.font_size_xl *= scale;
+        self.font_size_2xl *= scale;
+        self.font_size_3xl *= scale;
+        self
+    }
+
+    /// Apply a scale factor to stroke and border widths
+    pub fn with_stroke_scale(mut self, scale: f32) -> Self {
+        self.border_width *= scale;
+        self.stroke_width *= scale;
+        self
+    }
+
+    /// Enable subtle shadow (default: 4.0 blur)
+    ///
+    /// # Example
+    /// ```
+    /// use egui_cha_ds::Theme;
+    ///
+    /// // Enable default subtle shadow
+    /// let with_shadow = Theme::light().with_shadow();
+    ///
+    /// // Custom blur radius
+    /// let soft_shadow = Theme::dark().with_shadow_blur(8.0);
+    /// ```
+    pub fn with_shadow(self) -> Self {
+        self.with_shadow_blur(4.0)
+    }
+
+    /// Enable shadow with custom blur radius
+    pub fn with_shadow_blur(mut self, blur: f32) -> Self {
+        self.shadow_blur = Some(blur);
+        self
     }
 
     /// Pastel theme - soft, modern colors
@@ -408,17 +553,21 @@ impl Theme {
             border: Color32::from_rgb(233, 213, 202),        // warm gray
             border_focus: Color32::from_rgb(167, 139, 250),  // violet-400
 
-            // Spacing (same)
-            spacing_xs: 4.0,
-            spacing_sm: 8.0,
-            spacing_md: 16.0,
-            spacing_lg: 24.0,
-            spacing_xl: 32.0,
+            // Spacing (modern, spacious)
+            spacing_xs: 6.0,
+            spacing_sm: 12.0,
+            spacing_md: 20.0,
+            spacing_lg: 32.0,
+            spacing_xl: 48.0,
 
             // Radius - More rounded for soft look
             radius_sm: 6.0,
             radius_md: 12.0,
             radius_lg: 16.0,
+
+            // Stroke / Border width
+            border_width: 1.0,
+            stroke_width: 1.0,
 
             // Typography (same as light)
             font_size_xs: 10.0,
@@ -429,6 +578,11 @@ impl Theme {
             font_size_2xl: 24.0,
             font_size_3xl: 30.0,
             line_height: 1.4,
+
+            // Overlay / Surface (softer for pastel)
+            overlay_dim: 0.4,
+            surface_alpha: 1.0,
+            shadow_blur: None, // Lightweight: no shadow
         }
     }
 
@@ -482,17 +636,21 @@ impl Theme {
             border: Color32::from_rgb(55, 50, 70),
             border_focus: Color32::from_rgb(196, 181, 253),
 
-            // Spacing (same)
-            spacing_xs: 4.0,
-            spacing_sm: 8.0,
-            spacing_md: 16.0,
-            spacing_lg: 24.0,
-            spacing_xl: 32.0,
+            // Spacing (modern, spacious)
+            spacing_xs: 6.0,
+            spacing_sm: 12.0,
+            spacing_md: 20.0,
+            spacing_lg: 32.0,
+            spacing_xl: 48.0,
 
             // Radius - More rounded
             radius_sm: 6.0,
             radius_md: 12.0,
             radius_lg: 16.0,
+
+            // Stroke / Border width
+            border_width: 1.0,
+            stroke_width: 1.0,
 
             // Typography (same as light)
             font_size_xs: 10.0,
@@ -503,6 +661,11 @@ impl Theme {
             font_size_2xl: 24.0,
             font_size_3xl: 30.0,
             line_height: 1.4,
+
+            // Overlay / Surface (softer for pastel dark)
+            overlay_dim: 0.6,
+            surface_alpha: 1.0,
+            shadow_blur: None, // Lightweight: no shadow
         }
     }
 }
