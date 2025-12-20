@@ -302,6 +302,7 @@ const ATOMS: &[&str] = &[
     "Spectrum",
     "LevelMeter",
     "ArcSlider",
+    "Oscilloscope",
     "Link",
     "Code",
     "Text",
@@ -1451,6 +1452,85 @@ fn render_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.label("• Size variants (small/medium/large)");
             ctx.ui.label("• Customizable arc thickness");
             ctx.ui.label("• Optional value suffix (%, dB, etc.)");
+        }
+
+        "Oscilloscope" => {
+            ctx.ui.heading("Oscilloscope");
+            ctx.ui.label("Real-time signal visualization with trigger and grid");
+            ctx.ui.add_space(16.0);
+
+            // Generate animated sine wave
+            let time = ctx.ui.input(|i| i.time) as f32;
+            let samples: Vec<f32> = (0..512)
+                .map(|i| {
+                    let t = i as f32 / 512.0 * std::f32::consts::PI * 8.0 + time * 3.0;
+                    (t.sin() * 0.7 + (t * 3.0).sin() * 0.2).clamp(-1.0, 1.0)
+                })
+                .collect();
+
+            // Secondary signal for XY mode
+            let samples_y: Vec<f32> = (0..512)
+                .map(|i| {
+                    let t = i as f32 / 512.0 * std::f32::consts::PI * 8.0 + time * 3.0;
+                    (t * 1.5).cos().clamp(-1.0, 1.0)
+                })
+                .collect();
+
+            // Standard oscilloscope
+            ctx.ui.label("Line mode:");
+            Oscilloscope::new(&samples)
+                .height(80.0)
+                .trigger(TriggerMode::Rising)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(12.0);
+
+            // Phosphor glow (CRT style)
+            ctx.ui.label("Phosphor glow (retro CRT):");
+            Oscilloscope::new(&samples)
+                .height(80.0)
+                .phosphor(true)
+                .trigger(TriggerMode::Rising)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(12.0);
+
+            // Filled mode
+            ctx.ui.label("Filled mode:");
+            Oscilloscope::new(&samples)
+                .height(80.0)
+                .filled()
+                .show(ctx.ui);
+
+            ctx.ui.add_space(12.0);
+
+            // XY mode (Lissajous)
+            ctx.ui.label("XY mode (Lissajous):");
+            Oscilloscope::new(&samples)
+                .height(120.0)
+                .xy(&samples_y)
+                .phosphor(true)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.label("Usage:");
+            Code::new(r#"Oscilloscope::new(&signal_buffer)
+    .trigger(TriggerMode::Rising)
+    .phosphor(true)
+    .show(ui);"#).show(ctx.ui);
+
+            ctx.ui.add_space(8.0);
+            ctx.ui.label("Features:");
+            ctx.ui.label("• Line, Filled, Dots, XY modes");
+            ctx.ui.label("• Trigger modes (Free, Rising, Falling)");
+            ctx.ui.label("• Phosphor glow effect (CRT style)");
+            ctx.ui.label("• Configurable grid");
+
+            // Request repaint for animation
+            ctx.ui.ctx().request_repaint();
         }
 
         "Link" => {
