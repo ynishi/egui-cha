@@ -115,6 +115,9 @@ struct Model {
 
     // Context menu demo
     context_menu_last_action: Option<&'static str>,
+
+    // ErrorConsole demo
+    error_console: ErrorConsoleState,
 }
 
 /// Demo action for dynamic bindings showcase
@@ -240,6 +243,10 @@ enum Msg {
     ContextMenuEdit,
     ContextMenuCopy,
     ContextMenuDelete,
+
+    // ErrorConsole demo
+    ErrorConsolePush(ErrorLevel),
+    ErrorConsoleMsg(ErrorConsoleMsg),
 }
 
 const CATEGORIES: &[&str] = &["Atoms", "Semantics", "Molecules", "Framework", "Theme"];
@@ -266,6 +273,7 @@ const SEMANTICS: &[&str] = &[
     "Media",
     "Navigation",
     "ButtonStyle",
+    "SeverityLog",
 ];
 
 const MOLECULES: &[&str] = &[
@@ -690,6 +698,22 @@ impl App for StorybookApp {
             Msg::ContextMenuDelete => {
                 model.context_menu_last_action = Some("Delete");
             }
+
+            // ErrorConsole demo
+            Msg::ErrorConsolePush(level) => {
+                let msg = match level {
+                    ErrorLevel::Debug => "Debug: Internal state dump",
+                    ErrorLevel::Info => "Info: Operation completed",
+                    ErrorLevel::Warning => "Warning: Rate limit approaching",
+                    ErrorLevel::Error => "Error: Failed to save data",
+                    ErrorLevel::Critical => "Critical: Database connection lost",
+                };
+                model.error_console.push_with_level(msg, level);
+            }
+            Msg::ErrorConsoleMsg(msg) => match msg {
+                ErrorConsoleMsg::Dismiss(i) => model.error_console.dismiss(i),
+                ErrorConsoleMsg::DismissAll => model.error_console.clear(),
+            },
         }
         Cmd::none()
     }
@@ -1407,6 +1431,82 @@ fn render_semantics(model: &Model, ctx: &mut ViewCtx<Msg>) {
             });
         }
 
+        "SeverityLog" => {
+            ctx.ui.heading("SeverityLog");
+            ctx.ui.label("Severity-based log display using Theme's log_* colors");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "// Simple log messages\nSeverityLog::debug(\"Debug message\").show(ui);\nSeverityLog::info(\"Info message\").show(ui);\nSeverityLog::warn(\"Warning message\").show(ui);\nSeverityLog::error(\"Error message\").show(ui);\nSeverityLog::critical(\"Critical message\").show(ui);\n\n// With label\nSeverityLog::error(\"With label\").with_label(true).show(ui);\n\n// Framed style\nSeverityLog::error(\"Framed\").show_framed(ui);"
+            ).show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("All Severity Levels:");
+            ctx.ui.add_space(8.0);
+
+            SeverityLog::debug("Debug: verbose diagnostic info").show(ctx.ui);
+            ctx.ui.add_space(4.0);
+            SeverityLog::info("Info: general information").show(ctx.ui);
+            ctx.ui.add_space(4.0);
+            SeverityLog::warn("Warn: something might be wrong").show(ctx.ui);
+            ctx.ui.add_space(4.0);
+            SeverityLog::error("Error: something went wrong").show(ctx.ui);
+            ctx.ui.add_space(4.0);
+            SeverityLog::critical("Critical: system failure!").show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("With Labels:");
+            ctx.ui.add_space(8.0);
+
+            SeverityLog::debug("Debug message").with_label(true).show(ctx.ui);
+            ctx.ui.add_space(4.0);
+            SeverityLog::info("Info message").with_label(true).show(ctx.ui);
+            ctx.ui.add_space(4.0);
+            SeverityLog::warn("Warning message").with_label(true).show(ctx.ui);
+            ctx.ui.add_space(4.0);
+            SeverityLog::error("Error message").with_label(true).show(ctx.ui);
+            ctx.ui.add_space(4.0);
+            SeverityLog::critical("Critical message").with_label(true).show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Framed Style:");
+            ctx.ui.add_space(8.0);
+
+            SeverityLog::debug("Debug with background").show_framed(ctx.ui);
+            ctx.ui.add_space(4.0);
+            SeverityLog::info("Info with background").show_framed(ctx.ui);
+            ctx.ui.add_space(4.0);
+            SeverityLog::warn("Warning with background").show_framed(ctx.ui);
+            ctx.ui.add_space(4.0);
+            SeverityLog::error("Error with background").show_framed(ctx.ui);
+            ctx.ui.add_space(4.0);
+            SeverityLog::critical("Critical with background").show_framed(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Icon Only (no label):");
+            ctx.ui.add_space(8.0);
+
+            ctx.horizontal(|ctx| {
+                SeverityLog::debug("").with_label(false).show(ctx.ui);
+                SeverityLog::info("").with_label(false).show(ctx.ui);
+                SeverityLog::warn("").with_label(false).show(ctx.ui);
+                SeverityLog::error("").with_label(false).show(ctx.ui);
+                SeverityLog::critical("").with_label(false).show(ctx.ui);
+            });
+        }
+
         _ => {
             ctx.ui.label("Component not implemented");
         }
@@ -1499,9 +1599,34 @@ fn render_molecule(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
         "ErrorConsole" => {
             ctx.ui.heading("ErrorConsole");
-            ctx.ui.label("Error message display (see counter example)");
+            ctx.ui.label("Dismissible error/warning/info message display with 5 severity levels");
             ctx.ui.add_space(8.0);
-            ctx.ui.label("The ErrorConsole component displays dismissible error messages.");
+
+            Code::new(
+                "// Add errors to state\nmodel.errors.push(\"Error message\");\nmodel.errors.push_warning(\"Warning message\");\nmodel.errors.push_info(\"Info message\");\nmodel.errors.push_with_level(\"Debug info\", ErrorLevel::Debug);\nmodel.errors.push_with_level(\"Critical!\", ErrorLevel::Critical);\n\n// Display in view\nErrorConsole::show(ctx, &model.errors, Msg::ErrorConsoleMsg);"
+            ).show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.strong("Severity Levels:");
+            ctx.ui.add_space(8.0);
+
+            ctx.horizontal(|ctx| {
+                Button::secondary("Debug").on_click(ctx, Msg::ErrorConsolePush(ErrorLevel::Debug));
+                Button::info("Info").on_click(ctx, Msg::ErrorConsolePush(ErrorLevel::Info));
+                Button::warning("Warning").on_click(ctx, Msg::ErrorConsolePush(ErrorLevel::Warning));
+                Button::danger("Error").on_click(ctx, Msg::ErrorConsolePush(ErrorLevel::Error));
+                Button::danger("Critical").on_click(ctx, Msg::ErrorConsolePush(ErrorLevel::Critical));
+            });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.strong("Live Demo:");
+            ctx.ui.add_space(8.0);
+
+            ErrorConsole::show(ctx, &model.error_console, Msg::ErrorConsoleMsg);
+
+            if model.error_console.is_empty() {
+                ctx.ui.label("(Click buttons above to add messages)");
+            }
         }
 
         "Toast" => {

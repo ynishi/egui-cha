@@ -28,6 +28,7 @@
 //! ```
 
 mod button;
+mod severity_log;
 
 pub use button::{
     // Display style
@@ -45,3 +46,5 @@ pub use button::{
     // Confirmation
     confirm, cancel,
 };
+
+pub use severity_log::{LogSeverity, SeverityLog};

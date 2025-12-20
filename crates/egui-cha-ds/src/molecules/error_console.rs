@@ -1,7 +1,9 @@
 //! ErrorConsole molecule - Collects and displays errors
 
-use egui::{Color32, RichText, Ui};
-use egui_cha::ViewCtx;
+use crate::atoms::icons;
+use crate::Theme;
+use egui::{Color32, FontFamily, RichText, Ui};
+use egui_cha::{Severity, ViewCtx};
 use std::collections::VecDeque;
 use std::time::{Duration, Instant};
 
@@ -13,21 +15,54 @@ pub struct ErrorEntry {
     pub level: ErrorLevel,
 }
 
-/// Error severity level
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// Error severity level for display in ErrorConsole
+///
+/// Ordered from least to most severe for filtering purposes.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ErrorLevel {
+    /// Debug information (shown only in debug mode)
+    Debug,
+    /// Informational message
+    Info,
+    /// Warning (operation continues)
+    Warning,
+    /// Error (recoverable)
     #[default]
     Error,
-    Warning,
-    Info,
+    /// Critical error (may require restart)
+    Critical,
+}
+
+impl From<Severity> for ErrorLevel {
+    fn from(severity: Severity) -> Self {
+        match severity {
+            Severity::Debug => ErrorLevel::Debug,
+            Severity::Info => ErrorLevel::Info,
+            Severity::Warn => ErrorLevel::Warning,
+            Severity::Error => ErrorLevel::Error,
+            Severity::Critical => ErrorLevel::Critical,
+        }
+    }
+}
+
+impl ErrorLevel {
+    /// Check if this level should be shown in production
+    pub fn is_production_visible(self) -> bool {
+        self >= ErrorLevel::Info
+    }
 }
 
 /// State for ErrorConsole (owned by parent)
-#[derive(Default)]
 pub struct ErrorConsoleState {
     errors: VecDeque<ErrorEntry>,
     max_entries: usize,
     auto_dismiss: Option<Duration>,
+}
+
+impl Default for ErrorConsoleState {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ErrorConsoleState {
@@ -133,64 +168,31 @@ pub enum ErrorConsoleMsg {
 pub struct ErrorConsole;
 
 impl ErrorConsole {
-    /// Get colors for error level based on theme
-    fn level_colors(level: ErrorLevel, is_dark: bool) -> (Color32, Color32, &'static str) {
-        match level {
-            ErrorLevel::Error => {
-                if is_dark {
-                    (
-                        Color32::from_rgb(153, 27, 27),
-                        Color32::from_rgb(254, 202, 202),
-                        "✕",
-                    )
-                } else {
-                    (
-                        Color32::from_rgb(254, 226, 226),
-                        Color32::from_rgb(153, 27, 27),
-                        "✕",
-                    )
-                }
-            }
-            ErrorLevel::Warning => {
-                if is_dark {
-                    (
-                        Color32::from_rgb(133, 77, 14),
-                        Color32::from_rgb(254, 240, 138),
-                        "⚠",
-                    )
-                } else {
-                    (
-                        Color32::from_rgb(254, 249, 195),
-                        Color32::from_rgb(133, 77, 14),
-                        "⚠",
-                    )
-                }
-            }
-            ErrorLevel::Info => {
-                if is_dark {
-                    (
-                        Color32::from_rgb(30, 64, 175),
-                        Color32::from_rgb(191, 219, 254),
-                        "ℹ",
-                    )
-                } else {
-                    (
-                        Color32::from_rgb(219, 234, 254),
-                        Color32::from_rgb(30, 64, 175),
-                        "ℹ",
-                    )
-                }
-            }
-        }
+    /// Get colors for error level from Theme
+    /// Returns (background_color, text_color, icon)
+    fn level_colors(level: ErrorLevel, theme: &Theme) -> (Color32, Color32, &'static str) {
+        let (log_color, icon) = match level {
+            ErrorLevel::Debug => (theme.log_debug, icons::WRENCH),
+            ErrorLevel::Info => (theme.log_info, icons::INFO),
+            ErrorLevel::Warning => (theme.log_warn, icons::WARNING),
+            ErrorLevel::Error => (theme.log_error, icons::X_CIRCLE),
+            ErrorLevel::Critical => (theme.log_critical, icons::FIRE),
+        };
+
+        // Background: semi-transparent version of the log color
+        let bg_color = Color32::from_rgba_unmultiplied(
+            log_color.r(),
+            log_color.g(),
+            log_color.b(),
+            30, // Low alpha for subtle background
+        );
+
+        (bg_color, log_color, icon)
     }
 
-    /// Get header color based on theme
-    fn header_color(is_dark: bool) -> Color32 {
-        if is_dark {
-            Color32::from_rgb(248, 113, 113) // lighter red for dark mode
-        } else {
-            Color32::from_rgb(239, 68, 68)
-        }
+    /// Get header color from theme
+    fn header_color(theme: &Theme) -> Color32 {
+        theme.log_error
     }
 
     /// Show the error console (ViewCtx version)
@@ -203,7 +205,7 @@ impl ErrorConsole {
             return;
         }
 
-        let is_dark = ctx.ui.ctx().style().visuals.dark_mode;
+        let theme = Theme::current(ctx.ui.ctx());
 
         // Collect dismiss clicks first
         let mut dismiss_index: Option<usize> = None;
@@ -215,7 +217,7 @@ impl ErrorConsole {
                 ui.label(
                     RichText::new(format!("Errors ({})", state.len()))
                         .strong()
-                        .color(Self::header_color(is_dark)),
+                        .color(Self::header_color(&theme)),
                 );
                 ui.add_space(8.0);
                 if ui.small_button("Clear All").clicked() {
@@ -227,7 +229,7 @@ impl ErrorConsole {
 
             // Error list
             for (index, entry) in state.iter().enumerate() {
-                let (bg_color, text_color, icon) = Self::level_colors(entry.level, is_dark);
+                let (bg_color, text_color, icon) = Self::level_colors(entry.level, &theme);
 
                 egui::Frame::new()
                     .fill(bg_color)
@@ -235,7 +237,11 @@ impl ErrorConsole {
                     .inner_margin(egui::Margin::symmetric(8, 4))
                     .show(ui, |ui| {
                         ui.horizontal(|ui| {
-                            ui.label(RichText::new(icon).color(text_color));
+                            ui.label(
+                                RichText::new(icon)
+                                    .family(FontFamily::Name("icons".into()))
+                                    .color(text_color),
+                            );
                             ui.label(RichText::new(&entry.message).color(text_color));
                             ui.with_layout(
                                 egui::Layout::right_to_left(egui::Align::Center),
@@ -266,7 +272,7 @@ impl ErrorConsole {
             return None;
         }
 
-        let is_dark = ui.ctx().style().visuals.dark_mode;
+        let theme = Theme::current(ui.ctx());
         let mut result = None;
 
         ui.vertical(|ui| {
@@ -274,7 +280,7 @@ impl ErrorConsole {
                 ui.label(
                     RichText::new(format!("Errors ({})", state.len()))
                         .strong()
-                        .color(Self::header_color(is_dark)),
+                        .color(Self::header_color(&theme)),
                 );
                 ui.add_space(8.0);
                 if ui.small_button("Clear All").clicked() {
@@ -285,7 +291,7 @@ impl ErrorConsole {
             ui.add_space(4.0);
 
             for (index, entry) in state.iter().enumerate() {
-                let (bg_color, text_color, icon) = Self::level_colors(entry.level, is_dark);
+                let (bg_color, text_color, icon) = Self::level_colors(entry.level, &theme);
 
                 egui::Frame::new()
                     .fill(bg_color)
@@ -293,7 +299,11 @@ impl ErrorConsole {
                     .inner_margin(egui::Margin::symmetric(8, 4))
                     .show(ui, |ui| {
                         ui.horizontal(|ui| {
-                            ui.label(RichText::new(icon).color(text_color));
+                            ui.label(
+                                RichText::new(icon)
+                                    .family(FontFamily::Name("icons".into()))
+                                    .color(text_color),
+                            );
                             ui.label(RichText::new(&entry.message).color(text_color));
                             ui.with_layout(
                                 egui::Layout::right_to_left(egui::Align::Center),

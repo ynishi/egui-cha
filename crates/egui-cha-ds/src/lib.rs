@@ -35,6 +35,6 @@ pub use egui_cha_macros::cha;
 pub mod prelude {
     pub use crate::atoms::*;
     pub use crate::molecules::*;
-    pub use crate::semantics::{self, ButtonStyle};
+    pub use crate::semantics::{self, ButtonStyle, LogSeverity, SeverityLog};
     pub use crate::theme::{Theme, ThemeVariant};
 }
