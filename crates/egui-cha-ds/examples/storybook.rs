@@ -312,6 +312,7 @@ const ATOMS: &[&str] = &[
     "ButtonGroup",
     "BpmDisplay",
     "ClipGrid",
+    "Plot",
     "Link",
     "Code",
     "Text",
@@ -1761,6 +1762,126 @@ if let Some(idx) = ClipGrid::new(&clips, 4)
             ctx.ui.label("• Custom colors per clip");
             ctx.ui.label("• Configurable grid columns");
             ctx.ui.label("• Optional index display");
+
+            ctx.ui.ctx().request_repaint();
+        }
+
+        "Plot" => {
+            ctx.ui.heading("Plot");
+            ctx.ui.label("egui_plot wrapper with theme integration");
+            ctx.ui.add_space(16.0);
+
+            // Generate sample data
+            let time = ctx.ui.input(|i| i.time) as f64;
+
+            // LinePlot - Waveform style
+            ctx.ui.label("LinePlot (waveform):");
+            let samples: Vec<f64> = (0..200)
+                .map(|i| {
+                    let t = i as f64 * 0.05 + time;
+                    (t * 2.0).sin() * 0.5 + (t * 5.0).sin() * 0.3
+                })
+                .collect();
+            LinePlot::new("waveform", &samples)
+                .size(300.0, 80.0)
+                .fill(true)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+
+            // EnvelopePlot - ADSR
+            ctx.ui.label("EnvelopePlot (ADSR):");
+            let envelope = vec![
+                (0.0, 0.0),   // Start
+                (0.1, 1.0),   // Attack
+                (0.3, 0.7),   // Decay -> Sustain
+                (0.7, 0.7),   // Sustain
+                (1.0, 0.0),   // Release
+            ];
+            EnvelopePlot::new("adsr", &envelope)
+                .size(300.0, 80.0)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+
+            // AutomationPlot
+            ctx.ui.label("AutomationPlot (parameter):");
+            let automation = vec![
+                (0.0, 0.5),
+                (0.2, 0.8),
+                (0.4, 0.3),
+                (0.6, 0.9),
+                (0.8, 0.4),
+                (1.0, 0.6),
+            ];
+            AutomationPlot::new("automation", &automation)
+                .size(300.0, 60.0)
+                .show_points(true)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+
+            // FrequencyPlot - EQ curve
+            ctx.ui.label("FrequencyPlot (EQ curve):");
+            let eq_curve: Vec<(f64, f64)> = (0..100)
+                .map(|i| {
+                    let freq = 20.0 * (1000.0_f64).powf(i as f64 / 100.0);
+                    // Simple low-shelf + high-shelf simulation
+                    let db = if freq < 200.0 {
+                        3.0
+                    } else if freq > 8000.0 {
+                        -2.0
+                    } else {
+                        0.0
+                    };
+                    (freq, db)
+                })
+                .collect();
+            FrequencyPlot::new("eq", &eq_curve)
+                .size(300.0, 100.0)
+                .db_range(-12.0, 12.0)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+
+            // BarPlot
+            ctx.ui.label("BarPlot (spectrum bins):");
+            let bars: Vec<f64> = (0..16)
+                .map(|i| {
+                    let t = time + i as f64 * 0.1;
+                    (t * 2.0).sin().abs() * 0.8 + 0.2
+                })
+                .collect();
+            BarPlot::new("bars", &bars)
+                .size(300.0, 80.0)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.label("Usage:");
+            Code::new(r#"// Line plot
+LinePlot::new("id", &samples)
+    .fill(true)
+    .show(ctx.ui);
+
+// Envelope (ADSR)
+EnvelopePlot::new("env", &[(0.0, 0.0), (0.1, 1.0), ...])
+    .show(ctx.ui);
+
+// Frequency response
+FrequencyPlot::new("eq", &curve)
+    .db_range(-24.0, 24.0)
+    .show(ctx.ui);"#).show(ctx.ui);
+
+            ctx.ui.add_space(8.0);
+            ctx.ui.label("Plot types:");
+            ctx.ui.label("• LinePlot - Waveforms, signals");
+            ctx.ui.label("• EnvelopePlot - ADSR, modulation");
+            ctx.ui.label("• AutomationPlot - DAW automation lanes");
+            ctx.ui.label("• FrequencyPlot - EQ, spectrum");
+            ctx.ui.label("• BarPlot - Histogram, spectrum bins");
 
             ctx.ui.ctx().request_repaint();
         }

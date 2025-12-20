@@ -66,6 +66,8 @@ mod knob;
 mod level_meter;
 mod link;
 mod oscilloscope;
+#[cfg(feature = "plot")]
+mod plot;
 mod list_item;
 mod select;
 mod slider;
@@ -93,6 +95,10 @@ pub use knob::{Knob, KnobSize};
 pub use level_meter::{LevelMeter, MeterMode, MeterOrientation};
 pub use link::Link;
 pub use oscilloscope::{Oscilloscope, ScopeMode, TriggerMode};
+#[cfg(feature = "plot")]
+pub use plot::{AutomationPlot, BarPlot, EnvelopePlot, FrequencyPlot, LinePlot};
+#[cfg(feature = "plot")]
+pub use plot::raw as plot_raw;
 pub use list_item::{ListItem, ListItemSize};
 pub use select::Select;
 pub use slider::Slider;
