@@ -757,19 +757,16 @@ impl App for StorybookApp {
                 Button::ghost(theme_label).on_click(ctx, Msg::ToggleTheme);
 
                 ctx.ui.separator();
-                ctx.ui.heading("Components");
-                ctx.ui.separator();
+                ctx.ui.strong("Categories");
+                ctx.ui.add_space(4.0);
 
                 // Category selection
-                for (i, cat) in CATEGORIES.iter().enumerate() {
-                    if model.active_category == i {
-                        Button::primary(*cat).on_click(ctx, Msg::SetCategory(i));
-                    } else {
-                        Button::ghost(*cat).on_click(ctx, Msg::SetCategory(i));
-                    }
-                }
+                Menu::new(CATEGORIES).compact().show_with(ctx, model.active_category, Msg::SetCategory);
 
+                ctx.ui.add_space(8.0);
                 ctx.ui.separator();
+                ctx.ui.strong("Components");
+                ctx.ui.add_space(4.0);
 
                 // Component list
                 let components = match model.active_category {
@@ -779,13 +776,7 @@ impl App for StorybookApp {
                     3 => FRAMEWORK,
                     _ => THEME_ITEMS,
                 };
-                for (i, comp) in components.iter().enumerate() {
-                    if model.active_component == i {
-                        Button::secondary(*comp).on_click(ctx, Msg::SetComponent(i));
-                    } else {
-                        Button::outline(*comp).on_click(ctx, Msg::SetComponent(i));
-                    }
-                }
+                Menu::new(components).compact().show_with(ctx, model.active_component, Msg::SetComponent);
             },
             // Main: Component preview
             |ctx| {

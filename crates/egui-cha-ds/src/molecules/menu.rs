@@ -10,12 +10,22 @@ use egui_cha::ViewCtx;
 /// Vertical menu component (like Tabs but vertical)
 pub struct Menu<'a> {
     items: &'a [&'a str],
+    compact: bool,
 }
 
 impl<'a> Menu<'a> {
     /// Create a new menu with items
     pub fn new(items: &'a [&'a str]) -> Self {
-        Self { items }
+        Self {
+            items,
+            compact: false,
+        }
+    }
+
+    /// Use compact size (smaller items, matches button height)
+    pub fn compact(mut self) -> Self {
+        self.compact = true;
+        self
     }
 
     /// TEA-style: Show menu with current index, emit Msg on change
@@ -40,15 +50,19 @@ impl<'a> Menu<'a> {
     /// Render menu and return clicked index if any
     fn render(self, ui: &mut Ui, active: usize) -> Option<usize> {
         let mut clicked_idx: Option<usize> = None;
+        let compact = self.compact;
 
         ui.vertical(|ui| {
             ui.spacing_mut().item_spacing.y = 0.0; // No gap between items
             for (i, item) in self.items.iter().enumerate() {
                 let is_active = i == active;
 
-                let response = ListItem::new(*item)
-                    .selected(is_active)
-                    .show(ui);
+                let mut list_item = ListItem::new(*item).selected(is_active);
+                if compact {
+                    list_item = list_item.compact();
+                }
+
+                let response = list_item.show(ui);
 
                 if response.clicked() && !is_active {
                     clicked_idx = Some(i);
@@ -63,12 +77,22 @@ impl<'a> Menu<'a> {
 /// Menu with icons
 pub struct IconMenu<'a> {
     items: &'a [(&'a str, &'static str)], // (label, icon)
+    compact: bool,
 }
 
 impl<'a> IconMenu<'a> {
     /// Create a new menu with (label, icon) pairs
     pub fn new(items: &'a [(&'a str, &'static str)]) -> Self {
-        Self { items }
+        Self {
+            items,
+            compact: false,
+        }
+    }
+
+    /// Use compact size (smaller items, matches button height)
+    pub fn compact(mut self) -> Self {
+        self.compact = true;
+        self
     }
 
     /// TEA-style: Show menu with current index, emit Msg on change
@@ -93,16 +117,21 @@ impl<'a> IconMenu<'a> {
     /// Render menu and return clicked index if any
     fn render(self, ui: &mut Ui, active: usize) -> Option<usize> {
         let mut clicked_idx: Option<usize> = None;
+        let compact = self.compact;
 
         ui.vertical(|ui| {
             ui.spacing_mut().item_spacing.y = 0.0; // No gap between items
             for (i, (label, icon)) in self.items.iter().enumerate() {
                 let is_active = i == active;
 
-                let response = ListItem::new(*label)
+                let mut list_item = ListItem::new(*label)
                     .icon(*icon)
-                    .selected(is_active)
-                    .show(ui);
+                    .selected(is_active);
+                if compact {
+                    list_item = list_item.compact();
+                }
+
+                let response = list_item.show(ui);
 
                 if response.clicked() && !is_active {
                     clicked_idx = Some(i);

@@ -437,6 +437,15 @@ impl Theme {
 
     /// Apply a scale factor to all spacing values
     ///
+    /// This scales `spacing_xs`, `spacing_sm`, `spacing_md`, `spacing_lg`, and `spacing_xl`.
+    /// Components using these spacing values will automatically respect the scale.
+    ///
+    /// # Scale Guidelines
+    /// - `0.75` - Compact UI, dense layouts
+    /// - `1.0` - Default (no scaling)
+    /// - `1.25` - Spacious UI, touch-friendly
+    /// - `1.5` - Large UI, accessibility
+    ///
     /// # Example
     /// ```
     /// use egui_cha_ds::Theme;
@@ -447,6 +456,13 @@ impl Theme {
     /// // Spacious theme (125% spacing)
     /// let spacious = Theme::light().with_scale(1.25);
     /// ```
+    ///
+    /// # Affected Components
+    /// All DS components use theme spacing values, including:
+    /// - `ListItem` height (Compact/Medium/Large)
+    /// - `Button` padding
+    /// - `Card` margins
+    /// - `Menu` item spacing
     pub fn with_scale(mut self, scale: f32) -> Self {
         self.spacing_xs *= scale;
         self.spacing_sm *= scale;
@@ -457,6 +473,8 @@ impl Theme {
     }
 
     /// Apply a scale factor to spacing values only
+    ///
+    /// Same as [`with_scale`](Self::with_scale), provided for explicit naming.
     pub fn with_spacing_scale(mut self, scale: f32) -> Self {
         self.spacing_xs *= scale;
         self.spacing_sm *= scale;
@@ -467,6 +485,19 @@ impl Theme {
     }
 
     /// Apply a scale factor to border radius values
+    ///
+    /// Scales `radius_sm`, `radius_md`, `radius_lg` for rounded corners.
+    ///
+    /// # Example
+    /// ```
+    /// use egui_cha_ds::Theme;
+    ///
+    /// // Sharper corners
+    /// let sharp = Theme::light().with_radius_scale(0.5);
+    ///
+    /// // More rounded
+    /// let rounded = Theme::dark().with_radius_scale(2.0);
+    /// ```
     pub fn with_radius_scale(mut self, scale: f32) -> Self {
         self.radius_sm *= scale;
         self.radius_md *= scale;
@@ -475,6 +506,20 @@ impl Theme {
     }
 
     /// Apply a scale factor to font sizes
+    ///
+    /// Scales all font size tokens from `font_size_xs` to `font_size_3xl`.
+    /// Useful for accessibility or density preferences.
+    ///
+    /// # Example
+    /// ```
+    /// use egui_cha_ds::Theme;
+    ///
+    /// // Larger text for accessibility
+    /// let accessible = Theme::light().with_font_scale(1.2);
+    ///
+    /// // Smaller text for dense displays
+    /// let dense = Theme::dark().with_font_scale(0.9);
+    /// ```
     pub fn with_font_scale(mut self, scale: f32) -> Self {
         self.font_size_xs *= scale;
         self.font_size_sm *= scale;
@@ -487,6 +532,16 @@ impl Theme {
     }
 
     /// Apply a scale factor to stroke and border widths
+    ///
+    /// Scales `border_width` and `stroke_width` for thicker/thinner lines.
+    ///
+    /// # Example
+    /// ```
+    /// use egui_cha_ds::Theme;
+    ///
+    /// // Bolder borders
+    /// let bold = Theme::light().with_stroke_scale(2.0);
+    /// ```
     pub fn with_stroke_scale(mut self, scale: f32) -> Self {
         self.border_width *= scale;
         self.stroke_width *= scale;

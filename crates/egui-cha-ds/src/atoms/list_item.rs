@@ -1,16 +1,65 @@
 //! ListItem atom - Selectable list item with optional icon and badge
+//!
+//! A versatile list item component for navigation menus, selection lists, etc.
+//!
+//! # Features
+//! - Optional icon (left side)
+//! - Optional badge (right side)
+//! - Selection state with indicator
+//! - Disabled state
+//! - Three size variants (respects theme scaling)
+//!
+//! # Example
+//! ```ignore
+//! // Basic item
+//! ListItem::new("Settings").on_click(ctx, Msg::GoSettings);
+//!
+//! // With icon and selection
+//! ListItem::new("Home")
+//!     .icon(icons::HOUSE)
+//!     .selected(is_home)
+//!     .on_click(ctx, Msg::GoHome);
+//!
+//! // Compact size for dense menus
+//! ListItem::new("Item").compact().on_click(ctx, Msg::Select);
+//!
+//! // With badge
+//! ListItem::new("Messages").badge("5").on_click(ctx, Msg::Go);
+//! ```
 
 use crate::Theme;
 use egui::{FontFamily, Response, RichText, Ui, Widget};
 use egui_cha::ViewCtx;
 
+/// Size variant for ListItem
+///
+/// Sizes are based on theme spacing values and respect theme scaling.
+/// At default scale (1.0):
+/// - Compact: ~24px (matches button height)
+/// - Medium: ~32px (default)
+/// - Large: ~40px (touch-friendly)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ListItemSize {
+    /// Compact size (~24px), matches button height
+    Compact,
+    /// Default size (~32px)
+    #[default]
+    Medium,
+    /// Large size (~40px), touch-friendly
+    Large,
+}
+
 /// A selectable list item with optional icon and badge
+///
+/// Used by [`Menu`](crate::Menu) and [`IconMenu`](crate::IconMenu) internally,
+/// but can also be used standalone for custom list layouts.
 pub struct ListItem {
     label: String,
     icon: Option<&'static str>,
     badge: Option<String>,
     selected: bool,
     disabled: bool,
+    size: ListItemSize,
 }
 
 impl ListItem {
@@ -22,7 +71,20 @@ impl ListItem {
             badge: None,
             selected: false,
             disabled: false,
+            size: ListItemSize::default(),
         }
+    }
+
+    /// Set compact size (matches button height)
+    pub fn compact(mut self) -> Self {
+        self.size = ListItemSize::Compact;
+        self
+    }
+
+    /// Set size variant
+    pub fn size(mut self, size: ListItemSize) -> Self {
+        self.size = size;
+        self
     }
 
     /// Set the icon (from icons module)
@@ -78,8 +140,12 @@ impl Widget for ListItem {
 
         let hover_color = theme.bg_tertiary;
 
-        // Calculate size
-        let desired_height = theme.spacing_lg * 2.0;
+        // Calculate size based on size variant (respects theme scaling)
+        let desired_height = match self.size {
+            ListItemSize::Compact => theme.spacing_md + theme.spacing_sm, // ~24px at 1.0 scale
+            ListItemSize::Medium => theme.spacing_lg + theme.spacing_md,  // ~32px at 1.0 scale
+            ListItemSize::Large => theme.spacing_xl + theme.spacing_md,   // ~40px at 1.0 scale
+        };
         let available_width = ui.available_width();
 
         let (rect, response) = ui.allocate_exact_size(
@@ -101,49 +167,50 @@ impl Widget for ListItem {
                 painter.rect_filled(rect, theme.radius_sm, color);
             }
 
-            // Selected indicator (left border)
+            // Selected indicator (left border, respects stroke_scale)
+            let indicator_width = theme.stroke_width * 3.0;
             if self.selected {
                 let indicator_rect = egui::Rect::from_min_size(
                     rect.min,
-                    egui::vec2(3.0, rect.height()),
+                    egui::vec2(indicator_width, rect.height()),
                 );
                 painter.rect_filled(indicator_rect, 0.0, theme.primary);
             }
 
             // Content layout
             let padding = theme.spacing_md;
-            let mut x = rect.min.x + padding + if self.selected { 3.0 } else { 0.0 };
+            let mut x = rect.min.x + padding + if self.selected { indicator_width } else { 0.0 };
             let center_y = rect.center().y;
 
-            // Icon
+            // Icon (uses font_size_md for scaling)
             if let Some(icon) = self.icon {
                 let icon_text = RichText::new(icon)
                     .family(FontFamily::Name("icons".into()))
                     .color(text_color);
                 let galley = painter.layout_no_wrap(
                     icon_text.text().to_string(),
-                    egui::FontId::new(16.0, FontFamily::Name("icons".into())),
+                    egui::FontId::new(theme.font_size_md, FontFamily::Name("icons".into())),
                     text_color,
                 );
                 let icon_pos = egui::pos2(x, center_y - galley.size().y / 2.0);
                 painter.galley(icon_pos, galley, text_color);
-                x += 20.0 + theme.spacing_sm;
+                x += theme.font_size_md + theme.spacing_sm;
             }
 
-            // Label
+            // Label (uses font_size_sm for scaling)
             let galley = painter.layout_no_wrap(
                 self.label.clone(),
-                egui::FontId::proportional(14.0),
+                egui::FontId::proportional(theme.font_size_sm),
                 text_color,
             );
             let label_pos = egui::pos2(x, center_y - galley.size().y / 2.0);
             painter.galley(label_pos, galley, text_color);
 
-            // Badge (right side)
+            // Badge (uses font_size_xs for scaling)
             if let Some(badge) = &self.badge {
                 let galley = painter.layout_no_wrap(
                     badge.clone(),
-                    egui::FontId::proportional(12.0),
+                    egui::FontId::proportional(theme.font_size_xs),
                     theme.primary_text,
                 );
                 let badge_width = galley.size().x + theme.spacing_sm * 2.0;
