@@ -244,21 +244,41 @@ impl SnarlViewer<DemoNode> for DemoNodeViewer {
     fn show_input(
         &mut self,
         pin: &InPin,
-        ui: &mut egui::Ui,
-        _snarl: &mut Snarl<DemoNode>,
+        _ui: &mut egui::Ui,
+        snarl: &mut Snarl<DemoNode>,
     ) -> PinInfo {
-        ui.label(format!("In {}", pin.id.input));
-        PinInfo::circle().with_fill(egui::Color32::from_rgb(100, 200, 100))
+        // Color and shape based on node type
+        match snarl.get_node(pin.id.node) {
+            Some(DemoNode::Effect { .. }) => {
+                // Audio signal input - cyan circle
+                PinInfo::circle().with_fill(egui::Color32::from_rgb(100, 200, 200))
+            }
+            Some(DemoNode::Output) => {
+                // Final output - green triangle
+                PinInfo::triangle().with_fill(egui::Color32::from_rgb(100, 200, 100))
+            }
+            _ => PinInfo::circle().with_fill(egui::Color32::GRAY),
+        }
     }
 
     fn show_output(
         &mut self,
         pin: &OutPin,
-        ui: &mut egui::Ui,
-        _snarl: &mut Snarl<DemoNode>,
+        _ui: &mut egui::Ui,
+        snarl: &mut Snarl<DemoNode>,
     ) -> PinInfo {
-        ui.label(format!("Out {}", pin.id.output));
-        PinInfo::circle().with_fill(egui::Color32::from_rgb(200, 100, 100))
+        // Color and shape based on node type
+        match snarl.get_node(pin.id.node) {
+            Some(DemoNode::Source { .. }) => {
+                // Audio source output - orange square
+                PinInfo::square().with_fill(egui::Color32::from_rgb(255, 180, 100))
+            }
+            Some(DemoNode::Effect { .. }) => {
+                // Processed audio output - cyan circle
+                PinInfo::circle().with_fill(egui::Color32::from_rgb(100, 200, 200))
+            }
+            _ => PinInfo::circle().with_fill(egui::Color32::GRAY),
+        }
     }
 
     fn has_body(&mut self, node: &DemoNode) -> bool {
