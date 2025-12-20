@@ -311,6 +311,7 @@ const ATOMS: &[&str] = &[
     "Oscilloscope",
     "ButtonGroup",
     "BpmDisplay",
+    "ClipGrid",
     "Link",
     "Code",
     "Text",
@@ -1693,6 +1694,74 @@ fn render_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.label("• Click for tap tempo");
 
             // Request repaint for animation
+            ctx.ui.ctx().request_repaint();
+        }
+
+        "ClipGrid" => {
+            ctx.ui.heading("ClipGrid");
+            ctx.ui.label("Ableton Live style clip launcher grid");
+            ctx.ui.add_space(16.0);
+
+            // Sample clips
+            let clips = vec![
+                ClipCell::new("Intro"),
+                ClipCell::new("Verse").with_color(egui::Color32::from_rgb(80, 180, 120)),
+                ClipCell::new("Chorus").with_color(egui::Color32::from_rgb(220, 100, 100)),
+                ClipCell::new("Bridge").with_color(egui::Color32::from_rgb(100, 150, 220)),
+                ClipCell::new("Drop").with_color(egui::Color32::from_rgb(200, 120, 200)),
+                ClipCell::new("Build").with_color(egui::Color32::from_rgb(220, 180, 80)),
+                ClipCell::new("Break"),
+                ClipCell::new("Outro"),
+            ];
+
+            // Animated states for demo
+            let time = ctx.ui.input(|i| i.time);
+            let current = ((time * 0.5) as usize) % clips.len();
+            let queued = vec![(current + 1) % clips.len()];
+
+            ctx.ui.label("4-column grid (with playing/queued state):");
+            if let Some(_clicked) = ClipGrid::new(&clips, 4)
+                .current(Some(current))
+                .queued(&queued)
+                .cell_size(80.0, 50.0)
+                .show_index(true)
+                .show(ctx.ui)
+            {
+                // Handle clip click
+            }
+
+            ctx.ui.add_space(16.0);
+
+            ctx.ui.label("2-column grid (compact):");
+            ClipGrid::new(&clips[..4], 2)
+                .cell_size(100.0, 40.0)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.label("Usage:");
+            Code::new(r#"let clips = vec![
+    ClipCell::new("Intro"),
+    ClipCell::new("Verse").with_color(Color32::GREEN),
+];
+
+if let Some(idx) = ClipGrid::new(&clips, 4)
+    .current(model.playing)
+    .queued(&model.queue)
+    .show(ctx.ui) {
+    return Some(Msg::PlayClip(idx));
+}"#).show(ctx.ui);
+
+            ctx.ui.add_space(8.0);
+            ctx.ui.label("Features:");
+            ctx.ui.label("• Playing state with pulse animation");
+            ctx.ui.label("• Queued state with indicator");
+            ctx.ui.label("• Custom colors per clip");
+            ctx.ui.label("• Configurable grid columns");
+            ctx.ui.label("• Optional index display");
+
             ctx.ui.ctx().request_repaint();
         }
 
