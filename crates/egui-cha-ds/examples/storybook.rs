@@ -139,6 +139,35 @@ struct Model {
 
     // Dock demo (RefCell for interior mutability in view)
     dock: RefCell<DockTree<DemoPane>>,
+
+    // === VJ/DAW Demo States ===
+
+    // MIDI Keyboard demo
+    keyboard_notes: Vec<ActiveNote>,
+
+    // MIDI Monitor demo
+    midi_messages: Vec<MidiMessage>,
+    midi_cc_values: Vec<CcValue>,
+
+    // Piano Roll demo
+    piano_notes: Vec<MidiNote>,
+    piano_position: f32,
+    piano_selected: Option<usize>,
+
+    // Mixer demo
+    channel_volumes: [f32; 4],
+    channel_pans: [f32; 4],
+    channel_mutes: [bool; 4],
+    channel_solos: [bool; 4],
+
+    // Crossfader demo
+    crossfader_value: f32,
+
+    // Timeline demo
+    timeline_position: f64,
+
+    // Color wheel demo
+    wheel_color: Hsva,
 }
 
 /// Demo action for dynamic bindings showcase
@@ -308,6 +337,34 @@ enum Msg {
 
     // Dock
     DockEvent(DockEvent<DemoPane>),
+
+    // === VJ/DAW Demo Messages ===
+
+    // MIDI Keyboard
+    KeyboardNoteOn(u8, u8),
+    KeyboardNoteOff(u8),
+
+    // Piano Roll
+    PianoNoteAdd(u8, f32, f32),
+    PianoNoteMove(usize, u8, f32),
+    PianoNoteDelete(usize),
+    PianoNoteSelect(usize),
+    PianoSeek(f32),
+
+    // Channel Strip
+    ChannelVolume(usize, f32),
+    ChannelPan(usize, f32),
+    ChannelMute(usize),
+    ChannelSolo(usize),
+
+    // Crossfader
+    CrossfaderChange(f32),
+
+    // Timeline
+    TimelineSeek(f64),
+
+    // Color Wheel
+    ColorWheelChange(Hsva),
 }
 
 const CATEGORIES: &[&str] = &[
@@ -909,6 +966,64 @@ impl App for StorybookApp {
                         // Focus changed
                     }
                 }
+            }
+
+            // === VJ/DAW Demo Messages ===
+
+            Msg::KeyboardNoteOn(note, velocity) => {
+                model.keyboard_notes.push(ActiveNote::new(note, velocity));
+            }
+            Msg::KeyboardNoteOff(note) => {
+                model.keyboard_notes.retain(|n| n.note != note);
+            }
+            Msg::PianoNoteAdd(note, start, duration) => {
+                model.piano_notes.push(MidiNote::new(note, start, duration));
+            }
+            Msg::PianoNoteMove(idx, note, start) => {
+                if let Some(n) = model.piano_notes.get_mut(idx) {
+                    n.note = note;
+                    n.start = start;
+                }
+            }
+            Msg::PianoNoteDelete(idx) => {
+                if idx < model.piano_notes.len() {
+                    model.piano_notes.remove(idx);
+                }
+            }
+            Msg::PianoNoteSelect(idx) => {
+                model.piano_selected = Some(idx);
+            }
+            Msg::PianoSeek(pos) => {
+                model.piano_position = pos;
+            }
+            Msg::ChannelVolume(idx, vol) => {
+                if idx < 4 {
+                    model.channel_volumes[idx] = vol;
+                }
+            }
+            Msg::ChannelPan(idx, pan) => {
+                if idx < 4 {
+                    model.channel_pans[idx] = pan;
+                }
+            }
+            Msg::ChannelMute(idx) => {
+                if idx < 4 {
+                    model.channel_mutes[idx] = !model.channel_mutes[idx];
+                }
+            }
+            Msg::ChannelSolo(idx) => {
+                if idx < 4 {
+                    model.channel_solos[idx] = !model.channel_solos[idx];
+                }
+            }
+            Msg::CrossfaderChange(val) => {
+                model.crossfader_value = val;
+            }
+            Msg::TimelineSeek(pos) => {
+                model.timeline_position = pos;
+            }
+            Msg::ColorWheelChange(color) => {
+                model.wheel_color = color;
             }
         }
         Cmd::none()
@@ -1819,30 +1934,207 @@ fn render_midi_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
     match MIDI_ATOMS[model.active_component] {
         "MidiKeyboard" => {
             ctx.ui.heading("MidiKeyboard");
-            ctx.ui.label("Interactive MIDI keyboard");
+            ctx.ui.label("Interactive MIDI keyboard with note visualization");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "MidiKeyboard::new()\n    .octaves(2)\n    .start_octave(4)\n    .active_notes(&model.notes)\n    .show_with(ctx, |event| match event {\n        KeyboardEvent::NoteOn(note, vel) => Msg::NoteOn(note, vel),\n        KeyboardEvent::NoteOff(note) => Msg::NoteOff(note),\n    });"
+            ).show(ctx.ui);
+
             ctx.ui.add_space(16.0);
-            ctx.ui.label("TODO: Implement MidiKeyboard demo");
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("2 Octaves (click to trigger):");
+            ctx.ui.add_space(8.0);
+
+            MidiKeyboard::new()
+                .octaves(2)
+                .start_octave(4)
+                .active_notes(&model.keyboard_notes)
+                .show_with(ctx, |event| match event {
+                    KeyboardEvent::NoteOn(note, vel) => Msg::KeyboardNoteOn(note, vel),
+                    KeyboardEvent::NoteOff(note) => Msg::KeyboardNoteOff(note),
+                });
+
+            ctx.ui.add_space(16.0);
+
+            ctx.ui.strong("3 Octaves, compact:");
+            ctx.ui.add_space(8.0);
+
+            MidiKeyboard::new()
+                .octaves(3)
+                .start_octave(3)
+                .key_size(18.0, 60.0)
+                .active_notes(&model.keyboard_notes)
+                .show_with(ctx, |event| match event {
+                    KeyboardEvent::NoteOn(note, vel) => Msg::KeyboardNoteOn(note, vel),
+                    KeyboardEvent::NoteOff(note) => Msg::KeyboardNoteOff(note),
+                });
+
+            if !model.keyboard_notes.is_empty() {
+                ctx.ui.add_space(12.0);
+                ctx.ui.label(format!("Active notes: {:?}", model.keyboard_notes.iter().map(|n| n.note).collect::<Vec<_>>()));
+            }
         }
 
         "MidiMonitor" => {
             ctx.ui.heading("MidiMonitor");
-            ctx.ui.label("MIDI message monitor");
+            ctx.ui.label("MIDI activity and CC state display");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "MidiMonitor::new()\n    .device_name(\"Arturia KeyLab\")\n    .cc_values(&model.cc_state)\n    .messages(&model.midi_log)\n    .mode(MonitorMode::Split)\n    .show(ui);"
+            ).show(ctx.ui);
+
             ctx.ui.add_space(16.0);
-            ctx.ui.label("TODO: Implement MidiMonitor demo");
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            // Create demo CC values
+            let time = ctx.ui.input(|i| i.time) as f32;
+            let cc_values = vec![
+                CcValue::new(1, ((time * 0.5).sin() * 63.5 + 63.5) as u8).with_label("Mod"),
+                CcValue::new(7, 100).with_label("Vol"),
+                CcValue::new(10, 64).with_label("Pan"),
+                CcValue::new(74, ((time * 0.3).cos() * 63.5 + 63.5) as u8).with_label("Cutoff"),
+            ];
+
+            // Create demo messages
+            let messages = vec![
+                MidiMessage::NoteOn(0, 60, 100),
+                MidiMessage::ControlChange(0, 1, 64),
+                MidiMessage::NoteOff(0, 60),
+                MidiMessage::PitchBend(0, 0),
+            ];
+
+            ctx.ui.strong("CC Grid mode:");
+            ctx.ui.add_space(8.0);
+
+            MidiMonitor::new()
+                .device_name("Demo Controller")
+                .cc_values(&cc_values)
+                .mode(MonitorMode::CcGrid)
+                .size(300.0, 120.0)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+
+            ctx.ui.strong("Message Log mode:");
+            ctx.ui.add_space(8.0);
+
+            MidiMonitor::new()
+                .device_name("Demo Controller")
+                .messages(&messages)
+                .mode(MonitorMode::MessageLog)
+                .size(300.0, 120.0)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+
+            ctx.ui.strong("Split mode (CC + Log):");
+            ctx.ui.add_space(8.0);
+
+            MidiMonitor::new()
+                .device_name("Demo Controller")
+                .cc_values(&cc_values)
+                .messages(&messages)
+                .mode(MonitorMode::Split)
+                .size(400.0, 150.0)
+                .show(ctx.ui);
         }
 
         "MidiMapper" => {
             ctx.ui.heading("MidiMapper");
-            ctx.ui.label("MIDI CC/note parameter mapping");
+            ctx.ui.label("MIDI CC/note parameter mapping with learn mode");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "MidiMapper::new(&params, &mappings)\n    .learn_state(&model.learn_state)\n    .show_with(ctx, |event| match event {\n        MidiMapperEvent::StartLearn(id) => Msg::StartLearn(id),\n        MidiMapperEvent::AssignMapping(m) => Msg::Assign(m),\n        _ => Msg::Noop,\n    });"
+            ).show(ctx.ui);
+
             ctx.ui.add_space(16.0);
-            ctx.ui.label("TODO: Implement MidiMapper demo");
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            // Create demo params
+            let params = vec![
+                MappableParam::new("volume", "Master Volume").with_group("Output").with_value(0.75),
+                MappableParam::new("pan", "Pan").with_group("Output").with_value(0.5),
+                MappableParam::new("cutoff", "Filter Cutoff").with_group("Filter").with_value(0.6),
+                MappableParam::new("resonance", "Resonance").with_group("Filter").with_value(0.3),
+            ];
+
+            // Demo mappings
+            let mappings = vec![
+                MidiMapping::new("volume", MidiMsgType::CC, 0, 7),
+                MidiMapping::new("cutoff", MidiMsgType::CC, 0, 74),
+            ];
+
+            MidiMapper::new(&params, &mappings)
+                .size(380.0, 200.0)
+                .show_values(true)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(8.0);
+            ctx.ui.label("Click 'Learn' to enter MIDI learn mode");
         }
 
         "PianoRoll" => {
             ctx.ui.heading("PianoRoll");
-            ctx.ui.label("MIDI note editor");
+            ctx.ui.label("MIDI note editor with keyboard, grid, and playhead");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "PianoRoll::new()\n    .notes(&model.notes)\n    .position(model.playhead)\n    .bars(4)\n    .show_with(ctx, |event| match event {\n        PianoRollEvent::NoteAdd(n, s, d) => Msg::AddNote(n, s, d),\n        PianoRollEvent::Seek(pos) => Msg::Seek(pos),\n        _ => Msg::Noop,\n    });"
+            ).show(ctx.ui);
+
             ctx.ui.add_space(16.0);
-            ctx.ui.label("TODO: Implement PianoRoll demo");
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            // Create demo notes if empty
+            let demo_notes: Vec<MidiNote> = if model.piano_notes.is_empty() {
+                vec![
+                    MidiNote::new(60, 0.0, 1.0).with_velocity(100),
+                    MidiNote::new(64, 1.0, 1.0).with_velocity(80),
+                    MidiNote::new(67, 2.0, 2.0).with_velocity(90),
+                    MidiNote::new(72, 4.0, 1.0).with_velocity(100),
+                    MidiNote::new(71, 5.0, 0.5).with_velocity(70),
+                    MidiNote::new(69, 5.5, 0.5).with_velocity(70),
+                    MidiNote::new(67, 6.0, 2.0).with_velocity(85),
+                ]
+            } else {
+                model.piano_notes.clone()
+            };
+
+            // Animate playhead
+            let time = ctx.ui.input(|i| i.time) as f32;
+            let position = (time * 0.5) % 8.0; // Loop over 8 beats
+
+            ctx.ui.strong("4 bars, editable:");
+            ctx.ui.add_space(8.0);
+
+            PianoRoll::new()
+                .notes(&demo_notes)
+                .position(position)
+                .bars(2)
+                .note_range(48, 84)
+                .selected(model.piano_selected)
+                .show_with(ctx, |event| match event {
+                    PianoRollEvent::NoteAdd(n, s, d) => Msg::PianoNoteAdd(n, s, d),
+                    PianoRollEvent::NoteMove(i, n, s) => Msg::PianoNoteMove(i, n, s),
+                    PianoRollEvent::NoteDelete(i) => Msg::PianoNoteDelete(i),
+                    PianoRollEvent::NoteSelect(i) => Msg::PianoNoteSelect(i),
+                    PianoRollEvent::Seek(pos) => Msg::PianoSeek(pos),
+                    _ => Msg::PianoSeek(0.0),
+                });
+
+            ctx.ui.add_space(8.0);
+            ctx.ui.label("• Double-click to add notes");
+            ctx.ui.label("• Drag to move notes");
+            ctx.ui.label("• Right-click to delete");
+            ctx.ui.label("• Click grid to seek");
         }
 
         _ => {
@@ -1855,37 +2147,249 @@ fn render_mixer_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
     match MIXER_ATOMS[model.active_component] {
         "ChannelStrip" => {
             ctx.ui.heading("ChannelStrip");
-            ctx.ui.label("Mixer channel strip with fader, pan, mute/solo");
+            ctx.ui.label("Mixer channel strip with fader, pan, mute/solo, and level meter");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "ChannelStrip::new(\"Drums\")\n    .volume(model.volume)\n    .pan(model.pan)\n    .level(model.peak)\n    .mute(model.muted)\n    .solo(model.soloed)\n    .show_with(ctx, |e| match e {\n        ChannelEvent::VolumeChange(v) => Msg::SetVol(v),\n        ChannelEvent::Mute => Msg::ToggleMute,\n        _ => Msg::Noop,\n    });"
+            ).show(ctx.ui);
+
             ctx.ui.add_space(16.0);
-            ctx.ui.label("TODO: Implement ChannelStrip demo");
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            // Animate levels
+            let time = ctx.ui.input(|i| i.time) as f32;
+            let levels = [
+                ((time * 2.0).sin() * 0.3 + 0.5).clamp(0.0, 1.0),
+                ((time * 1.5 + 1.0).sin() * 0.3 + 0.6).clamp(0.0, 1.0),
+                ((time * 1.8 + 2.0).sin() * 0.25 + 0.45).clamp(0.0, 1.0),
+                ((time * 2.2 + 3.0).sin() * 0.35 + 0.55).clamp(0.0, 1.0),
+            ];
+
+            ctx.ui.strong("4-Channel Mixer:");
+            ctx.ui.add_space(8.0);
+
+            ctx.horizontal(|ctx| {
+                let labels = ["Kick", "Snare", "Hi-Hat", "Bass"];
+                let colors = [
+                    egui::Color32::from_rgb(220, 80, 80),
+                    egui::Color32::from_rgb(80, 180, 220),
+                    egui::Color32::from_rgb(220, 180, 80),
+                    egui::Color32::from_rgb(120, 220, 120),
+                ];
+
+                for i in 0..4 {
+                    ChannelStrip::new(labels[i])
+                        .volume(model.channel_volumes[i])
+                        .pan(model.channel_pans[i])
+                        .level(levels[i])
+                        .mute(model.channel_mutes[i])
+                        .solo(model.channel_solos[i])
+                        .color(colors[i])
+                        .width(55.0)
+                        .compact(true)
+                        .show_with(ctx, |e| match e {
+                            ChannelEvent::VolumeChange(v) => Msg::ChannelVolume(i, v),
+                            ChannelEvent::PanChange(p) => Msg::ChannelPan(i, p),
+                            ChannelEvent::Mute => Msg::ChannelMute(i),
+                            ChannelEvent::Solo => Msg::ChannelSolo(i),
+                            _ => Msg::ButtonClicked,
+                        });
+
+                    ctx.ui.add_space(4.0);
+                }
+            });
         }
 
         "CrossFader" => {
             ctx.ui.heading("CrossFader");
-            ctx.ui.label("DJ-style crossfader");
+            ctx.ui.label("DJ-style A/B crossfader with curve options");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "CrossFader::new()\n    .value(model.mix)  // -1.0 to 1.0\n    .labels(\"Deck A\", \"Deck B\")\n    .curve(CrossfaderCurve::EqualPower)\n    .show_with(ctx, Msg::SetMix);"
+            ).show(ctx.ui);
+
             ctx.ui.add_space(16.0);
-            ctx.ui.label("TODO: Implement CrossFader demo");
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Linear curve:");
+            ctx.ui.add_space(8.0);
+
+            CrossFader::new()
+                .value(model.crossfader_value)
+                .labels("Deck A", "Deck B")
+                .curve(CrossfaderCurve::Linear)
+                .size(300.0, 40.0)
+                .show_with(ctx, Msg::CrossfaderChange);
+
+            ctx.ui.add_space(16.0);
+
+            ctx.ui.strong("Equal Power curve (constant loudness):");
+            ctx.ui.add_space(8.0);
+
+            CrossFader::new()
+                .value(model.crossfader_value)
+                .labels("Source A", "Source B")
+                .curve(CrossfaderCurve::EqualPower)
+                .color_a(egui::Color32::from_rgb(100, 180, 255))
+                .color_b(egui::Color32::from_rgb(255, 150, 100))
+                .size(300.0, 40.0)
+                .show_with(ctx, Msg::CrossfaderChange);
+
+            ctx.ui.add_space(16.0);
+
+            ctx.ui.strong("Fast Cut (scratch style):");
+            ctx.ui.add_space(8.0);
+
+            CrossFader::new()
+                .value(model.crossfader_value)
+                .curve(CrossfaderCurve::FastCut)
+                .size(300.0, 40.0)
+                .show_with(ctx, Msg::CrossfaderChange);
+
+            ctx.ui.add_space(8.0);
+            ctx.ui.label(format!("Position: {:.2}", model.crossfader_value));
         }
 
         "EffectRack" => {
             ctx.ui.heading("EffectRack");
-            ctx.ui.label("Effect chain management");
+            ctx.ui.label("Audio effect chain display and control");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "EffectRack::new(&model.effects)\n    .show_with(ctx, |e| match e {\n        RackEvent::Toggle(i) => Msg::ToggleEffect(i),\n        RackEvent::Reorder(from, to) => Msg::Reorder(from, to),\n        RackEvent::Select(i) => Msg::SelectEffect(i),\n        _ => Msg::Noop,\n    });"
+            ).show(ctx.ui);
+
             ctx.ui.add_space(16.0);
-            ctx.ui.label("TODO: Implement EffectRack demo");
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            // Create demo effects
+            let effects = vec![
+                Effect::new("Compressor", EffectCategory::Dynamics)
+                    .enabled(true)
+                    .with_param(EffectParam::new("Threshold", 0.6).with_range(-60.0, 0.0))
+                    .with_param(EffectParam::new("Ratio", 0.4).with_range(1.0, 20.0)),
+                Effect::new("EQ Eight", EffectCategory::EQ)
+                    .enabled(true),
+                Effect::new("Reverb", EffectCategory::Time)
+                    .enabled(false)
+                    .with_param(EffectParam::new("Size", 0.5))
+                    .with_param(EffectParam::new("Decay", 0.7)),
+            ];
+
+            EffectRack::new(&effects)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(8.0);
+            ctx.ui.label("• Click effect to select");
+            ctx.ui.label("• Toggle bypass with power button");
         }
 
         "EnvelopeEditor" => {
             ctx.ui.heading("EnvelopeEditor");
-            ctx.ui.label("ADSR envelope editor");
+            ctx.ui.label("ADSR envelope and custom curve editor");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "EnvelopeEditor::adsr()\n    .attack(0.1).decay(0.2)\n    .sustain(0.7).release(0.3)\n    .show_with(ctx, |e| match e {\n        EnvelopeEvent::AttackChange(v) => Msg::SetA(v),\n        EnvelopeEvent::SustainChange(v) => Msg::SetS(v),\n        _ => Msg::Noop,\n    });"
+            ).show(ctx.ui);
+
             ctx.ui.add_space(16.0);
-            ctx.ui.label("TODO: Implement EnvelopeEditor demo");
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("ADSR Envelope:");
+            ctx.ui.add_space(8.0);
+
+            EnvelopeEditor::adsr()
+                .attack(0.1)
+                .decay(0.2)
+                .sustain(0.7)
+                .release(0.4)
+                .size(280.0, 120.0)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+
+            ctx.ui.strong("Custom envelope:");
+            ctx.ui.add_space(8.0);
+
+            let custom_points = vec![
+                EnvelopePoint::new(0.0, 0.0),
+                EnvelopePoint::new(0.1, 1.0).with_curve(CurveType::Exponential),
+                EnvelopePoint::new(0.3, 0.6),
+                EnvelopePoint::new(0.6, 0.8).with_curve(CurveType::SCurve),
+                EnvelopePoint::new(1.0, 0.0),
+            ];
+
+            EnvelopeEditor::custom(&custom_points)
+                .size(280.0, 100.0)
+                .show(ctx.ui);
         }
 
         "AutomationLane" => {
             ctx.ui.heading("AutomationLane");
-            ctx.ui.label("Parameter automation curve editor");
+            ctx.ui.label("Parameter automation over time with playhead");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "AutomationLane::new(\"Filter Cutoff\")\n    .points(&model.automation)\n    .position(model.playhead)\n    .show_with(ctx, |e| match e {\n        AutomationEvent::PointMove(i, t, v) => Msg::Move(i, t, v),\n        AutomationEvent::Seek(pos) => Msg::Seek(pos),\n        _ => Msg::Noop,\n    });"
+            ).show(ctx.ui);
+
             ctx.ui.add_space(16.0);
-            ctx.ui.label("TODO: Implement AutomationLane demo");
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            // Animate playhead
+            let time = ctx.ui.input(|i| i.time) as f32;
+            let position = (time * 0.1) % 1.0;
+
+            let automation_points = vec![
+                AutomationPoint::new(0.0, 0.3),
+                AutomationPoint::new(0.25, 0.8).with_curve(AutomationCurve::Smooth),
+                AutomationPoint::new(0.5, 0.4),
+                AutomationPoint::new(0.75, 0.9).with_curve(AutomationCurve::Exponential),
+                AutomationPoint::new(1.0, 0.3),
+            ];
+
+            ctx.ui.strong("Filter Cutoff automation:");
+            ctx.ui.add_space(8.0);
+
+            AutomationLane::new("Filter Cutoff")
+                .points(&automation_points)
+                .position(position)
+                .range(20.0..=20000.0)
+                .height(80.0)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+
+            let volume_points = vec![
+                AutomationPoint::new(0.0, 0.7),
+                AutomationPoint::new(0.3, 0.7).with_curve(AutomationCurve::Step),
+                AutomationPoint::new(0.3, 0.0),
+                AutomationPoint::new(0.6, 0.0).with_curve(AutomationCurve::Step),
+                AutomationPoint::new(0.6, 0.9),
+                AutomationPoint::new(1.0, 0.9),
+            ];
+
+            ctx.ui.strong("Volume automation (stepped):");
+            ctx.ui.add_space(8.0);
+
+            AutomationLane::new("Volume")
+                .points(&volume_points)
+                .position(position)
+                .height(60.0)
+                .color(egui::Color32::from_rgb(100, 200, 100))
+                .show(ctx.ui);
+
+            ctx.ui.add_space(8.0);
+            ctx.ui.label("• Double-click to add points");
+            ctx.ui.label("• Drag points to edit");
         }
 
         _ => {
@@ -1898,72 +2402,444 @@ fn render_visual_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
     match VISUAL_ATOMS[model.active_component] {
         "ClipGrid" => {
             ctx.ui.heading("ClipGrid");
-            ctx.ui.label("Clip launcher grid (Ableton-style)");
+            ctx.ui.label("Ableton Live style clip launcher grid");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "ClipGrid::new(&clips, 4)\n    .current(model.playing_clip)\n    .queued(&model.queued)\n    .show_with(ctx, |idx| Msg::QueueClip(idx));"
+            ).show(ctx.ui);
+
             ctx.ui.add_space(16.0);
-            ctx.ui.label("TODO: Implement ClipGrid demo");
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            let clips = vec![
+                ClipCell::new("Intro").with_color(egui::Color32::from_rgb(120, 180, 255)),
+                ClipCell::new("Verse 1").with_color(egui::Color32::from_rgb(180, 255, 120)),
+                ClipCell::new("Chorus").with_color(egui::Color32::from_rgb(255, 180, 120)).with_state(ClipState::Playing),
+                ClipCell::new("Break").with_color(egui::Color32::from_rgb(255, 120, 180)),
+                ClipCell::new("Verse 2").with_color(egui::Color32::from_rgb(180, 255, 120)),
+                ClipCell::new("Chorus 2").with_color(egui::Color32::from_rgb(255, 180, 120)).with_state(ClipState::Queued),
+                ClipCell::new("Outro").with_color(egui::Color32::from_rgb(200, 200, 200)),
+                ClipCell::new("Alt End").with_color(egui::Color32::from_rgb(150, 150, 200)),
+            ];
+
+            ctx.ui.strong("4x2 Clip Grid:");
+            ctx.ui.add_space(8.0);
+
+            ClipGrid::new(&clips, 4)
+                .current(Some(2))
+                .queued(&[5])
+                .cell_size(80.0, 50.0)
+                .show_index(true)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(8.0);
+            ctx.ui.label("• Green border = Playing");
+            ctx.ui.label("• Pulsing = Queued");
         }
 
         "Timeline" => {
             ctx.ui.heading("Timeline");
-            ctx.ui.label("Timeline with playhead, markers, and regions");
+            ctx.ui.label("Seek bar with markers, regions, and time display");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "Timeline::new(120.0)  // 2 minutes\n    .position(model.position)\n    .markers(&model.markers)\n    .show_with(ctx, |e| match e {\n        TimelineEvent::Seek(p) => Msg::Seek(p),\n        _ => Msg::Noop,\n    });"
+            ).show(ctx.ui);
+
             ctx.ui.add_space(16.0);
-            ctx.ui.label("TODO: Implement Timeline demo");
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            // Animate position
+            let time = ctx.ui.input(|i| i.time);
+            let position = (time * 0.05) % 1.0;
+
+            let markers = vec![
+                TimelineMarker::new(0.0, "Start"),
+                TimelineMarker::new(0.25, "Verse").with_color(egui::Color32::from_rgb(100, 200, 100)),
+                TimelineMarker::new(0.5, "Chorus").with_color(egui::Color32::from_rgb(200, 100, 200)),
+                TimelineMarker::new(0.75, "Bridge").with_color(egui::Color32::from_rgb(200, 200, 100)),
+            ];
+
+            let regions = vec![
+                TimelineRegion::new(0.25, 0.5, egui::Color32::from_rgba_unmultiplied(100, 200, 100, 40)),
+                TimelineRegion::new(0.5, 0.75, egui::Color32::from_rgba_unmultiplied(200, 100, 200, 40)),
+            ];
+
+            ctx.ui.strong("Basic timeline (2 min duration):");
+            ctx.ui.add_space(8.0);
+
+            Timeline::new(120.0)
+                .position(position)
+                .markers(&markers)
+                .height(36.0)
+                .show_with(ctx, |e| match e {
+                    TimelineEvent::Seek(p) => Msg::TimelineSeek(p),
+                    _ => Msg::TimelineSeek(0.0),
+                });
+
+            ctx.ui.add_space(16.0);
+
+            ctx.ui.strong("With regions and loop:");
+            ctx.ui.add_space(8.0);
+
+            Timeline::new(120.0)
+                .position(position)
+                .markers(&markers)
+                .regions(&regions)
+                .loop_region(0.25, 0.75)
+                .height(36.0)
+                .show_with(ctx, |e| match e {
+                    TimelineEvent::Seek(p) => Msg::TimelineSeek(p),
+                    _ => Msg::TimelineSeek(0.0),
+                });
         }
 
         "Preview" => {
             ctx.ui.heading("Preview");
-            ctx.ui.label("Video preview with aspect ratio control");
+            ctx.ui.label("Video/image preview with overlays");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "Preview::new(texture_id)\n    .size(320.0, 180.0)\n    .timecode(\"00:01:23:15\")\n    .state(PreviewState::Playing)\n    .label(\"Clip A\")\n    .show_with(ctx, |e| match e {\n        PreviewEvent::Click => Msg::TogglePlay,\n        _ => Msg::Noop,\n    });"
+            ).show(ctx.ui);
+
             ctx.ui.add_space(16.0);
-            ctx.ui.label("TODO: Implement Preview demo");
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            // Simulate timecode
+            let time = ctx.ui.input(|i| i.time);
+            let frames = (time * 30.0) as u32;
+            let secs = (frames / 30) % 60;
+            let mins = (frames / 30 / 60) % 60;
+            let frame = frames % 30;
+            let timecode = format!("00:{:02}:{:02}:{:02}", mins, secs, frame);
+
+            ctx.horizontal(|ctx| {
+                ctx.ui.strong("Playing:");
+                ctx.ui.add_space(8.0);
+
+                Preview::empty()
+                    .size(200.0, 112.0)
+                    .aspect_ratio(AspectRatio::Widescreen)
+                    .timecode(&timecode)
+                    .state(PreviewState::Playing)
+                    .label("Main Output")
+                    .show(ctx.ui);
+
+                ctx.ui.add_space(16.0);
+
+                ctx.ui.strong("Paused:");
+                ctx.ui.add_space(8.0);
+
+                Preview::empty()
+                    .size(200.0, 112.0)
+                    .timecode("00:00:42:15")
+                    .state(PreviewState::Paused)
+                    .label("Preview")
+                    .show(ctx.ui);
+            });
+
+            ctx.ui.add_space(16.0);
+
+            ctx.horizontal(|ctx| {
+                ctx.ui.strong("Live:");
+                ctx.ui.add_space(8.0);
+
+                Preview::empty()
+                    .size(150.0, 150.0)
+                    .aspect_ratio(AspectRatio::Square)
+                    .state(PreviewState::Live)
+                    .label("Camera 1")
+                    .show(ctx.ui);
+
+                ctx.ui.add_space(16.0);
+
+                ctx.ui.strong("Loading:");
+                ctx.ui.add_space(8.0);
+
+                Preview::empty()
+                    .size(150.0, 150.0)
+                    .state(PreviewState::Loading)
+                    .label("Loading...")
+                    .show(ctx.ui);
+            });
         }
 
         "LayerStack" => {
             ctx.ui.heading("LayerStack");
-            ctx.ui.label("Layer management with blend modes");
+            ctx.ui.label("Layer management with blend modes and reordering");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "LayerStack::new(&layers)\n    .selected(model.selected)\n    .show_with(ctx, |e| match e {\n        LayerEvent::Select(i) => Msg::Select(i),\n        LayerEvent::SetOpacity(i, v) => Msg::SetOpacity(i, v),\n        LayerEvent::SetBlendMode(i, m) => Msg::SetBlend(i, m),\n        _ => Msg::Noop,\n    });"
+            ).show(ctx.ui);
+
             ctx.ui.add_space(16.0);
-            ctx.ui.label("TODO: Implement LayerStack demo");
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            let layers = vec![
+                Layer::new("Background").with_color(egui::Color32::from_rgb(100, 150, 200)),
+                Layer::new("Video 1").with_opacity(0.8).with_blend_mode(BlendMode::Normal)
+                    .with_color(egui::Color32::from_rgb(200, 150, 100)),
+                Layer::new("Overlay").with_opacity(0.6).with_blend_mode(BlendMode::Add)
+                    .with_color(egui::Color32::from_rgb(150, 200, 100)),
+                Layer::new("Text").with_blend_mode(BlendMode::Screen)
+                    .with_color(egui::Color32::from_rgb(200, 100, 150)),
+            ];
+
+            LayerStack::new(&layers)
+                .selected(Some(1))
+                .show(ctx.ui);
+
+            ctx.ui.add_space(8.0);
+            ctx.ui.label("• Drag to reorder layers");
+            ctx.ui.label("• Click eye icon to toggle visibility");
         }
 
         "ColorWheel" => {
             ctx.ui.heading("ColorWheel");
-            ctx.ui.label("HSV color picker");
+            ctx.ui.label("HSV color picker with hue ring and SV area");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "ColorWheel::new()\n    .show_alpha(true)\n    .show_with(ctx, model.color, Msg::SetColor);"
+            ).show(ctx.ui);
+
             ctx.ui.add_space(16.0);
-            ctx.ui.label("TODO: Implement ColorWheel demo");
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            let current_color = model.wheel_color.to_color32();
+
+            ctx.horizontal(|ctx| {
+                ctx.ui.strong("Triangle style:");
+                ctx.ui.add_space(8.0);
+
+                ColorWheel::new()
+                    .style(WheelStyle::Triangle)
+                    .size(160.0)
+                    .show_with(ctx, current_color, |c| Msg::ColorWheelChange(Hsva::from_color32(c)));
+
+                ctx.ui.add_space(24.0);
+
+                ctx.ui.strong("Square style:");
+                ctx.ui.add_space(8.0);
+
+                ColorWheel::new()
+                    .style(WheelStyle::Square)
+                    .size(160.0)
+                    .show_with(ctx, current_color, |c| Msg::ColorWheelChange(Hsva::from_color32(c)));
+            });
+
+            ctx.ui.add_space(16.0);
+
+            ctx.ui.label(format!(
+                "HSV: ({:.0}°, {:.0}%, {:.0}%)  RGB: #{:02X}{:02X}{:02X}",
+                model.wheel_color.h * 360.0,
+                model.wheel_color.s * 100.0,
+                model.wheel_color.v * 100.0,
+                current_color.r(), current_color.g(), current_color.b()
+            ));
         }
 
         "GradientEditor" => {
             ctx.ui.heading("GradientEditor");
-            ctx.ui.label("Gradient stop editing");
+            ctx.ui.label("Color gradient stop editor");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "GradientEditor::new(&gradient)\n    .show_with(ctx, |e| match e {\n        GradientEvent::StopMove(i, pos) => Msg::MoveStop(i, pos),\n        GradientEvent::StopColorChange(i, c) => Msg::SetStopColor(i, c),\n        GradientEvent::StopAdd(pos, c) => Msg::AddStop(pos, c),\n        _ => Msg::Noop,\n    });"
+            ).show(ctx.ui);
+
             ctx.ui.add_space(16.0);
-            ctx.ui.label("TODO: Implement GradientEditor demo");
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            let gradient = Gradient::from_stops(vec![
+                GradientStop::new(0.0, egui::Color32::from_rgb(255, 100, 100)),
+                GradientStop::new(0.5, egui::Color32::from_rgb(100, 255, 100)),
+                GradientStop::new(1.0, egui::Color32::from_rgb(100, 100, 255)),
+            ]);
+
+            ctx.ui.strong("Horizontal gradient:");
+            ctx.ui.add_space(8.0);
+
+            GradientEditor::new(&gradient)
+                .direction(GradientDirection::Horizontal)
+                .width(300.0)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+
+            let gradient2 = Gradient::from_stops(vec![
+                GradientStop::new(0.0, egui::Color32::from_rgb(50, 50, 80)),
+                GradientStop::new(0.3, egui::Color32::from_rgb(100, 50, 150)),
+                GradientStop::new(0.7, egui::Color32::from_rgb(200, 100, 50)),
+                GradientStop::new(1.0, egui::Color32::from_rgb(255, 200, 100)),
+            ]);
+
+            ctx.ui.strong("Sunset gradient:");
+            ctx.ui.add_space(8.0);
+
+            GradientEditor::new(&gradient2)
+                .width(300.0)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(8.0);
+            ctx.ui.label("• Drag stops to reposition");
+            ctx.ui.label("• Double-click to add stops");
         }
 
         "MaskEditor" => {
             ctx.ui.heading("MaskEditor");
-            ctx.ui.label("Mask shape editing");
+            ctx.ui.label("Mask shape editing with points and curves");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "MaskEditor::new(&mask)\n    .show_with(ctx, |e| match e {\n        MaskEvent::PointMove(i, p) => Msg::MoveMaskPoint(i, p),\n        MaskEvent::PointAdd(i, p) => Msg::AddMaskPoint(i, p),\n        _ => Msg::Noop,\n    });"
+            ).show(ctx.ui);
+
             ctx.ui.add_space(16.0);
-            ctx.ui.label("TODO: Implement MaskEditor demo");
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            // Diamond-ish mask
+            let mask = Mask::polygon(vec![
+                MaskPoint::new(0.5, 0.1),
+                MaskPoint::new(0.9, 0.5),
+                MaskPoint::new(0.5, 0.9),
+                MaskPoint::new(0.1, 0.5),
+            ]);
+
+            ctx.ui.strong("Polygon mask:");
+            ctx.ui.add_space(8.0);
+
+            MaskEditor::new(&mask)
+                .size(200.0, 200.0)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(8.0);
+            ctx.ui.label("• Drag points to reshape");
+            ctx.ui.label("• Click edge to add points");
         }
 
         "TransformGizmo" => {
             ctx.ui.heading("TransformGizmo");
-            ctx.ui.label("2D transform handles");
+            ctx.ui.label("2D transform manipulation handles");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "TransformGizmo::new()\n    .transform(model.transform)\n    .mode(TransformMode::Scale)\n    .show_with(ctx, |e| match e {\n        TransformEvent::Move(dx, dy) => Msg::Move(dx, dy),\n        TransformEvent::Scale(sx, sy) => Msg::Scale(sx, sy),\n        TransformEvent::Rotate(angle) => Msg::Rotate(angle),\n    });"
+            ).show(ctx.ui);
+
             ctx.ui.add_space(16.0);
-            ctx.ui.label("TODO: Implement TransformGizmo demo");
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            let transform = Transform2D::new()
+                .with_position(egui::vec2(100.0, 75.0))
+                .with_scale(egui::vec2(160.0, 90.0));
+
+            ctx.ui.strong("All transforms mode:");
+            ctx.ui.add_space(8.0);
+
+            TransformGizmo::new()
+                .size(300.0, 200.0)
+                .mode(TransformMode::All)
+                .show(ctx.ui, &transform);
+
+            ctx.ui.add_space(8.0);
+            ctx.ui.label("• Drag center to move");
+            ctx.ui.label("• Drag corners to scale");
+            ctx.ui.label("• Drag outside to rotate");
         }
 
         "MediaBrowser" => {
             ctx.ui.heading("MediaBrowser");
-            ctx.ui.label("Thumbnail grid media selection");
+            ctx.ui.label("Thumbnail grid for media selection");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "MediaBrowser::new(&items)\n    .selected(model.selected_media)\n    .view_mode(BrowserViewMode::Grid)\n    .show_with(ctx, |e| match e {\n        MediaBrowserEvent::Select(i) => Msg::SelectMedia(i),\n        MediaBrowserEvent::DoubleClick(i) => Msg::LoadMedia(i),\n        _ => Msg::Noop,\n    });"
+            ).show(ctx.ui);
+
             ctx.ui.add_space(16.0);
-            ctx.ui.label("TODO: Implement MediaBrowser demo");
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            let items = vec![
+                MediaItem::new("1", "clip_001.mov").with_type(MediaType::Video),
+                MediaItem::new("2", "background.jpg").with_type(MediaType::Image),
+                MediaItem::new("3", "overlay.png").with_type(MediaType::Image),
+                MediaItem::new("4", "loop_beat.wav").with_type(MediaType::Audio),
+                MediaItem::new("5", "intro.mov").with_type(MediaType::Video),
+                MediaItem::new("6", "outro.mov").with_type(MediaType::Video),
+            ];
+
+            ctx.ui.strong("Grid view:");
+            ctx.ui.add_space(8.0);
+
+            MediaBrowser::new(&items)
+                .selected(Some("1"))
+                .view_mode(BrowserViewMode::Grid)
+                .size(350.0, 150.0)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+
+            ctx.ui.strong("List view:");
+            ctx.ui.add_space(8.0);
+
+            MediaBrowser::new(&items)
+                .selected(Some("2"))
+                .view_mode(BrowserViewMode::List)
+                .size(350.0, 120.0)
+                .show(ctx.ui);
         }
 
         "OutputRouter" => {
             ctx.ui.heading("OutputRouter");
             ctx.ui.label("Multi-output routing matrix");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "OutputRouter::new(&sources, &outputs)\n    .connections(&model.routes)\n    .show_with(ctx, |e| match e {\n        RouterEvent::Connect(src, out) => Msg::Connect(src, out),\n        RouterEvent::Disconnect(src, out) => Msg::Disconnect(src, out),\n        _ => Msg::Noop,\n    });"
+            ).show(ctx.ui);
+
             ctx.ui.add_space(16.0);
-            ctx.ui.label("TODO: Implement OutputRouter demo");
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            let sources = vec![
+                RouteSource::new("main", "Main Mix").with_type(SourceType::Main),
+                RouteSource::new("cam1", "Camera 1").with_type(SourceType::Aux),
+                RouteSource::new("gfx", "Graphics").with_type(SourceType::Layer),
+            ];
+
+            let outputs = vec![
+                RouteOutput::new("proj1", "Projector 1").with_type(OutputType::Display),
+                RouteOutput::new("led", "LED Wall").with_type(OutputType::Display),
+                RouteOutput::new("stream", "Stream").with_type(OutputType::Stream),
+                RouteOutput::new("record", "Record").with_type(OutputType::Record),
+            ];
+
+            let connections = vec![
+                RouteConnection::new("main", "proj1"),  // Main Mix -> Projector 1
+                RouteConnection::new("main", "stream"), // Main Mix -> Stream
+                RouteConnection::new("cam1", "led"),    // Camera 1 -> LED Wall
+            ];
+
+            OutputRouter::new(&sources, &outputs, &connections)
+                .size(380.0, 180.0)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(8.0);
+            ctx.ui.label("• Click intersections to toggle routing");
         }
 
         _ => {
