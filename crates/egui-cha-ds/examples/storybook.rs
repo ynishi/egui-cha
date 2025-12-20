@@ -2602,9 +2602,11 @@ fn render_molecule(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
         "Table" => {
             ctx.ui.heading("Table");
-            ctx.ui.label("Data table component");
-            ctx.ui.add_space(8.0);
+            ctx.ui.label("Data table components (simple Table + typed DataTable)");
+            ctx.ui.add_space(16.0);
 
+            // Simple Table
+            ctx.ui.label("Simple Table:");
             let rows: Vec<Vec<String>> = model.table_data
                 .iter()
                 .map(|(name, age, active)| vec![
@@ -2617,6 +2619,59 @@ fn render_molecule(model: &Model, ctx: &mut ViewCtx<Msg>) {
             Table::new(&["Name", "Age", "Active"])
                 .rows(rows)
                 .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+
+            // DataTable with egui_extras
+            ctx.ui.label("DataTable (egui_extras - resizable columns):");
+            DataTable::new(&model.table_data)
+                .column("Name", |(name, _, _)| name.clone())
+                .column("Age", |(_, age, _)| age.to_string())
+                .column("Status", |(_, _, active)| {
+                    if *active { "Active".to_string() } else { "Inactive".to_string() }
+                })
+                .striped(true)
+                .resizable(true)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+
+            // Strip layout demo
+            ctx.ui.label("Strip layout (horizontal):");
+            Strip::horizontal()
+                .exact(80.0)
+                .remainder()
+                .exact(60.0)
+                .show(ctx.ui, |i, ui| {
+                    match i {
+                        0 => { ui.label("Fixed 80px"); }
+                        1 => { ui.label("Remainder (flex)"); }
+                        2 => { ui.label("Fixed 60px"); }
+                        _ => {}
+                    }
+                });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.label("Usage:");
+            Code::new(r#"// Simple table
+Table::new(&["Col1", "Col2"])
+    .rows(vec![vec!["a", "b"]])
+    .show(ui);
+
+// Typed DataTable (egui_extras)
+DataTable::new(&items)
+    .column("Name", |item| item.name.clone())
+    .resizable(true)
+    .show(ui);
+
+// Strip layout
+Strip::horizontal()
+    .exact(100.0)
+    .remainder()
+    .show(ui, |i, ui| { ... });"#).show(ctx.ui);
         }
 
         "Navbar" => {
