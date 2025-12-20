@@ -310,6 +310,7 @@ const ATOMS: &[&str] = &[
     "ArcSlider",
     "Oscilloscope",
     "ButtonGroup",
+    "BpmDisplay",
     "Link",
     "Code",
     "Text",
@@ -1605,6 +1606,94 @@ fn render_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.label("• Horizontal/Vertical orientation");
             ctx.ui.label("• Size variants (compact/medium/large)");
             ctx.ui.label("• Rounded outer corners only");
+        }
+
+        "BpmDisplay" => {
+            ctx.ui.heading("BpmDisplay");
+            ctx.ui.label("Large numeric display for BPM/tempo (tap to interact)");
+            ctx.ui.add_space(16.0);
+
+            // Animated BPM for demo
+            let time = ctx.ui.input(|i| i.time);
+            let bpm = 120.0 + (time * 0.5).sin() * 8.0;
+
+            ctx.horizontal(|ctx| {
+                // Modern style
+                ctx.vertical(|ctx| {
+                    ctx.ui.label("Modern:");
+                    BpmDisplay::new()
+                        .label("BPM")
+                        .show(ctx.ui, bpm);
+                });
+
+                ctx.ui.add_space(24.0);
+
+                // Segment style (LED)
+                ctx.vertical(|ctx| {
+                    ctx.ui.label("Segment (LED):");
+                    BpmDisplay::new()
+                        .label("TEMPO")
+                        .segment()
+                        .show(ctx.ui, bpm);
+                });
+
+                ctx.ui.add_space(24.0);
+
+                // Minimal
+                ctx.vertical(|ctx| {
+                    ctx.ui.label("Minimal:");
+                    BpmDisplay::new()
+                        .minimal()
+                        .large()
+                        .decimals(0)
+                        .show(ctx.ui, bpm);
+                });
+            });
+
+            ctx.ui.add_space(12.0);
+
+            ctx.horizontal(|ctx| {
+                // Compact
+                ctx.vertical(|ctx| {
+                    ctx.ui.label("Compact:");
+                    BpmDisplay::new()
+                        .compact()
+                        .decimals(0)
+                        .show(ctx.ui, 128.0);
+                });
+
+                ctx.ui.add_space(24.0);
+
+                // Blinking (sync indicator)
+                ctx.vertical(|ctx| {
+                    ctx.ui.label("Blinking:");
+                    BpmDisplay::new()
+                        .segment()
+                        .blinking(true)
+                        .decimals(0)
+                        .show(ctx.ui, 140.0);
+                });
+            });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.label("Usage:");
+            Code::new(r#"BpmDisplay::new()
+    .label("BPM")
+    .segment()
+    .show_with(ctx, model.bpm, || Msg::TapTempo);"#).show(ctx.ui);
+
+            ctx.ui.add_space(8.0);
+            ctx.ui.label("Features:");
+            ctx.ui.label("• Modern / Segment / Minimal styles");
+            ctx.ui.label("• Size variants");
+            ctx.ui.label("• Blinking effect for sync");
+            ctx.ui.label("• Click for tap tempo");
+
+            // Request repaint for animation
+            ctx.ui.ctx().request_repaint();
         }
 
         "Link" => {
