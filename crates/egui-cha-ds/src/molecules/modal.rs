@@ -2,7 +2,7 @@
 
 use egui::{Align2, Area, Color32, Frame, Id, Order, RichText, Ui, Vec2};
 
-use crate::Theme;
+use crate::{icons, Theme};
 
 /// A modal dialog component
 pub struct Modal<'a> {
@@ -81,7 +81,7 @@ impl<'a> Modal<'a> {
 
         Area::new(Id::new("modal_content"))
             .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
-            .order(Order::Foreground)
+            .order(Order::Tooltip)
             .show(ui.ctx(), |ui| {
                 Frame::new()
                     .fill(bg_color)
@@ -101,8 +101,13 @@ impl<'a> Modal<'a> {
                                 ui.with_layout(
                                     egui::Layout::right_to_left(egui::Align::Center),
                                     |ui| {
-                                        if self.closable && ui.button("✕").clicked() {
-                                            close_requested = true;
+                                        if self.closable {
+                                            let close_btn = RichText::new(icons::X)
+                                                .family(egui::FontFamily::Name("icons".into()))
+                                                .size(16.0);
+                                            if ui.button(close_btn).clicked() {
+                                                close_requested = true;
+                                            }
                                         }
                                     },
                                 );

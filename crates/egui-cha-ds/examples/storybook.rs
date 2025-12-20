@@ -775,10 +775,7 @@ impl App for StorybookApp {
                         .show(ctx.ui, true, |ui| {
                             ui.label("This is a modal dialog.");
                             ui.label("You can put any content here.");
-                            ui.add_space(16.0);
-                            if ui.button("Close").clicked() {
-                                // handled by close_requested
-                            }
+                            ui.label("Click the X button or backdrop to close.");
                         });
                     if close {
                         ctx.emit(Msg::CloseModal);
