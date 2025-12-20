@@ -68,7 +68,7 @@ struct LayoutBody {
     children: Vec<LayoutNode>,
 }
 
-/// Layout node - container, icon shorthand, or expression
+/// Layout node - container, icon shorthand, control flow, or expression
 enum LayoutNode {
     Col(LayoutContainer),
     Row(LayoutContainer),
@@ -76,6 +76,12 @@ enum LayoutNode {
     Scroll(ScrollContainer),
     Card(CardContainer),
     Icon(IconNode),
+    // Control flow
+    If(IfNode),
+    IfElse(IfElseNode),
+    For(ForNode),
+    Enabled(ConditionContainer),
+    Visible(ConditionContainer),
     Expr(Expr),
 }
 
@@ -117,6 +123,32 @@ struct LayoutProp {
 struct IconNode {
     name: Ident,
     size: Option<Expr>,
+}
+
+/// If node: If(condition) { ... }
+struct IfNode {
+    condition: Expr,
+    children: Vec<LayoutNode>,
+}
+
+/// IfElse node: IfElse(condition) { ... } Else { ... }
+struct IfElseNode {
+    condition: Expr,
+    if_children: Vec<LayoutNode>,
+    else_children: Vec<LayoutNode>,
+}
+
+/// For node: For(item in iter) { ... }
+struct ForNode {
+    pattern: syn::Pat,
+    iter: Expr,
+    children: Vec<LayoutNode>,
+}
+
+/// Condition container for Enabled/Visible: Enabled(condition) { ... }
+struct ConditionContainer {
+    condition: Expr,
+    children: Vec<LayoutNode>,
 }
 
 // ============================================================
@@ -209,6 +241,50 @@ impl LayoutNode {
                     return Ok(LayoutNode::Card(CardContainer {
                         title,
                         props,
+                        children,
+                    }));
+                }
+                // Control flow: If(condition) { ... }
+                "If" => {
+                    let _: Ident = input.parse()?;
+                    let (condition, children) = parse_condition_block(input)?;
+                    return Ok(LayoutNode::If(IfNode { condition, children }));
+                }
+                // Control flow: IfElse(condition) { ... } Else { ... }
+                "IfElse" => {
+                    let _: Ident = input.parse()?;
+                    let (condition, if_children, else_children) = parse_if_else(input)?;
+                    return Ok(LayoutNode::IfElse(IfElseNode {
+                        condition,
+                        if_children,
+                        else_children,
+                    }));
+                }
+                // Control flow: For(pattern in iter) { ... }
+                "For" => {
+                    let _: Ident = input.parse()?;
+                    let (pattern, iter, children) = parse_for(input)?;
+                    return Ok(LayoutNode::For(ForNode {
+                        pattern,
+                        iter,
+                        children,
+                    }));
+                }
+                // Control flow: Enabled(condition) { ... }
+                "Enabled" => {
+                    let _: Ident = input.parse()?;
+                    let (condition, children) = parse_condition_block(input)?;
+                    return Ok(LayoutNode::Enabled(ConditionContainer {
+                        condition,
+                        children,
+                    }));
+                }
+                // Control flow: Visible(condition) { ... }
+                "Visible" => {
+                    let _: Ident = input.parse()?;
+                    let (condition, children) = parse_condition_block(input)?;
+                    return Ok(LayoutNode::Visible(ConditionContainer {
+                        condition,
                         children,
                     }));
                 }
@@ -313,6 +389,91 @@ fn parse_card(input: ParseStream) -> Result<(Option<Expr>, Vec<LayoutProp>, Vec<
     Ok((title, props, children))
 }
 
+/// Parse condition block: (condition) { ... }
+fn parse_condition_block(input: ParseStream) -> Result<(Expr, Vec<LayoutNode>)> {
+    // Parse condition in parentheses
+    let content;
+    parenthesized!(content in input);
+    let condition: Expr = content.parse()?;
+
+    // Parse children in braces
+    let mut children = Vec::new();
+    if input.peek(syn::token::Brace) {
+        let content;
+        braced!(content in input);
+        while !content.is_empty() {
+            children.push(LayoutNode::parse(&content)?);
+        }
+    }
+
+    Ok((condition, children))
+}
+
+/// Parse IfElse: (condition) { ... } Else { ... }
+fn parse_if_else(input: ParseStream) -> Result<(Expr, Vec<LayoutNode>, Vec<LayoutNode>)> {
+    // Parse condition in parentheses
+    let content;
+    parenthesized!(content in input);
+    let condition: Expr = content.parse()?;
+
+    // Parse if-children in braces
+    let mut if_children = Vec::new();
+    if input.peek(syn::token::Brace) {
+        let content;
+        braced!(content in input);
+        while !content.is_empty() {
+            if_children.push(LayoutNode::parse(&content)?);
+        }
+    }
+
+    // Parse Else keyword and else-children
+    let mut else_children = Vec::new();
+    if input.peek(Ident) {
+        let fork = input.fork();
+        let ident: Ident = fork.parse()?;
+        if ident == "Else" {
+            let _: Ident = input.parse()?; // consume "Else"
+            if input.peek(syn::token::Brace) {
+                let content;
+                braced!(content in input);
+                while !content.is_empty() {
+                    else_children.push(LayoutNode::parse(&content)?);
+                }
+            }
+        }
+    }
+
+    Ok((condition, if_children, else_children))
+}
+
+/// Parse For: (pattern in iter) { ... }
+fn parse_for(input: ParseStream) -> Result<(syn::Pat, Expr, Vec<LayoutNode>)> {
+    // Parse (pattern in iter)
+    let content;
+    parenthesized!(content in input);
+
+    // Parse pattern (e.g., `item`, `(key, value)`)
+    let pattern = syn::Pat::parse_single(&content)?;
+
+    // Parse `in` keyword
+    content.parse::<Token![in]>()?;
+
+    // Parse iterator expression
+    let iter: Expr = content.parse()?;
+
+    // Parse children in braces
+    let mut children = Vec::new();
+    if input.peek(syn::token::Brace) {
+        let content;
+        braced!(content in input);
+        while !content.is_empty() {
+            children.push(LayoutNode::parse(&content)?);
+        }
+    }
+
+    Ok((pattern, iter, children))
+}
+
 // ============================================================
 // Code Generation
 // ============================================================
@@ -404,6 +565,65 @@ impl LayoutNode {
                     quote! {
                         ::egui_cha_ds::Icon::#name().show_ctx(#ctx);
                     }
+                }
+            }
+            // Control flow: If(condition) { ... } -> ctx.show_if(condition, |ctx| { ... })
+            LayoutNode::If(if_node) => {
+                let condition = &if_node.condition;
+                let children = if_node.children.iter().map(|c| c.to_tokens(ctx));
+
+                quote! {
+                    #ctx.show_if(#condition, |#ctx| {
+                        #(#children)*
+                    });
+                }
+            }
+            // Control flow: IfElse(condition) { ... } Else { ... }
+            LayoutNode::IfElse(if_else) => {
+                let condition = &if_else.condition;
+                let if_children = if_else.if_children.iter().map(|c| c.to_tokens(ctx));
+                let else_children = if_else.else_children.iter().map(|c| c.to_tokens(ctx));
+
+                quote! {
+                    #ctx.show_if_else(
+                        #condition,
+                        |#ctx| { #(#if_children)* },
+                        |#ctx| { #(#else_children)* }
+                    );
+                }
+            }
+            // Control flow: For(pattern in iter) { ... } -> for pattern in iter { ... }
+            LayoutNode::For(for_node) => {
+                let pattern = &for_node.pattern;
+                let iter = &for_node.iter;
+                let children = for_node.children.iter().map(|c| c.to_tokens(ctx));
+
+                quote! {
+                    for #pattern in #iter {
+                        #(#children)*
+                    }
+                }
+            }
+            // Control flow: Enabled(condition) { ... } -> ctx.enabled_if(condition, |ctx| { ... })
+            LayoutNode::Enabled(container) => {
+                let condition = &container.condition;
+                let children = container.children.iter().map(|c| c.to_tokens(ctx));
+
+                quote! {
+                    #ctx.enabled_if(#condition, |#ctx| {
+                        #(#children)*
+                    });
+                }
+            }
+            // Control flow: Visible(condition) { ... } -> ctx.visible_if(condition, |ctx| { ... })
+            LayoutNode::Visible(container) => {
+                let condition = &container.condition;
+                let children = container.children.iter().map(|c| c.to_tokens(ctx));
+
+                quote! {
+                    #ctx.visible_if(#condition, |#ctx| {
+                        #(#children)*
+                    });
                 }
             }
             LayoutNode::Expr(expr) => {
@@ -657,5 +877,112 @@ mod tests {
         assert!(code.contains("Card"));
         assert!(code.contains("titled"));
         assert!(code.contains("padding"));
+    }
+
+    #[test]
+    fn test_parse_if() {
+        let input: TokenStream2 = quote! {
+            ctx, {
+                If(model.is_admin) {
+                    ctx.ui.label("Admin")
+                }
+            }
+        };
+        let parsed: ChaInput = syn::parse2(input).unwrap();
+        let tokens = parsed.to_tokens();
+        let code = tokens.to_string();
+        assert!(code.contains("show_if"));
+        assert!(code.contains("is_admin"));
+    }
+
+    #[test]
+    fn test_parse_if_else() {
+        let input: TokenStream2 = quote! {
+            ctx, {
+                IfElse(model.loading) {
+                    ctx.ui.spinner()
+                } Else {
+                    ctx.ui.label("Loaded")
+                }
+            }
+        };
+        let parsed: ChaInput = syn::parse2(input).unwrap();
+        let tokens = parsed.to_tokens();
+        let code = tokens.to_string();
+        assert!(code.contains("show_if_else"));
+        assert!(code.contains("loading"));
+    }
+
+    #[test]
+    fn test_parse_for() {
+        let input: TokenStream2 = quote! {
+            ctx, {
+                For(item in &model.items) {
+                    ctx.ui.label(&item.name)
+                }
+            }
+        };
+        let parsed: ChaInput = syn::parse2(input).unwrap();
+        let tokens = parsed.to_tokens();
+        let code = tokens.to_string();
+        assert!(code.contains("for"));
+        assert!(code.contains("item"));
+        assert!(code.contains("items"));
+    }
+
+    #[test]
+    fn test_parse_enabled() {
+        let input: TokenStream2 = quote! {
+            ctx, {
+                Enabled(model.can_submit) {
+                    ctx.ui.button("Submit")
+                }
+            }
+        };
+        let parsed: ChaInput = syn::parse2(input).unwrap();
+        let tokens = parsed.to_tokens();
+        let code = tokens.to_string();
+        assert!(code.contains("enabled_if"));
+        assert!(code.contains("can_submit"));
+    }
+
+    #[test]
+    fn test_parse_visible() {
+        let input: TokenStream2 = quote! {
+            ctx, {
+                Visible(model.show_details) {
+                    ctx.ui.label("Details")
+                }
+            }
+        };
+        let parsed: ChaInput = syn::parse2(input).unwrap();
+        let tokens = parsed.to_tokens();
+        let code = tokens.to_string();
+        assert!(code.contains("visible_if"));
+        assert!(code.contains("show_details"));
+    }
+
+    #[test]
+    fn test_parse_nested_control_flow() {
+        let input: TokenStream2 = quote! {
+            ctx, {
+                Col {
+                    If(model.show_list) {
+                        For(item in &model.items) {
+                            Card(&item.title) {
+                                ctx.ui.label(&item.content)
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        let parsed: ChaInput = syn::parse2(input).unwrap();
+        let tokens = parsed.to_tokens();
+        let code = tokens.to_string();
+        assert!(code.contains("vertical"));
+        assert!(code.contains("show_if"));
+        assert!(code.contains("for"));
+        assert!(code.contains("Card"));
     }
 }
