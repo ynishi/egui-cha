@@ -6,6 +6,11 @@ use egui_cha::prelude::*;
 use egui_cha_ds::prelude::*;
 #[cfg(feature = "dock")]
 use egui_cha_ds::{dock_layout, DockArea, DockEvent, DockTree};
+#[cfg(feature = "snarl")]
+use egui_cha_ds::{
+    NodeGraph, NodeGraphArea, NodeGraphEvent,
+    NodeId, InPin, OutPin, PinInfo, Snarl, SnarlViewer,
+};
 use egui_cha_ds::{ConfirmResult, ToastContainer, ToastId};
 use std::cell::RefCell;
 use std::time::Duration;
@@ -168,6 +173,21 @@ struct Model {
 
     // Color wheel demo
     wheel_color: Hsva,
+
+    // NodeGraph demo (RefCell for interior mutability in view)
+    #[cfg(feature = "snarl")]
+    node_graph: RefCell<NodeGraph<DemoNode>>,
+    #[cfg(feature = "snarl")]
+    node_graph_last_event: Option<String>,
+}
+
+/// Demo node type for NodeGraph showcase
+#[cfg(feature = "snarl")]
+#[derive(Clone, Debug)]
+enum DemoNode {
+    Source { name: String },
+    Effect { intensity: f32 },
+    Output,
 }
 
 /// Demo action for dynamic bindings showcase
@@ -187,6 +207,76 @@ enum DemoPane {
     Editor,
     Console,
     Inspector,
+}
+
+/// Demo viewer for NodeGraph showcase
+#[cfg(feature = "snarl")]
+#[derive(Default)]
+struct DemoNodeViewer;
+
+#[cfg(feature = "snarl")]
+#[allow(refining_impl_trait)]
+impl SnarlViewer<DemoNode> for DemoNodeViewer {
+    fn title(&mut self, node: &DemoNode) -> String {
+        match node {
+            DemoNode::Source { name } => format!("Source: {}", name),
+            DemoNode::Effect { .. } => "Effect".into(),
+            DemoNode::Output => "Output".into(),
+        }
+    }
+
+    fn inputs(&mut self, node: &DemoNode) -> usize {
+        match node {
+            DemoNode::Source { .. } => 0,
+            DemoNode::Effect { .. } => 1,
+            DemoNode::Output => 1,
+        }
+    }
+
+    fn outputs(&mut self, node: &DemoNode) -> usize {
+        match node {
+            DemoNode::Source { .. } => 1,
+            DemoNode::Effect { .. } => 1,
+            DemoNode::Output => 0,
+        }
+    }
+
+    fn show_input(
+        &mut self,
+        pin: &InPin,
+        ui: &mut egui::Ui,
+        _snarl: &mut Snarl<DemoNode>,
+    ) -> PinInfo {
+        ui.label(format!("In {}", pin.id.input));
+        PinInfo::circle().with_fill(egui::Color32::from_rgb(100, 200, 100))
+    }
+
+    fn show_output(
+        &mut self,
+        pin: &OutPin,
+        ui: &mut egui::Ui,
+        _snarl: &mut Snarl<DemoNode>,
+    ) -> PinInfo {
+        ui.label(format!("Out {}", pin.id.output));
+        PinInfo::circle().with_fill(egui::Color32::from_rgb(200, 100, 100))
+    }
+
+    fn has_body(&mut self, node: &DemoNode) -> bool {
+        matches!(node, DemoNode::Effect { .. })
+    }
+
+    fn show_body(
+        &mut self,
+        node: NodeId,
+        _inputs: &[InPin],
+        _outputs: &[OutPin],
+        ui: &mut egui::Ui,
+        snarl: &mut Snarl<DemoNode>,
+    ) {
+        if let Some(DemoNode::Effect { intensity }) = snarl.get_node_mut(node) {
+            ui.add(egui::Slider::new(intensity, 0.0..=1.0).text("Intensity"));
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -338,6 +428,10 @@ enum Msg {
     // Dock
     DockEvent(DockEvent<DemoPane>),
 
+    // NodeGraph
+    #[cfg(feature = "snarl")]
+    NodeGraphEvent(NodeGraphEvent<DemoNode>),
+
     // === VJ/DAW Demo Messages ===
 
     // MIDI Keyboard
@@ -472,6 +566,7 @@ const MOLECULES: &[&str] = &[
     "Columns",
     "Conditionals",
     "Dock",
+    "NodeGraph",
 ];
 
 const FRAMEWORK: &[&str] = &[
@@ -567,6 +662,23 @@ impl App for StorybookApp {
                     0.2,
                     0.2,
                 )),
+                #[cfg(feature = "snarl")]
+                node_graph: RefCell::new({
+                    let mut graph = NodeGraph::new();
+                    let source = graph.insert(egui::pos2(50.0, 100.0), DemoNode::Source { name: "Audio".into() });
+                    let effect = graph.insert(egui::pos2(250.0, 100.0), DemoNode::Effect { intensity: 0.5 });
+                    let output = graph.insert(egui::pos2(450.0, 100.0), DemoNode::Output);
+                    // Connect source -> effect -> output
+                    graph.connect(
+                        egui_cha_ds::OutPinId { node: source, output: 0 },
+                        egui_cha_ds::InPinId { node: effect, input: 0 },
+                    );
+                    graph.connect(
+                        egui_cha_ds::OutPinId { node: effect, output: 0 },
+                        egui_cha_ds::InPinId { node: output, input: 0 },
+                    );
+                    graph
+                }),
                 ..Default::default()
             },
             Cmd::none(),
@@ -966,6 +1078,11 @@ impl App for StorybookApp {
                         // Focus changed
                     }
                 }
+            }
+
+            #[cfg(feature = "snarl")]
+            Msg::NodeGraphEvent(event) => {
+                model.node_graph_last_event = Some(format!("{:?}", event));
             }
 
             // === VJ/DAW Demo Messages ===
@@ -3755,6 +3872,78 @@ dock_layout::top_bottom(top, bottom, 0.7);
 dock_layout::three_column(l, c, r, 0.2, 0.2);
 dock_layout::daw(browser, main, inspector, timeline);
 dock_layout::vscode(sidebar, editors, terminals);"#).show(ctx.ui);
+        }
+
+        #[cfg(feature = "snarl")]
+        "NodeGraph" => {
+            ctx.ui.heading("NodeGraph");
+            ctx.ui.label("Visual node-based editor (wraps egui-snarl)");
+            ctx.ui.add_space(8.0);
+
+            Code::new(r#"// Define node type
+enum MyNode {
+    Source { name: String },
+    Effect { intensity: f32 },
+    Output,
+}
+
+// Implement SnarlViewer for your node type
+impl SnarlViewer<MyNode> for MyViewer {
+    fn title(&mut self, node: &MyNode) -> String { ... }
+    fn inputs(&mut self, node: &MyNode) -> usize { ... }
+    fn outputs(&mut self, node: &MyNode) -> usize { ... }
+    fn show_input(...) -> PinInfo { ... }
+    fn show_output(...) -> PinInfo { ... }
+}
+
+// Show the node graph
+NodeGraphArea::new(&mut model.graph)
+    .graph_action(MenuAction::new("add", "Add Node"))
+    .show(ui, &mut MyViewer);"#).show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Interactive Demo:");
+            ctx.ui.label("Drag nodes to move, connect pins by dragging, right-click for context menu.");
+            ctx.ui.add_space(8.0);
+
+            // Show last event
+            if let Some(ref event) = model.node_graph_last_event {
+                ctx.ui.label(format!("Last event: {}", event));
+            }
+            ctx.ui.add_space(8.0);
+
+            // Use fixed-size area for node graph
+            let available = ctx.ui.available_size();
+            let graph_height = 350.0_f32.min(available.y - 50.0).max(200.0);
+
+            egui::Frame::default()
+                .stroke(egui::Stroke::new(1.0, ctx.ui.visuals().widgets.noninteractive.bg_stroke.color))
+                .inner_margin(4.0)
+                .show(ctx.ui, |ui| {
+                    ui.set_min_size(egui::vec2(available.x - 20.0, graph_height));
+
+                    NodeGraphArea::new(&mut model.node_graph.borrow_mut())
+                        .show(ui, &mut DemoNodeViewer);
+                });
+
+            ctx.ui.add_space(16.0);
+
+            ctx.ui.strong("Features:");
+            ctx.ui.label("• Theme-aware styling via NodeGraphStyle");
+            ctx.ui.label("• Custom context menu actions via MenuAction");
+            ctx.ui.label("• TEA-style events via NodeGraphEvent");
+            ctx.ui.label("• Preset pin types for VJ/DAW (Audio, Video, MIDI, etc.)");
+        }
+
+        #[cfg(not(feature = "snarl"))]
+        "NodeGraph" => {
+            ctx.ui.heading("NodeGraph");
+            ctx.ui.label("Node graph editor (requires 'snarl' feature)");
+            ctx.ui.add_space(8.0);
+            Code::new("cargo run --example storybook --features snarl").show(ctx.ui);
         }
 
         _ => {
