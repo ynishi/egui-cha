@@ -45,26 +45,30 @@ pub struct Theme {
     pub text_secondary: Color32,
     pub text_muted: Color32,
 
-    // Colors - Semantic (background)
-    pub success: Color32,
-    pub warning: Color32,
-    pub error: Color32,
-    pub info: Color32,
-    pub danger: Color32,
+    // Colors - UI State (for buttons, badges, alerts)
+    pub state_success: Color32,
+    pub state_warning: Color32,
+    pub state_danger: Color32,
+    pub state_info: Color32,
 
-    // Colors - Semantic (text on semantic background)
-    pub success_text: Color32,
-    pub warning_text: Color32,
-    pub error_text: Color32,
-    pub info_text: Color32,
-    pub danger_text: Color32,
+    // Colors - UI State (text on state background)
+    pub state_success_text: Color32,
+    pub state_warning_text: Color32,
+    pub state_danger_text: Color32,
+    pub state_info_text: Color32,
 
-    // Colors - Semantic (hover states)
-    pub success_hover: Color32,
-    pub warning_hover: Color32,
-    pub error_hover: Color32,
-    pub info_hover: Color32,
-    pub danger_hover: Color32,
+    // Colors - UI State (hover states)
+    pub state_success_hover: Color32,
+    pub state_warning_hover: Color32,
+    pub state_danger_hover: Color32,
+    pub state_info_hover: Color32,
+
+    // Colors - Log Severity (for log viewers, console output)
+    pub log_debug: Color32,
+    pub log_info: Color32,
+    pub log_warn: Color32,
+    pub log_error: Color32,
+    pub log_critical: Color32,
 
     // Colors - Border
     pub border: Color32,
@@ -139,26 +143,30 @@ impl Theme {
             text_secondary: Color32::from_rgb(75, 85, 99),
             text_muted: Color32::from_rgb(156, 163, 175),
 
-            // Semantic (background)
-            success: Color32::from_rgb(34, 197, 94),   // green-500
-            warning: Color32::from_rgb(245, 158, 11),  // amber-500
-            error: Color32::from_rgb(239, 68, 68),     // red-500
-            info: Color32::from_rgb(14, 165, 233),     // sky-500
-            danger: Color32::from_rgb(239, 68, 68),    // red-500 (alias)
+            // UI State (for buttons, badges, alerts)
+            state_success: Color32::from_rgb(34, 197, 94),   // green-500
+            state_warning: Color32::from_rgb(245, 158, 11),  // amber-500
+            state_danger: Color32::from_rgb(239, 68, 68),    // red-500
+            state_info: Color32::from_rgb(14, 165, 233),     // sky-500
 
-            // Semantic text (on semantic background)
-            success_text: Color32::WHITE,
-            warning_text: Color32::WHITE,
-            error_text: Color32::WHITE,
-            info_text: Color32::WHITE,
-            danger_text: Color32::WHITE,
+            // UI State text (on state background)
+            state_success_text: Color32::WHITE,
+            state_warning_text: Color32::WHITE,
+            state_danger_text: Color32::WHITE,
+            state_info_text: Color32::WHITE,
 
-            // Semantic hover
-            success_hover: Color32::from_rgb(22, 163, 74),   // green-600
-            warning_hover: Color32::from_rgb(217, 119, 6),   // amber-600
-            error_hover: Color32::from_rgb(220, 38, 38),     // red-600
-            info_hover: Color32::from_rgb(2, 132, 199),      // sky-600
-            danger_hover: Color32::from_rgb(220, 38, 38),    // red-600
+            // UI State hover
+            state_success_hover: Color32::from_rgb(22, 163, 74),   // green-600
+            state_warning_hover: Color32::from_rgb(217, 119, 6),   // amber-600
+            state_danger_hover: Color32::from_rgb(220, 38, 38),    // red-600
+            state_info_hover: Color32::from_rgb(2, 132, 199),      // sky-600
+
+            // Log Severity (for log viewers, console output)
+            log_debug: Color32::from_rgb(156, 163, 175),   // gray-400
+            log_info: Color32::from_rgb(59, 130, 246),     // blue-500
+            log_warn: Color32::from_rgb(245, 158, 11),     // amber-500
+            log_error: Color32::from_rgb(239, 68, 68),     // red-500
+            log_critical: Color32::from_rgb(190, 24, 93),  // pink-700
 
             // Border
             border: Color32::from_rgb(229, 231, 235),
@@ -222,26 +230,30 @@ impl Theme {
             text_secondary: Color32::from_rgb(209, 213, 219),
             text_muted: Color32::from_rgb(156, 163, 175),
 
-            // Semantic (background)
-            success: Color32::from_rgb(74, 222, 128),   // green-400
-            warning: Color32::from_rgb(251, 191, 36),   // amber-400
-            error: Color32::from_rgb(248, 113, 113),    // red-400
-            info: Color32::from_rgb(56, 189, 248),      // sky-400
-            danger: Color32::from_rgb(248, 113, 113),   // red-400 (alias)
+            // UI State (for buttons, badges, alerts)
+            state_success: Color32::from_rgb(74, 222, 128),   // green-400
+            state_warning: Color32::from_rgb(251, 191, 36),   // amber-400
+            state_danger: Color32::from_rgb(248, 113, 113),   // red-400
+            state_info: Color32::from_rgb(56, 189, 248),      // sky-400
 
-            // Semantic text (on semantic background) - dark text for light bg
-            success_text: Color32::from_rgb(17, 24, 39),
-            warning_text: Color32::from_rgb(17, 24, 39),
-            error_text: Color32::from_rgb(17, 24, 39),
-            info_text: Color32::from_rgb(17, 24, 39),
-            danger_text: Color32::from_rgb(17, 24, 39),
+            // UI State text (on state background) - dark text for light bg
+            state_success_text: Color32::from_rgb(17, 24, 39),
+            state_warning_text: Color32::from_rgb(17, 24, 39),
+            state_danger_text: Color32::from_rgb(17, 24, 39),
+            state_info_text: Color32::from_rgb(17, 24, 39),
 
-            // Semantic hover
-            success_hover: Color32::from_rgb(34, 197, 94),   // green-500
-            warning_hover: Color32::from_rgb(245, 158, 11),  // amber-500
-            error_hover: Color32::from_rgb(239, 68, 68),     // red-500
-            info_hover: Color32::from_rgb(14, 165, 233),     // sky-500
-            danger_hover: Color32::from_rgb(239, 68, 68),    // red-500
+            // UI State hover
+            state_success_hover: Color32::from_rgb(34, 197, 94),   // green-500
+            state_warning_hover: Color32::from_rgb(245, 158, 11),  // amber-500
+            state_danger_hover: Color32::from_rgb(239, 68, 68),    // red-500
+            state_info_hover: Color32::from_rgb(14, 165, 233),     // sky-500
+
+            // Log Severity (for log viewers, console output)
+            log_debug: Color32::from_rgb(209, 213, 219),   // gray-300
+            log_info: Color32::from_rgb(96, 165, 250),     // blue-400
+            log_warn: Color32::from_rgb(251, 191, 36),     // amber-400
+            log_error: Color32::from_rgb(248, 113, 113),   // red-400
+            log_critical: Color32::from_rgb(244, 114, 182), // pink-400
 
             // Border
             border: Color32::from_rgb(55, 65, 81),
@@ -315,8 +327,8 @@ impl Theme {
         // Text colors
         visuals.override_text_color = Some(self.text_primary);
         visuals.hyperlink_color = self.primary;
-        visuals.warn_fg_color = self.warning;
-        visuals.error_fg_color = self.error;
+        visuals.warn_fg_color = self.state_warning;
+        visuals.error_fg_color = self.state_danger;
 
         // Widget styles - noninteractive (labels, separators)
         visuals.widgets.noninteractive.bg_fill = self.bg_secondary;
@@ -528,26 +540,30 @@ impl Theme {
             text_secondary: Color32::from_rgb(107, 98, 116), // lighter
             text_muted: Color32::from_rgb(156, 148, 163),    // even lighter
 
-            // Semantic (background) - Pastel versions
-            success: Color32::from_rgb(134, 239, 172),   // green-300
-            warning: Color32::from_rgb(253, 224, 71),    // yellow-300
-            error: Color32::from_rgb(253, 164, 175),     // rose-300
-            info: Color32::from_rgb(147, 197, 253),      // blue-300
-            danger: Color32::from_rgb(253, 164, 175),    // rose-300
+            // UI State (for buttons, badges, alerts) - Pastel versions
+            state_success: Color32::from_rgb(134, 239, 172),   // green-300
+            state_warning: Color32::from_rgb(253, 224, 71),    // yellow-300
+            state_danger: Color32::from_rgb(253, 164, 175),    // rose-300
+            state_info: Color32::from_rgb(147, 197, 253),      // blue-300
 
-            // Semantic text
-            success_text: Color32::from_rgb(22, 101, 52),   // green-800
-            warning_text: Color32::from_rgb(133, 77, 14),   // amber-800
-            error_text: Color32::from_rgb(159, 18, 57),     // rose-800
-            info_text: Color32::from_rgb(30, 64, 175),      // blue-800
-            danger_text: Color32::from_rgb(159, 18, 57),    // rose-800
+            // UI State text
+            state_success_text: Color32::from_rgb(22, 101, 52),   // green-800
+            state_warning_text: Color32::from_rgb(133, 77, 14),   // amber-800
+            state_danger_text: Color32::from_rgb(159, 18, 57),    // rose-800
+            state_info_text: Color32::from_rgb(30, 64, 175),      // blue-800
 
-            // Semantic hover
-            success_hover: Color32::from_rgb(74, 222, 128),  // green-400
-            warning_hover: Color32::from_rgb(250, 204, 21),  // yellow-400
-            error_hover: Color32::from_rgb(251, 113, 133),   // rose-400
-            info_hover: Color32::from_rgb(96, 165, 250),     // blue-400
-            danger_hover: Color32::from_rgb(251, 113, 133),  // rose-400
+            // UI State hover
+            state_success_hover: Color32::from_rgb(74, 222, 128),  // green-400
+            state_warning_hover: Color32::from_rgb(250, 204, 21),  // yellow-400
+            state_danger_hover: Color32::from_rgb(251, 113, 133),  // rose-400
+            state_info_hover: Color32::from_rgb(96, 165, 250),     // blue-400
+
+            // Log Severity (for log viewers, console output)
+            log_debug: Color32::from_rgb(156, 148, 163),   // muted purple-gray
+            log_info: Color32::from_rgb(96, 165, 250),     // blue-400
+            log_warn: Color32::from_rgb(250, 204, 21),     // yellow-400
+            log_error: Color32::from_rgb(251, 113, 133),   // rose-400
+            log_critical: Color32::from_rgb(236, 72, 153), // pink-500
 
             // Border - Soft
             border: Color32::from_rgb(233, 213, 202),        // warm gray
@@ -611,26 +627,30 @@ impl Theme {
             text_secondary: Color32::from_rgb(196, 189, 210),
             text_muted: Color32::from_rgb(140, 133, 156),
 
-            // Semantic (background) - Muted pastel on dark
-            success: Color32::from_rgb(74, 222, 128),    // green-400
-            warning: Color32::from_rgb(250, 204, 21),    // yellow-400
-            error: Color32::from_rgb(251, 113, 133),     // rose-400
-            info: Color32::from_rgb(96, 165, 250),       // blue-400
-            danger: Color32::from_rgb(251, 113, 133),    // rose-400
+            // UI State (for buttons, badges, alerts) - Muted pastel on dark
+            state_success: Color32::from_rgb(74, 222, 128),    // green-400
+            state_warning: Color32::from_rgb(250, 204, 21),    // yellow-400
+            state_danger: Color32::from_rgb(251, 113, 133),    // rose-400
+            state_info: Color32::from_rgb(96, 165, 250),       // blue-400
 
-            // Semantic text (dark on light bg)
-            success_text: Color32::from_rgb(20, 30, 25),
-            warning_text: Color32::from_rgb(35, 30, 15),
-            error_text: Color32::from_rgb(35, 20, 25),
-            info_text: Color32::from_rgb(20, 25, 35),
-            danger_text: Color32::from_rgb(35, 20, 25),
+            // UI State text (dark on light bg)
+            state_success_text: Color32::from_rgb(20, 30, 25),
+            state_warning_text: Color32::from_rgb(35, 30, 15),
+            state_danger_text: Color32::from_rgb(35, 20, 25),
+            state_info_text: Color32::from_rgb(20, 25, 35),
 
-            // Semantic hover
-            success_hover: Color32::from_rgb(134, 239, 172),
-            warning_hover: Color32::from_rgb(253, 224, 71),
-            error_hover: Color32::from_rgb(253, 164, 175),
-            info_hover: Color32::from_rgb(147, 197, 253),
-            danger_hover: Color32::from_rgb(253, 164, 175),
+            // UI State hover
+            state_success_hover: Color32::from_rgb(134, 239, 172),
+            state_warning_hover: Color32::from_rgb(253, 224, 71),
+            state_danger_hover: Color32::from_rgb(253, 164, 175),
+            state_info_hover: Color32::from_rgb(147, 197, 253),
+
+            // Log Severity (for log viewers, console output)
+            log_debug: Color32::from_rgb(140, 133, 156),   // muted
+            log_info: Color32::from_rgb(147, 197, 253),    // blue-300
+            log_warn: Color32::from_rgb(253, 224, 71),     // yellow-300
+            log_error: Color32::from_rgb(253, 164, 175),   // rose-300
+            log_critical: Color32::from_rgb(249, 168, 212), // pink-300
 
             // Border
             border: Color32::from_rgb(55, 50, 70),

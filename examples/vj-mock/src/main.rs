@@ -39,26 +39,30 @@ fn vj_theme() -> Theme {
         text_secondary: Color32::from_rgb(160, 170, 180),
         text_muted: Color32::from_rgb(100, 110, 120),
 
-        // Semantic (background)
-        success: Color32::from_rgb(40, 200, 100),
-        warning: Color32::from_rgb(230, 180, 40),
-        error: Color32::from_rgb(220, 60, 70),
-        info: Color32::from_rgb(60, 160, 230),
-        danger: Color32::from_rgb(220, 60, 70),
+        // UI State (for buttons, badges, alerts)
+        state_success: Color32::from_rgb(40, 200, 100),
+        state_warning: Color32::from_rgb(230, 180, 40),
+        state_danger: Color32::from_rgb(220, 60, 70),
+        state_info: Color32::from_rgb(60, 160, 230),
 
-        // Semantic text
-        success_text: Color32::BLACK,
-        warning_text: Color32::BLACK,
-        error_text: Color32::WHITE,
-        info_text: Color32::BLACK,
-        danger_text: Color32::WHITE,
+        // UI State text
+        state_success_text: Color32::BLACK,
+        state_warning_text: Color32::BLACK,
+        state_danger_text: Color32::WHITE,
+        state_info_text: Color32::BLACK,
 
-        // Semantic hover
-        success_hover: Color32::from_rgb(30, 180, 80),
-        warning_hover: Color32::from_rgb(210, 160, 30),
-        error_hover: Color32::from_rgb(200, 40, 50),
-        info_hover: Color32::from_rgb(40, 140, 210),
-        danger_hover: Color32::from_rgb(200, 40, 50),
+        // UI State hover
+        state_success_hover: Color32::from_rgb(30, 180, 80),
+        state_warning_hover: Color32::from_rgb(210, 160, 30),
+        state_danger_hover: Color32::from_rgb(200, 40, 50),
+        state_info_hover: Color32::from_rgb(40, 140, 210),
+
+        // Log Severity (for log viewers, console output)
+        log_debug: Color32::from_rgb(100, 110, 120),
+        log_info: Color32::from_rgb(60, 160, 230),
+        log_warn: Color32::from_rgb(230, 180, 40),
+        log_error: Color32::from_rgb(220, 60, 70),
+        log_critical: Color32::from_rgb(200, 80, 180),
 
         // Border - Subtle
         border: Color32::from_rgb(50, 55, 65),
@@ -1059,7 +1063,7 @@ fn render_midi_section(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
 fn render_lab_area_ui(model: &Model, ui: &mut egui::Ui, msgs: &mut Vec<Msg>) {
     // Title
-    Text::h2("Lab").color(Theme::current(ui.ctx()).info).show(ui);
+    Text::h2("Lab").color(Theme::current(ui.ctx()).state_info).show(ui);
     ui.separator();
 
     // Patch Tab Bar

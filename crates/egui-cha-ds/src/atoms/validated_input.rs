@@ -104,8 +104,8 @@ impl<'a> ValidatedInput<'a> {
         // Input with border color based on state
         let border_color = match state {
             ValidationState::None => theme.border,
-            ValidationState::Valid => theme.success,
-            ValidationState::Invalid(_) => theme.error,
+            ValidationState::Valid => theme.state_success,
+            ValidationState::Invalid(_) => theme.state_danger,
         };
 
         let mut edit = egui::TextEdit::singleline(value)
@@ -138,10 +138,10 @@ impl<'a> ValidatedInput<'a> {
                     ui.label(
                         RichText::new(icons::CHECK)
                             .family(egui::FontFamily::Name("icons".into()))
-                            .color(theme.success)
+                            .color(theme.state_success)
                             .size(14.0),
                     );
-                    ui.label(RichText::new("Valid").color(theme.success).small());
+                    ui.label(RichText::new("Valid").color(theme.state_success).small());
                 });
             }
             ValidationState::Invalid(msg) => {
@@ -149,10 +149,10 @@ impl<'a> ValidatedInput<'a> {
                     ui.label(
                         RichText::new(icons::WARNING)
                             .family(egui::FontFamily::Name("icons".into()))
-                            .color(theme.error)
+                            .color(theme.state_danger)
                             .size(14.0),
                     );
-                    ui.label(RichText::new(msg).color(theme.error).small());
+                    ui.label(RichText::new(msg).color(theme.state_danger).small());
                 });
             }
             ValidationState::None => {}
@@ -176,8 +176,8 @@ impl<'a> ValidatedInput<'a> {
         // Border color based on state
         let border_color = match state {
             ValidationState::None => theme.border,
-            ValidationState::Valid => theme.success,
-            ValidationState::Invalid(_) => theme.error,
+            ValidationState::Valid => theme.state_success,
+            ValidationState::Invalid(_) => theme.state_danger,
         };
 
         let mut edit = egui::TextEdit::singleline(&mut current)
@@ -215,10 +215,10 @@ impl<'a> ValidatedInput<'a> {
                     ui.label(
                         RichText::new(icons::CHECK)
                             .family(egui::FontFamily::Name("icons".into()))
-                            .color(theme.success)
+                            .color(theme.state_success)
                             .size(14.0),
                     );
-                    ui.label(RichText::new("Valid").color(theme.success).small());
+                    ui.label(RichText::new("Valid").color(theme.state_success).small());
                 });
             }
             ValidationState::Invalid(msg) => {
@@ -226,10 +226,10 @@ impl<'a> ValidatedInput<'a> {
                     ui.label(
                         RichText::new(icons::WARNING)
                             .family(egui::FontFamily::Name("icons".into()))
-                            .color(theme.error)
+                            .color(theme.state_danger)
                             .size(14.0),
                     );
-                    ui.label(RichText::new(msg).color(theme.error).small());
+                    ui.label(RichText::new(msg).color(theme.state_danger).small());
                 });
             }
             ValidationState::None => {}

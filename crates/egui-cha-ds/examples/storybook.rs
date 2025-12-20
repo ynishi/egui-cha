@@ -967,7 +967,7 @@ fn render_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.add_space(8.0);
 
             Code::new(
-                "// Headings\nText::h1(\"Page Title\").show(ui);\nText::h2(\"Section\").show(ui);\nText::h3(\"Subsection\").show(ui);\n\n// Body variants\nText::body(\"Regular text\").show(ui);\nText::small(\"Small text\").show(ui);\nText::caption(\"Caption\").show(ui);\n\n// Modifiers\nText::body(\"Bold\").bold().show(ui);\nText::body(\"Colored\").color(theme.error).show(ui);"
+                "// Headings\nText::h1(\"Page Title\").show(ui);\nText::h2(\"Section\").show(ui);\nText::h3(\"Subsection\").show(ui);\n\n// Body variants\nText::body(\"Regular text\").show(ui);\nText::small(\"Small text\").show(ui);\nText::caption(\"Caption\").show(ui);\n\n// Modifiers\nText::body(\"Bold\").bold().show(ui);\nText::body(\"Colored\").color(theme.state_danger).show(ui);"
             ).show(ctx.ui);
 
             ctx.ui.add_space(16.0);
@@ -1008,9 +1008,9 @@ fn render_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             let theme = Theme::current(ctx.ui.ctx());
             ctx.horizontal(|ctx| {
                 Text::body("Primary").color(theme.primary).show(ctx.ui);
-                Text::body("Success").color(theme.success).show(ctx.ui);
-                Text::body("Warning").color(theme.warning).show(ctx.ui);
-                Text::body("Error").color(theme.error).show(ctx.ui);
+                Text::body("Success").color(theme.state_success).show(ctx.ui);
+                Text::body("Warning").color(theme.state_warning).show(ctx.ui);
+                Text::body("Danger").color(theme.state_danger).show(ctx.ui);
             });
 
             ctx.ui.add_space(16.0);
@@ -2459,6 +2459,17 @@ fn render_theme(model: &Model, ctx: &mut ViewCtx<'_, Msg>) {
             ctx.ui.strong("Input:");
             let mut sample = String::from("Sample text");
             ctx.ui.text_edit_singleline(&mut sample);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.strong("Log Severity Colors:");
+            let theme = &model.theme;
+            ctx.horizontal(|ctx| {
+                Text::small("DEBUG").color(theme.log_debug).show(ctx.ui);
+                Text::small("INFO").color(theme.log_info).show(ctx.ui);
+                Text::small("WARN").color(theme.log_warn).show(ctx.ui);
+                Text::small("ERROR").color(theme.log_error).show(ctx.ui);
+                Text::small("CRITICAL").color(theme.log_critical).show(ctx.ui);
+            });
 
             ctx.ui.add_space(16.0);
             ctx.ui.separator();

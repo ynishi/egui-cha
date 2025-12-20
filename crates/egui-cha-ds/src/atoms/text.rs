@@ -20,7 +20,7 @@
 //! // With modifiers
 //! Text::body("Important").bold().show(ui);
 //! Text::body("Secondary info").muted().show(ui);
-//! Text::body("Error message").color(theme.error).show(ui);
+//! Text::body("Error message").color(theme.state_danger).show(ui);
 //! ```
 
 use egui::{Color32, RichText, Ui, Widget};

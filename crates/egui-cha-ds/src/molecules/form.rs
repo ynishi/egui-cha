@@ -130,8 +130,8 @@ impl<'a, Msg: Clone> Form<'a, Msg> {
                 // Border color based on state
                 let border_color = match field.state {
                     ValidationState::None => theme.border,
-                    ValidationState::Valid => theme.success,
-                    ValidationState::Invalid(_) => theme.error,
+                    ValidationState::Valid => theme.state_success,
+                    ValidationState::Invalid(_) => theme.state_danger,
                 };
 
                 let mut edit = egui::TextEdit::singleline(&mut current)
@@ -165,10 +165,10 @@ impl<'a, Msg: Clone> Form<'a, Msg> {
                             ui.label(
                                 egui::RichText::new(crate::icons::CHECK)
                                     .family(egui::FontFamily::Name("icons".into()))
-                                    .color(theme.success)
+                                    .color(theme.state_success)
                                     .size(14.0),
                             );
-                            ui.label(egui::RichText::new("Valid").color(theme.success).small());
+                            ui.label(egui::RichText::new("Valid").color(theme.state_success).small());
                         });
                     }
                     ValidationState::Invalid(msg) => {
@@ -176,10 +176,10 @@ impl<'a, Msg: Clone> Form<'a, Msg> {
                             ui.label(
                                 egui::RichText::new(crate::icons::WARNING)
                                     .family(egui::FontFamily::Name("icons".into()))
-                                    .color(theme.error)
+                                    .color(theme.state_danger)
                                     .size(14.0),
                             );
-                            ui.label(egui::RichText::new(msg).color(theme.error).small());
+                            ui.label(egui::RichText::new(msg).color(theme.state_danger).small());
                         });
                     }
                     ValidationState::None => {}

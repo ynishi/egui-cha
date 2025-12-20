@@ -138,10 +138,10 @@ impl<'a> Button<'a> {
                 Some(Stroke::new(1.0, theme.border)),
             ),
             ButtonVariant::Ghost => (Color32::TRANSPARENT, theme.text_secondary, None),
-            ButtonVariant::Danger => (theme.danger, theme.danger_text, None),
-            ButtonVariant::Warning => (theme.warning, theme.warning_text, None),
-            ButtonVariant::Success => (theme.success, theme.success_text, None),
-            ButtonVariant::Info => (theme.info, theme.info_text, None),
+            ButtonVariant::Danger => (theme.state_danger, theme.state_danger_text, None),
+            ButtonVariant::Warning => (theme.state_warning, theme.state_warning_text, None),
+            ButtonVariant::Success => (theme.state_success, theme.state_success_text, None),
+            ButtonVariant::Info => (theme.state_info, theme.state_info_text, None),
         }
     }
 }

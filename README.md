@@ -159,7 +159,7 @@ theme.apply(ctx.ui.ctx());
 ```
 
 Theme includes:
-- **Colors**: Primary, Secondary, Semantic (success/warning/error/info), Background, Text, Border
+- **Colors**: Primary, Secondary, UI State (state_success/warning/danger/info), Log Severity (log_debug/info/warn/error/critical), Background, Text, Border
 - **Spacing**: xs (4px), sm (8px), md (16px), lg (24px), xl (32px)
 - **Border Radius**: sm, md, lg
 - **Typography**: font_size_xs (10px) through font_size_3xl (30px)

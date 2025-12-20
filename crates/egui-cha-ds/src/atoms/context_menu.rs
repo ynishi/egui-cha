@@ -83,7 +83,7 @@ impl ContextMenuExt for Response {
                 match item {
                     ContextMenuItem::Item { label, msg, danger } => {
                         let text_color = if danger {
-                            theme.danger
+                            theme.state_danger
                         } else {
                             theme.text_primary
                         };

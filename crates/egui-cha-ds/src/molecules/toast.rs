@@ -74,33 +74,33 @@ impl ToastVariant {
         match self {
             ToastVariant::Info => {
                 let (bg, fg) = if is_dark {
-                    (darken(theme.info, 0.4), lighten(theme.info, 0.6))
+                    (darken(theme.state_info, 0.4), lighten(theme.state_info, 0.6))
                 } else {
-                    (lighten(theme.info, 0.85), darken(theme.info, 0.3))
+                    (lighten(theme.state_info, 0.85), darken(theme.state_info, 0.3))
                 };
                 (bg, fg, icons::INFO)
             }
             ToastVariant::Success => {
                 let (bg, fg) = if is_dark {
-                    (darken(theme.success, 0.4), lighten(theme.success, 0.6))
+                    (darken(theme.state_success, 0.4), lighten(theme.state_success, 0.6))
                 } else {
-                    (lighten(theme.success, 0.85), darken(theme.success, 0.3))
+                    (lighten(theme.state_success, 0.85), darken(theme.state_success, 0.3))
                 };
                 (bg, fg, icons::CHECK)
             }
             ToastVariant::Warning => {
                 let (bg, fg) = if is_dark {
-                    (darken(theme.warning, 0.4), lighten(theme.warning, 0.6))
+                    (darken(theme.state_warning, 0.4), lighten(theme.state_warning, 0.6))
                 } else {
-                    (lighten(theme.warning, 0.85), darken(theme.warning, 0.4))
+                    (lighten(theme.state_warning, 0.85), darken(theme.state_warning, 0.4))
                 };
                 (bg, fg, icons::WARNING)
             }
             ToastVariant::Error => {
                 let (bg, fg) = if is_dark {
-                    (darken(theme.error, 0.4), lighten(theme.error, 0.6))
+                    (darken(theme.state_danger, 0.4), lighten(theme.state_danger, 0.6))
                 } else {
-                    (lighten(theme.error, 0.85), darken(theme.error, 0.3))
+                    (lighten(theme.state_danger, 0.85), darken(theme.state_danger, 0.3))
                 };
                 (bg, fg, icons::X)
             }

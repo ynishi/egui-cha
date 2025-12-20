@@ -82,30 +82,30 @@ impl<'a> Badge<'a> {
             BadgeVariant::Success => {
                 // Subtle style: light green bg, dark green text
                 if is_dark {
-                    (darken(theme.success, 0.3), lighten(theme.success, 0.7))
+                    (darken(theme.state_success, 0.3), lighten(theme.state_success, 0.7))
                 } else {
-                    (lighten(theme.success, 0.85), darken(theme.success, 0.3))
+                    (lighten(theme.state_success, 0.85), darken(theme.state_success, 0.3))
                 }
             }
             BadgeVariant::Warning => {
                 if is_dark {
-                    (darken(theme.warning, 0.3), lighten(theme.warning, 0.7))
+                    (darken(theme.state_warning, 0.3), lighten(theme.state_warning, 0.7))
                 } else {
-                    (lighten(theme.warning, 0.85), darken(theme.warning, 0.4))
+                    (lighten(theme.state_warning, 0.85), darken(theme.state_warning, 0.4))
                 }
             }
             BadgeVariant::Error => {
                 if is_dark {
-                    (darken(theme.error, 0.3), lighten(theme.error, 0.7))
+                    (darken(theme.state_danger, 0.3), lighten(theme.state_danger, 0.7))
                 } else {
-                    (lighten(theme.error, 0.85), darken(theme.error, 0.3))
+                    (lighten(theme.state_danger, 0.85), darken(theme.state_danger, 0.3))
                 }
             }
             BadgeVariant::Info => {
                 if is_dark {
-                    (darken(theme.info, 0.3), lighten(theme.info, 0.7))
+                    (darken(theme.state_info, 0.3), lighten(theme.state_info, 0.7))
                 } else {
-                    (lighten(theme.info, 0.85), darken(theme.info, 0.3))
+                    (lighten(theme.state_info, 0.85), darken(theme.state_info, 0.3))
                 }
             }
         }
