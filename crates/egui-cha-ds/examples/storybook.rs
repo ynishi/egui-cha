@@ -29,6 +29,15 @@ struct Model {
     checkbox_value: bool,
     toggle_value: bool,
     slider_value: f64,
+    knob_value: f64,
+    knob_value2: f64,
+    knob_value3: f64,
+    fader_value: f64,
+    fader_value2: f64,
+    fader_value3: f64,
+    fader_value4: f64,
+    xypad_value: (f64, f64),
+    xypad_value2: (f64, f64),
     input_value: String,
     select_value: usize,
 
@@ -145,6 +154,21 @@ enum Msg {
 
     // Slider
     SliderChanged(f64),
+
+    // Knob
+    KnobChanged(f64),
+    Knob2Changed(f64),
+    Knob3Changed(f64),
+
+    // Fader
+    FaderChanged(f64),
+    Fader2Changed(f64),
+    Fader3Changed(f64),
+    Fader4Changed(f64),
+
+    // XYPad
+    XYPadChanged((f64, f64)),
+    XYPad2Changed((f64, f64)),
 
     // Input
     InputChanged(String),
@@ -263,6 +287,11 @@ const ATOMS: &[&str] = &[
     "Checkbox",
     "Toggle",
     "Slider",
+    "Knob",
+    "Fader",
+    "XYPad",
+    "Waveform",
+    "Spectrum",
     "Link",
     "Code",
     "Text",
@@ -407,6 +436,33 @@ impl App for StorybookApp {
             }
             Msg::SliderChanged(v) => {
                 model.slider_value = v;
+            }
+            Msg::KnobChanged(v) => {
+                model.knob_value = v;
+            }
+            Msg::Knob2Changed(v) => {
+                model.knob_value2 = v;
+            }
+            Msg::Knob3Changed(v) => {
+                model.knob_value3 = v;
+            }
+            Msg::FaderChanged(v) => {
+                model.fader_value = v;
+            }
+            Msg::Fader2Changed(v) => {
+                model.fader_value2 = v;
+            }
+            Msg::Fader3Changed(v) => {
+                model.fader_value3 = v;
+            }
+            Msg::Fader4Changed(v) => {
+                model.fader_value4 = v;
+            }
+            Msg::XYPadChanged(v) => {
+                model.xypad_value = v;
+            }
+            Msg::XYPad2Changed(v) => {
+                model.xypad_value2 = v;
             }
             Msg::InputChanged(v) => {
                 model.input_value = v;
@@ -962,6 +1018,276 @@ fn render_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
             ctx.ui.add_space(8.0);
             ctx.ui.label(format!("Value: {:.1}", model.slider_value));
+        }
+
+        "Knob" => {
+            ctx.ui.heading("Knob");
+            ctx.ui.label("Rotary knob for EDM/VJ applications");
+            ctx.ui.add_space(16.0);
+
+            // Row of knobs with different sizes
+            ctx.horizontal(|ctx| {
+                ctx.vertical(|ctx| {
+                    Knob::new(0.0..=100.0)
+                        .compact()
+                        .label("Compact")
+                        .show_with(ctx, model.knob_value, Msg::KnobChanged);
+                });
+
+                ctx.ui.add_space(16.0);
+
+                ctx.vertical(|ctx| {
+                    Knob::new(0.0..=1.0)
+                        .label("Medium")
+                        .show_with(ctx, model.knob_value2, Msg::Knob2Changed);
+                });
+
+                ctx.ui.add_space(16.0);
+
+                ctx.vertical(|ctx| {
+                    Knob::new(0.0..=100.0)
+                        .size(KnobSize::Large)
+                        .label("Large")
+                        .show_with(ctx, model.knob_value3, Msg::Knob3Changed);
+                });
+            });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            // Usage example
+            ctx.ui.label("Usage:");
+            Code::new(r#"Knob::new(0.0..=100.0)
+    .label("Volume")
+    .show_with(ctx, model.volume, Msg::SetVolume);"#).show(ctx.ui);
+
+            ctx.ui.add_space(8.0);
+            ctx.ui.label("Features:");
+            ctx.ui.label("• Drag up/down to adjust value");
+            ctx.ui.label("• Double-click to reset to center");
+            ctx.ui.label("• Theme-aware styling");
+        }
+
+        "Fader" => {
+            ctx.ui.heading("Fader");
+            ctx.ui.label("Vertical fader for mixer-style controls");
+            ctx.ui.add_space(16.0);
+
+            // Row of faders (mixer style)
+            ctx.horizontal(|ctx| {
+                ctx.vertical(|ctx| {
+                    Fader::new(0.0..=1.0)
+                        .compact()
+                        .label("CH1")
+                        .show_with(ctx, model.fader_value, Msg::FaderChanged);
+                });
+
+                ctx.ui.add_space(8.0);
+
+                ctx.vertical(|ctx| {
+                    Fader::new(0.0..=1.0)
+                        .compact()
+                        .label("CH2")
+                        .show_with(ctx, model.fader_value2, Msg::Fader2Changed);
+                });
+
+                ctx.ui.add_space(8.0);
+
+                ctx.vertical(|ctx| {
+                    Fader::new(0.0..=1.0)
+                        .label("CH3")
+                        .show_with(ctx, model.fader_value3, Msg::Fader3Changed);
+                });
+
+                ctx.ui.add_space(16.0);
+
+                ctx.vertical(|ctx| {
+                    Fader::new(-60.0..=6.0)
+                        .size(FaderSize::Large)
+                        .label("Master")
+                        .db_scale(true)
+                        .show_with(ctx, model.fader_value4, Msg::Fader4Changed);
+                });
+            });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.label("Usage:");
+            Code::new(r#"Fader::new(-60.0..=6.0)
+    .label("Master")
+    .db_scale(true)
+    .show_with(ctx, model.master, Msg::SetMaster);"#).show(ctx.ui);
+
+            ctx.ui.add_space(8.0);
+            ctx.ui.label("Features:");
+            ctx.ui.label("• Drag to adjust, click to set");
+            ctx.ui.label("• Double-click to reset (0dB for dB scale)");
+            ctx.ui.label("• dB scale with -∞ display");
+        }
+
+        "XYPad" => {
+            ctx.ui.heading("XYPad");
+            ctx.ui.label("2D touch pad for X/Y parameter control (Kaoss Pad style)");
+            ctx.ui.add_space(16.0);
+
+            ctx.horizontal(|ctx| {
+                // Basic XY pad
+                ctx.vertical(|ctx| {
+                    ctx.ui.label("Basic:");
+                    XYPad::new()
+                        .size(150.0, 150.0)
+                        .show_with(ctx, model.xypad_value, Msg::XYPadChanged);
+                });
+
+                ctx.ui.add_space(24.0);
+
+                // With grid and labels
+                ctx.vertical(|ctx| {
+                    ctx.ui.label("With grid:");
+                    XYPad::new()
+                        .size(150.0, 150.0)
+                        .grid(true)
+                        .label_x("Cutoff")
+                        .label_y("Q")
+                        .show_with(ctx, model.xypad_value2, Msg::XYPad2Changed);
+                });
+            });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.label("Usage:");
+            Code::new(r#"XYPad::new()
+    .grid(true)
+    .label_x("Cutoff")
+    .label_y("Resonance")
+    .show_with(ctx, model.filter, Msg::SetFilter);"#).show(ctx.ui);
+
+            ctx.ui.add_space(8.0);
+            ctx.ui.label("Features:");
+            ctx.ui.label("• Drag or click to set position");
+            ctx.ui.label("• Double-click to reset to center");
+            ctx.ui.label("• Crosshair + dot cursor");
+            ctx.ui.label("• Optional grid overlay");
+        }
+
+        "Waveform" => {
+            ctx.ui.heading("Waveform");
+            ctx.ui.label("Audio waveform visualization for EDM/VJ applications");
+            ctx.ui.add_space(16.0);
+
+            // Generate sample waveform data (sine wave with harmonics)
+            let time = ctx.ui.input(|i| i.time) as f32;
+            let samples: Vec<f32> = (0..128)
+                .map(|i| {
+                    let t = i as f32 / 128.0 * std::f32::consts::PI * 4.0 + time * 2.0;
+                    (t.sin() * 0.6 + (t * 2.0).sin() * 0.3 + (t * 3.0).sin() * 0.1)
+                })
+                .collect();
+
+            // Line style (default)
+            ctx.ui.label("Line style:");
+            Waveform::new(&samples).height(60.0).show(ctx.ui);
+
+            ctx.ui.add_space(12.0);
+
+            // Filled style
+            ctx.ui.label("Filled style:");
+            Waveform::new(&samples).height(60.0).filled().show(ctx.ui);
+
+            ctx.ui.add_space(12.0);
+
+            // Bars style
+            ctx.ui.label("Bars style:");
+            Waveform::new(&samples).height(60.0).bars().show(ctx.ui);
+
+            ctx.ui.add_space(12.0);
+
+            // Stereo with grid
+            let samples_right: Vec<f32> = (0..128)
+                .map(|i| {
+                    let t = i as f32 / 128.0 * std::f32::consts::PI * 4.0 + time * 2.0 + 0.5;
+                    (t.sin() * 0.5 + (t * 1.5).sin() * 0.4)
+                })
+                .collect();
+
+            ctx.ui.label("Stereo with grid:");
+            Waveform::stereo(&samples, &samples_right)
+                .height(40.0)
+                .grid(true)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.label("Usage:");
+            Code::new(r#"Waveform::new(&audio_samples)
+    .height(60.0)
+    .filled()
+    .show(ctx.ui);"#).show(ctx.ui);
+        }
+
+        "Spectrum" => {
+            ctx.ui.heading("Spectrum");
+            ctx.ui.label("Frequency spectrum analyzer for EDM/VJ applications");
+            ctx.ui.add_space(16.0);
+
+            // Generate fake FFT data (simulated frequency bins)
+            let time = ctx.ui.input(|i| i.time) as f32;
+            let fft_bins: Vec<f32> = (0..64)
+                .map(|i| {
+                    let freq = i as f32 / 64.0;
+                    let base = (1.0 - freq).powf(1.5); // Bass-heavy
+                    let pulse = ((time * 2.0 + i as f32 * 0.1).sin() * 0.5 + 0.5);
+                    (base * pulse * 0.8).clamp(0.0, 1.0)
+                })
+                .collect();
+
+            // Solid color (default)
+            ctx.ui.label("Solid color:");
+            Spectrum::new(&fft_bins).height(80.0).show(ctx.ui);
+
+            ctx.ui.add_space(12.0);
+
+            // Gradient
+            ctx.ui.label("Gradient:");
+            Spectrum::new(&fft_bins).height(80.0).gradient().show(ctx.ui);
+
+            ctx.ui.add_space(12.0);
+
+            // Rainbow with peak hold
+            ctx.ui.label("Rainbow with peak hold:");
+            Spectrum::new(&fft_bins)
+                .height(80.0)
+                .rainbow()
+                .peak_hold(true)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(12.0);
+
+            // Mirrored (symmetric)
+            ctx.ui.label("Mirrored:");
+            Spectrum::new(&fft_bins)
+                .height(80.0)
+                .mirrored(true)
+                .gradient()
+                .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.label("Usage:");
+            Code::new(r#"Spectrum::new(&fft_bins)
+    .bands(32)
+    .rainbow()
+    .peak_hold(true)
+    .show(ctx.ui);"#).show(ctx.ui);
         }
 
         "Link" => {
