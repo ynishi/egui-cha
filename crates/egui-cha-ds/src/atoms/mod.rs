@@ -53,6 +53,7 @@
 mod arc_slider;
 mod badge;
 mod button;
+mod button_group;
 mod checkbox;
 mod code;
 mod context_menu;
@@ -77,6 +78,7 @@ mod xypad;
 pub use arc_slider::{ArcSlider, ArcSliderSize, ArcStyle};
 pub use badge::{Badge, BadgeVariant};
 pub use button::{Button, ButtonVariant};
+pub use button_group::{ButtonGroup, GroupOrientation, GroupSize};
 pub use checkbox::Checkbox;
 pub use code::{Code, CodeBlock};
 pub use context_menu::{ContextMenuExt, ContextMenuItem};

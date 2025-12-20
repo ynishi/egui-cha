@@ -41,6 +41,8 @@ struct Model {
     arc_value: f64,
     arc_value2: f64,
     arc_value3: f64,
+    group_value: f64,
+    group_value2: f64,
     input_value: String,
     select_value: usize,
 
@@ -178,6 +180,10 @@ enum Msg {
     Arc2Changed(f64),
     Arc3Changed(f64),
 
+    // ButtonGroup
+    GroupChanged(f64),
+    Group2Changed(f64),
+
     // Input
     InputChanged(String),
 
@@ -303,6 +309,7 @@ const ATOMS: &[&str] = &[
     "LevelMeter",
     "ArcSlider",
     "Oscilloscope",
+    "ButtonGroup",
     "Link",
     "Code",
     "Text",
@@ -483,6 +490,12 @@ impl App for StorybookApp {
             }
             Msg::Arc3Changed(v) => {
                 model.arc_value3 = v;
+            }
+            Msg::GroupChanged(v) => {
+                model.group_value = v;
+            }
+            Msg::Group2Changed(v) => {
+                model.group_value2 = v;
             }
             Msg::InputChanged(v) => {
                 model.input_value = v;
@@ -1531,6 +1544,67 @@ fn render_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
             // Request repaint for animation
             ctx.ui.ctx().request_repaint();
+        }
+
+        "ButtonGroup" => {
+            ctx.ui.heading("ButtonGroup");
+            ctx.ui.label("Radio-style button group with normalized 0.0-1.0 output");
+            ctx.ui.add_space(16.0);
+
+            // Wave type selector
+            ctx.ui.label("Wave type (4 options → 0.0, 0.33, 0.67, 1.0):");
+            ButtonGroup::new(&["Sin", "Saw", "Sqr", "Tri"])
+                .show_with(ctx, model.group_value, Msg::GroupChanged);
+            ctx.ui.label(format!("Value: {:.2}", model.group_value));
+
+            ctx.ui.add_space(12.0);
+
+            // Pan mode (3 options)
+            ctx.ui.label("Pan mode (3 options → 0.0, 0.5, 1.0):");
+            ButtonGroup::new(&["L", "C", "R"])
+                .compact()
+                .show_with(ctx, model.group_value2, Msg::Group2Changed);
+            ctx.ui.label(format!("Value: {:.2}", model.group_value2));
+
+            ctx.ui.add_space(12.0);
+
+            // Expanded
+            ctx.ui.label("Expanded to full width:");
+            let mut demo_val = 0.5;
+            ButtonGroup::new(&["Off", "Low", "Mid", "High", "Max"])
+                .expand()
+                .show(ctx.ui, &mut demo_val);
+
+            ctx.ui.add_space(12.0);
+
+            // Vertical
+            ctx.ui.label("Vertical orientation:");
+            let mut demo_val2 = 0.0;
+            ButtonGroup::new(&["1", "2", "3"])
+                .vertical()
+                .compact()
+                .show(ctx.ui, &mut demo_val2);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.label("Usage:");
+            Code::new(r#"ButtonGroup::new(&["Sin", "Saw", "Sqr", "Tri"])
+    .show_with(ctx, model.wave_type, Msg::SetWaveType);
+
+// Value mapping:
+// 4 buttons → 0.0, 0.33, 0.67, 1.0
+// 3 buttons → 0.0, 0.5, 1.0
+// 2 buttons → 0.0, 1.0"#).show(ctx.ui);
+
+            ctx.ui.add_space(8.0);
+            ctx.ui.label("Features:");
+            ctx.ui.label("• Radio-style exclusive selection");
+            ctx.ui.label("• Normalized 0.0-1.0 output");
+            ctx.ui.label("• Horizontal/Vertical orientation");
+            ctx.ui.label("• Size variants (compact/medium/large)");
+            ctx.ui.label("• Rounded outer corners only");
         }
 
         "Link" => {
