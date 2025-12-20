@@ -950,16 +950,19 @@ fn render_lab_area(model: &Model, ui: &mut egui::Ui, msgs: &mut Vec<Msg>) {
         msgs.push(Msg::ColorChange(tint));
     }
 
-    ui.add_space(16.0);
+    ui.add_space(24.0);
 
     // Output Router
     Text::h3("Output Router").show(ui);
-    ui.add_space(4.0);
+    ui.add_space(8.0);
 
     if let Some(event) = OutputRouter::new(&model.route_sources, &model.route_outputs, &model.route_connections)
-        .size(380.0, 160.0)
+        .size(380.0, 200.0)
         .show(ui)
     {
         msgs.push(Msg::RouterEvent(event));
     }
+
+    // Bottom padding for scroll area
+    ui.add_space(16.0);
 }
