@@ -15,6 +15,10 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 rust-version = "1.75"
+repository = "https://github.com/ynishi/egui-cha"
+homepage = "https://github.com/ynishi/egui-cha"
+keywords = ["egui", "gui", "elm", "tea", "immediate-mode"]
+categories = ["gui", "rendering::graphics-api"]
 
 [workspace.dependencies]
 # Internal
