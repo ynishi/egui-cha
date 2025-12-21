@@ -25,8 +25,17 @@
 //! ```
 
 use crate::Theme;
-use egui::{Color32, Pos2, Rect, Sense, Stroke, Ui, Vec2};
+use egui::{Color32, Id, Pos2, Rect, Sense, Stroke, Ui, Vec2};
 use egui_cha::ViewCtx;
+
+/// Drag state for reordering layers
+#[derive(Clone, Debug, Default)]
+struct LayerDragState {
+    /// Index of layer being dragged
+    dragging: Option<usize>,
+    /// Current drop target index (where to insert)
+    drop_target: Option<usize>,
+}
 
 /// Blend modes for layer compositing
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -248,6 +257,12 @@ impl<'a> LayerStack<'a> {
         let opacity_width = if self.compact { 40.0 } else { 60.0 };
         let blend_width = if self.show_blend_modes { 45.0 } else { 0.0 };
 
+        // Drag state management
+        let drag_id = Id::new("layer_stack_drag");
+        let mut drag_state: LayerDragState = ui
+            .ctx()
+            .data_mut(|d| d.get_temp(drag_id).unwrap_or_default());
+
         // Header with controls
         if self.show_controls {
             ui.horizontal(|ui| {
@@ -271,6 +286,8 @@ impl<'a> LayerStack<'a> {
             rect: Rect,
             row_hovered: bool,
             row_clicked: bool,
+            row_drag_started: bool,
+            row_dragged: bool,
             vis_rect: Rect,
             vis_hovered: bool,
             vis_clicked: bool,
@@ -344,6 +361,8 @@ impl<'a> LayerStack<'a> {
                 rect,
                 row_hovered: response.hovered(),
                 row_clicked: response.clicked(),
+                row_drag_started: response.drag_started(),
+                row_dragged: response.dragged(),
                 vis_rect,
                 vis_hovered: vis_response.hovered(),
                 vis_clicked: vis_response.clicked(),
@@ -358,6 +377,43 @@ impl<'a> LayerStack<'a> {
                 opacity_dragged: opacity_response.dragged(),
                 opacity_drag_pos: opacity_response.interact_pointer_pos(),
             });
+        }
+
+        // Handle drag-to-reorder
+        let pointer_pos = ui.input(|i| i.pointer.hover_pos());
+        for info in &layer_infos {
+            // Start drag
+            if info.row_drag_started && drag_state.dragging.is_none() {
+                let layer = &self.layers[info.idx];
+                if !layer.locked {
+                    drag_state.dragging = Some(info.idx);
+                }
+            }
+
+            // Update drop target during drag
+            if drag_state.dragging.is_some() && info.row_hovered {
+                if let Some(pos) = pointer_pos {
+                    // Determine if we're in the top or bottom half
+                    let mid_y = info.rect.center().y;
+                    if pos.y < mid_y {
+                        drag_state.drop_target = Some(info.idx);
+                    } else {
+                        drag_state.drop_target = Some(info.idx + 1);
+                    }
+                }
+            }
+        }
+
+        // Complete drag on release
+        if !ui.input(|i| i.pointer.any_down()) {
+            if let (Some(from), Some(to)) = (drag_state.dragging, drag_state.drop_target) {
+                // Only emit if actually moved
+                if from != to && from + 1 != to {
+                    event = Some(LayerEvent::Reorder { from, to });
+                }
+            }
+            drag_state.dragging = None;
+            drag_state.drop_target = None;
         }
 
         // Second pass: draw everything
@@ -509,8 +565,51 @@ impl<'a> LayerStack<'a> {
                 );
             }
 
-            // Handle events
-            if event.is_none() {
+            // Drag overlay for dragged layer
+            if drag_state.dragging == Some(info.idx) {
+                painter.rect_filled(
+                    info.rect,
+                    theme.radius_sm,
+                    Color32::from_rgba_unmultiplied(
+                        theme.primary.r(),
+                        theme.primary.g(),
+                        theme.primary.b(),
+                        60,
+                    ),
+                );
+                painter.rect_stroke(
+                    info.rect,
+                    theme.radius_sm,
+                    Stroke::new(2.0, theme.primary),
+                    egui::StrokeKind::Inside,
+                );
+            }
+
+            // Drop indicator line
+            if let Some(drop_idx) = drag_state.drop_target {
+                if drop_idx == info.idx {
+                    // Draw line above this row
+                    painter.line_segment(
+                        [
+                            Pos2::new(info.rect.min.x, info.rect.min.y),
+                            Pos2::new(info.rect.max.x, info.rect.min.y),
+                        ],
+                        Stroke::new(3.0, theme.primary),
+                    );
+                } else if drop_idx == info.idx + 1 && info.idx == self.layers.len() - 1 {
+                    // Draw line below last row
+                    painter.line_segment(
+                        [
+                            Pos2::new(info.rect.min.x, info.rect.max.y),
+                            Pos2::new(info.rect.max.x, info.rect.max.y),
+                        ],
+                        Stroke::new(3.0, theme.primary),
+                    );
+                }
+            }
+
+            // Handle events (only if not dragging)
+            if event.is_none() && drag_state.dragging.is_none() {
                 if info.row_clicked {
                     event = Some(LayerEvent::Select(info.idx));
                 } else if info.vis_clicked {
@@ -530,6 +629,9 @@ impl<'a> LayerStack<'a> {
                 }
             }
         }
+
+        // Save drag state
+        ui.ctx().data_mut(|d| d.insert_temp(drag_id, drag_state));
 
         event
     }

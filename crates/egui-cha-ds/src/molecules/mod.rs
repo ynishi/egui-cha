@@ -72,6 +72,7 @@ mod toast;
 mod dock;
 #[cfg(feature = "snarl")]
 mod snarl;
+mod workspace;
 
 pub use card::Card;
 #[cfg(feature = "dock")]
@@ -93,4 +94,7 @@ pub use toast::{ToastContainer, ToastId, ToastPosition, ToastVariant};
 pub use snarl::{
     presets as node_presets, MenuAction, NodeGraph, NodeGraphArea, NodeGraphEvent,
     NodeGraphStyle, NodeId, InPin, InPinId, OutPin, OutPinId, PinInfo, Snarl, SnarlViewer,
+};
+pub use workspace::{
+    Edge, LayoutMode, SnapTarget, WorkspaceCanvas, WorkspaceEvent, WorkspacePane,
 };

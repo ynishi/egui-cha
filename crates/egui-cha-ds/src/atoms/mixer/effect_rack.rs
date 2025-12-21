@@ -15,8 +15,17 @@
 //! ```
 
 use crate::Theme;
-use egui::{Color32, Rect, Sense, Stroke, Ui, Vec2};
+use egui::{Color32, Id, Pos2, Rect, Sense, Stroke, Ui, Vec2};
 use egui_cha::ViewCtx;
+
+/// Drag state for reordering effects
+#[derive(Clone, Debug, Default)]
+struct EffectDragState {
+    /// Index of effect being dragged
+    dragging: Option<usize>,
+    /// Current drop target index
+    drop_target: Option<usize>,
+}
 
 /// Effect rack events
 #[derive(Clone, Debug, PartialEq)]
@@ -289,6 +298,12 @@ impl<'a> EffectRack<'a> {
         let spacing = theme.spacing_sm;
         let add_button_size = 32.0;
 
+        // Drag state management
+        let drag_id = Id::new("effect_rack_drag");
+        let mut drag_state: EffectDragState = ui
+            .ctx()
+            .data_mut(|d| d.get_temp(drag_id).unwrap_or_default());
+
         // Calculate total size
         let (total_width, total_height) = match self.orientation {
             RackOrientation::Vertical => {
@@ -319,6 +334,7 @@ impl<'a> EffectRack<'a> {
             is_selected: bool,
             is_hovered: bool,
             is_enabled: bool,
+            drag_started: bool,
             toggle_rect: Rect,
             toggle_hovered: bool,
             content_rect: Rect,
@@ -350,11 +366,12 @@ impl<'a> EffectRack<'a> {
                 ),
             };
 
-            let response = ui.allocate_rect(effect_rect, Sense::click());
+            let response = ui.allocate_rect(effect_rect, Sense::click_and_drag());
 
             let is_selected = self.selected == Some(idx);
             let is_hovered = response.hovered();
             let is_enabled = effect.enabled && !effect.bypassed;
+            let drag_started = response.drag_started() && self.draggable;
 
             let bg_color = if is_selected {
                 theme.bg_tertiary
@@ -417,6 +434,7 @@ impl<'a> EffectRack<'a> {
                 is_selected,
                 is_hovered,
                 is_enabled,
+                drag_started,
                 toggle_rect,
                 toggle_hovered: toggle_response.hovered(),
                 content_rect,
@@ -426,6 +444,51 @@ impl<'a> EffectRack<'a> {
                 name_color,
                 effect_idx: idx,
             });
+        }
+
+        // Handle drag-to-reorder
+        let pointer_pos = ui.input(|i| i.pointer.hover_pos());
+        for info in &effect_infos {
+            // Start drag
+            if info.drag_started && drag_state.dragging.is_none() {
+                drag_state.dragging = Some(info.effect_idx);
+            }
+
+            // Update drop target during drag
+            if drag_state.dragging.is_some() && info.is_hovered {
+                if let Some(pos) = pointer_pos {
+                    match self.orientation {
+                        RackOrientation::Vertical => {
+                            let mid_y = info.effect_rect.center().y;
+                            if pos.y < mid_y {
+                                drag_state.drop_target = Some(info.effect_idx);
+                            } else {
+                                drag_state.drop_target = Some(info.effect_idx + 1);
+                            }
+                        }
+                        RackOrientation::Horizontal => {
+                            let mid_x = info.effect_rect.center().x;
+                            if pos.x < mid_x {
+                                drag_state.drop_target = Some(info.effect_idx);
+                            } else {
+                                drag_state.drop_target = Some(info.effect_idx + 1);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Complete drag on release
+        if !ui.input(|i| i.pointer.any_down()) {
+            if let (Some(from), Some(to)) = (drag_state.dragging, drag_state.drop_target) {
+                // Only emit if actually moved
+                if from != to && from + 1 != to {
+                    event = Some(RackEvent::Reorder(from, to));
+                }
+            }
+            drag_state.dragging = None;
+            drag_state.drop_target = None;
         }
 
         // Add button interaction
@@ -617,6 +680,62 @@ impl<'a> EffectRack<'a> {
                     egui::StrokeKind::Inside,
                 );
             }
+
+            // Drag overlay for dragged effect
+            if drag_state.dragging == Some(info.effect_idx) {
+                painter.rect_filled(
+                    info.effect_rect,
+                    theme.radius_sm,
+                    Color32::from_rgba_unmultiplied(
+                        theme.primary.r(),
+                        theme.primary.g(),
+                        theme.primary.b(),
+                        60,
+                    ),
+                );
+                painter.rect_stroke(
+                    info.effect_rect,
+                    theme.radius_sm,
+                    Stroke::new(2.0, theme.primary),
+                    egui::StrokeKind::Inside,
+                );
+            }
+
+            // Drop indicator line
+            if let Some(drop_idx) = drag_state.drop_target {
+                let draw_line = |start: Pos2, end: Pos2| {
+                    painter.line_segment([start, end], Stroke::new(3.0, theme.primary));
+                };
+
+                match self.orientation {
+                    RackOrientation::Vertical => {
+                        if drop_idx == info.effect_idx {
+                            draw_line(
+                                Pos2::new(info.effect_rect.min.x, info.effect_rect.min.y),
+                                Pos2::new(info.effect_rect.max.x, info.effect_rect.min.y),
+                            );
+                        } else if drop_idx == info.effect_idx + 1 && info.effect_idx == self.effects.len() - 1 {
+                            draw_line(
+                                Pos2::new(info.effect_rect.min.x, info.effect_rect.max.y),
+                                Pos2::new(info.effect_rect.max.x, info.effect_rect.max.y),
+                            );
+                        }
+                    }
+                    RackOrientation::Horizontal => {
+                        if drop_idx == info.effect_idx {
+                            draw_line(
+                                Pos2::new(info.effect_rect.min.x, info.effect_rect.min.y),
+                                Pos2::new(info.effect_rect.min.x, info.effect_rect.max.y),
+                            );
+                        } else if drop_idx == info.effect_idx + 1 && info.effect_idx == self.effects.len() - 1 {
+                            draw_line(
+                                Pos2::new(info.effect_rect.max.x, info.effect_rect.min.y),
+                                Pos2::new(info.effect_rect.max.x, info.effect_rect.max.y),
+                            );
+                        }
+                    }
+                }
+            }
         }
 
         // Draw add button
@@ -672,6 +791,9 @@ impl<'a> EffectRack<'a> {
             Stroke::new(theme.border_width, theme.border),
             egui::StrokeKind::Inside,
         );
+
+        // Save drag state
+        ui.ctx().data_mut(|d| d.insert_temp(drag_id, drag_state));
 
         event
     }
