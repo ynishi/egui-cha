@@ -10,6 +10,7 @@ use egui_cha_ds::{dock_layout, DockArea, DockEvent, DockTree};
 use egui_cha_ds::{
     NodeGraph, NodeGraphArea, NodeGraphEvent,
     NodeId, InPin, OutPin, PinInfo, Snarl, SnarlViewer,
+    NodeLayout, NodeLayoutArea, LayoutPane,
 };
 use egui_cha_ds::{ConfirmResult, ToastContainer, ToastId};
 use std::cell::RefCell;
@@ -179,6 +180,10 @@ struct Model {
     node_graph: RefCell<NodeGraph<DemoNode>>,
     #[cfg(feature = "snarl")]
     node_graph_last_event: Option<String>,
+
+    // NodeLayout demo
+    node_layout: RefCell<NodeLayout>,
+    node_layout_locked: bool,
 }
 
 /// Demo node type for NodeGraph showcase
@@ -452,6 +457,9 @@ enum Msg {
     #[cfg(feature = "snarl")]
     NodeGraphEvent(NodeGraphEvent<DemoNode>),
 
+    // NodeLayout
+    ToggleNodeLayoutLock,
+
     // === VJ/DAW Demo Messages ===
 
     // MIDI Keyboard
@@ -587,6 +595,7 @@ const MOLECULES: &[&str] = &[
     "Conditionals",
     "Dock",
     "NodeGraph",
+    "NodeLayout",
 ];
 
 const FRAMEWORK: &[&str] = &[
@@ -699,6 +708,23 @@ impl App for StorybookApp {
                     );
                     graph
                 }),
+                node_layout: RefCell::new({
+                    let mut layout = NodeLayout::new();
+                    layout.add_pane(
+                        LayoutPane::new("preview", "Preview").with_size(280.0, 180.0),
+                        egui::pos2(20.0, 20.0),
+                    );
+                    layout.add_pane(
+                        LayoutPane::new("effects", "Effects").with_size(200.0, 150.0),
+                        egui::pos2(320.0, 20.0),
+                    );
+                    layout.add_pane(
+                        LayoutPane::new("layers", "Layers").with_size(250.0, 120.0),
+                        egui::pos2(20.0, 220.0),
+                    );
+                    layout
+                }),
+                node_layout_locked: false,
                 ..Default::default()
             },
             Cmd::none(),
@@ -1103,6 +1129,10 @@ impl App for StorybookApp {
             #[cfg(feature = "snarl")]
             Msg::NodeGraphEvent(event) => {
                 model.node_graph_last_event = Some(format!("{:?}", event));
+            }
+
+            Msg::ToggleNodeLayoutLock => {
+                model.node_layout_locked = !model.node_layout_locked;
             }
 
             // === VJ/DAW Demo Messages ===
@@ -3964,6 +3994,141 @@ NodeGraphArea::new(&mut model.graph)
             ctx.ui.label("Node graph editor (requires 'snarl' feature)");
             ctx.ui.add_space(8.0);
             Code::new("cargo run --example storybook --features snarl").show(ctx.ui);
+        }
+
+        "NodeLayout" => {
+            ctx.ui.heading("NodeLayout");
+            ctx.ui.label("Infinite canvas pane layout with pan/zoom");
+            ctx.ui.add_space(8.0);
+
+            Code::new(r#"// Create layout with panes
+let mut layout = NodeLayout::new();
+layout.add_pane(
+    LayoutPane::new("preview", "Preview")
+        .with_size(300.0, 200.0),
+    pos2(20.0, 20.0),
+);
+
+// Show the layout
+NodeLayoutArea::new(&mut layout, |ui, pane| {
+    match pane.id.as_str() {
+        "preview" => ui.label("Preview content"),
+        _ => {}
+    }
+}).show(ui);"#).show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Interactive Demo:");
+            ctx.ui.label("Drag panes to move them on the infinite canvas. Pan/zoom supported.");
+            ctx.ui.add_space(8.0);
+
+            // Lock toggle (external control)
+            ctx.horizontal(|ctx| {
+                let lock_label = if model.node_layout_locked { "🔒 Locked" } else { "🔓 Unlocked" };
+                Button::new(lock_label).on_click(ctx, Msg::ToggleNodeLayoutLock);
+                ctx.ui.label(if model.node_layout_locked {
+                    "Panes cannot be moved"
+                } else {
+                    "Drag header to move panes"
+                });
+            });
+            ctx.ui.add_space(8.0);
+
+            // Use fixed-size area for node layout
+            let available = ctx.ui.available_size();
+            let layout_height = 350.0_f32.min(available.y - 50.0).max(200.0);
+
+            egui::Frame::default()
+                .stroke(egui::Stroke::new(1.0, ctx.ui.visuals().widgets.noninteractive.bg_stroke.color))
+                .inner_margin(4.0)
+                .show(ctx.ui, |ui| {
+                    ui.set_min_size(egui::vec2(available.x - 20.0, layout_height));
+
+                    let locked = model.node_layout_locked;
+                    NodeLayoutArea::new(&mut model.node_layout.borrow_mut(), |ui, pane| {
+                        // Render pane content based on id
+                        match pane.id.as_str() {
+                            "preview" => {
+                                ui.label("Preview Area");
+                                ui.add_space(4.0);
+                                // Placeholder for video
+                                let (rect, _) = ui.allocate_exact_size(
+                                    egui::vec2(260.0, 120.0),
+                                    egui::Sense::hover(),
+                                );
+                                ui.painter().rect_filled(
+                                    rect,
+                                    4.0,
+                                    egui::Color32::from_gray(40),
+                                );
+                                ui.painter().text(
+                                    rect.center(),
+                                    egui::Align2::CENTER_CENTER,
+                                    "Video Output",
+                                    egui::FontId::default(),
+                                    egui::Color32::GRAY,
+                                );
+                                ui.add_space(4.0);
+                                ui.horizontal(|ui| {
+                                    if ui.button("⏮").clicked() {}
+                                    if ui.button("▶").clicked() {}
+                                    if ui.button("⏭").clicked() {}
+                                });
+                            }
+                            "effects" => {
+                                ui.label("Effects Chain");
+                                ui.add_space(4.0);
+                                ui.horizontal(|ui| {
+                                    ui.checkbox(&mut true, "Blur");
+                                    ui.add(egui::Slider::new(&mut 0.5_f32, 0.0..=1.0).text(""));
+                                });
+                                ui.horizontal(|ui| {
+                                    ui.checkbox(&mut true, "Glow");
+                                    ui.add(egui::Slider::new(&mut 0.3_f32, 0.0..=1.0).text(""));
+                                });
+                                ui.horizontal(|ui| {
+                                    ui.checkbox(&mut false, "Distort");
+                                    ui.add(egui::Slider::new(&mut 0.0_f32, 0.0..=1.0).text(""));
+                                });
+                                ui.add_space(4.0);
+                                ui.horizontal(|ui| {
+                                    if ui.button("+ Add").clicked() {}
+                                    if ui.button("Reset").clicked() {}
+                                });
+                            }
+                            "layers" => {
+                                ui.label("Layer Stack");
+                                ui.add_space(4.0);
+                                for i in 1..=3 {
+                                    ui.horizontal(|ui| {
+                                        ui.checkbox(&mut true, "");
+                                        ui.label(format!("Layer {}", i));
+                                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                            ui.small_button("🗑");
+                                            ui.small_button("👁");
+                                        });
+                                    });
+                                }
+                                ui.add_space(4.0);
+                                if ui.button("+ New Layer").clicked() {}
+                            }
+                            _ => {
+                                ui.label(&pane.title);
+                            }
+                        }
+                    }).locked(locked).show(ui);
+                });
+
+            ctx.ui.add_space(16.0);
+
+            ctx.ui.strong("Features:");
+            ctx.ui.label("• Infinite canvas with pan/zoom (via egui Scene)");
+            ctx.ui.label("• Free-form pane positioning");
+            ctx.ui.label("• Lock mode to prevent changes");
+            ctx.ui.label("• Custom content via closure");
         }
 
         _ => {
