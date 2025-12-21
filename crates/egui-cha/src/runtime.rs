@@ -122,7 +122,7 @@ struct IntervalHandle {
 }
 
 /// Phosphor Icons font (embedded)
-const PHOSPHOR_FONT: &[u8] = include_bytes!("../../../assets/fonts/Phosphor.ttf");
+const PHOSPHOR_FONT: &[u8] = include_bytes!("../assets/fonts/Phosphor.ttf");
 
 impl<A: App> TeaRuntime<A> {
     fn new(cc: &eframe::CreationContext<'_>, repaint_mode: RepaintMode) -> Self {

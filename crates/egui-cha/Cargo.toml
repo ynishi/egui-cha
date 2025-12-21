@@ -13,7 +13,7 @@ include = [
     "src/**/*",
     "Cargo.toml",
     "README.md",
-    "../../assets/fonts/Phosphor.ttf",
+    "assets/fonts/Phosphor.ttf",
 ]
 
 [features]
