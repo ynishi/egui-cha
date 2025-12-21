@@ -9,6 +9,12 @@ repository.workspace = true
 homepage.workspace = true
 keywords.workspace = true
 categories.workspace = true
+include = [
+    "src/**/*",
+    "Cargo.toml",
+    "README.md",
+    "../../assets/fonts/Phosphor.ttf",
+]
 
 [features]
 default = []
