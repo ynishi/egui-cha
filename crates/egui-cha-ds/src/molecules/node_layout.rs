@@ -31,8 +31,8 @@
 use crate::atoms::icons;
 use crate::Theme;
 use egui::{
-    emath::TSTransform, Color32, CornerRadius, FontFamily, Pos2, Rect, RichText, Scene, Sense,
-    Stroke, Ui, Vec2,
+    emath::TSTransform, Color32, CornerRadius, FontFamily, Pos2, Rect, Scene, Sense, Stroke, Ui,
+    Vec2,
 };
 use std::collections::HashMap;
 
@@ -163,6 +163,22 @@ impl LockLevel {
     }
 }
 
+/// Strategy for auto-arranging panes
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ArrangeStrategy {
+    /// Just resolve overlaps with minimal movement
+    #[default]
+    ResolveOverlaps,
+    /// Arrange in a grid layout (like WorkspaceCanvas Tile mode)
+    Grid { columns: Option<usize> },
+    /// Cascade windows diagonally
+    Cascade,
+    /// Stack horizontally
+    Horizontal,
+    /// Stack vertically
+    Vertical,
+}
+
 /// Events emitted by NodeLayoutArea
 #[derive(Debug, Clone)]
 pub enum NodeLayoutEvent {
@@ -178,6 +194,17 @@ pub enum NodeLayoutEvent {
     PaneLockChanged { id: String, lock_level: LockLevel },
     /// Pane was closed
     PaneClosed(String),
+    /// Panes were auto-arranged
+    AutoArranged {
+        strategy: ArrangeStrategy,
+        moved_pane_ids: Vec<String>,
+    },
+    /// Canvas lock level changed (from menu bar)
+    CanvasLockChanged(LockLevel),
+    /// Zoom to fit all panes
+    ZoomToFit,
+    /// Reset zoom to 100%
+    ZoomReset,
 }
 
 /// Resize direction
@@ -291,6 +318,202 @@ impl NodeLayout {
     pub fn panes_mut(&mut self) -> impl Iterator<Item = &mut LayoutPane> {
         self.panes.iter_mut()
     }
+
+    /// Check if any panes are overlapping (considering gap)
+    pub fn has_overlaps(&self, gap: f32) -> bool {
+        let rects: Vec<Rect> = self
+            .panes
+            .iter()
+            .filter(|p| !p.collapsed && !p.maximized)
+            .map(|p| Rect::from_min_size(p.position, p.size))
+            .collect();
+        super::layout_helpers::has_overlaps(&rects, gap)
+    }
+
+    /// Resolve overlapping panes by pushing them apart.
+    ///
+    /// Returns the IDs of panes that were moved.
+    pub fn resolve_overlaps(&mut self, gap: f32) -> Vec<String> {
+        // Collect non-collapsed, non-maximized panes with their indices
+        let pane_data: Vec<(usize, Rect)> = self
+            .panes
+            .iter()
+            .enumerate()
+            .filter(|(_, p)| !p.collapsed && !p.maximized)
+            .map(|(i, p)| (i, Rect::from_min_size(p.position, p.size)))
+            .collect();
+
+        if pane_data.is_empty() {
+            return Vec::new();
+        }
+
+        let rects: Vec<Rect> = pane_data.iter().map(|(_, r)| *r).collect();
+        let result = super::layout_helpers::resolve_overlaps(&rects, gap, 100);
+
+        if !result.changed {
+            return Vec::new();
+        }
+
+        // Apply new positions
+        let mut moved_ids = Vec::new();
+        for (i, new_pos) in result.positions.iter().enumerate() {
+            let pane_idx = pane_data[i].0;
+            let pane = &mut self.panes[pane_idx];
+            if pane.position != *new_pos {
+                pane.position = *new_pos;
+                moved_ids.push(pane.id.clone());
+            }
+        }
+
+        moved_ids
+    }
+
+    /// Resolve overlaps while keeping panes close to their original positions.
+    ///
+    /// `anchor_strength` controls how strongly panes are pulled back (0.0 - 1.0).
+    /// Returns the IDs of panes that were moved.
+    pub fn resolve_overlaps_anchored(&mut self, gap: f32, anchor_strength: f32) -> Vec<String> {
+        let pane_data: Vec<(usize, Rect)> = self
+            .panes
+            .iter()
+            .enumerate()
+            .filter(|(_, p)| !p.collapsed && !p.maximized)
+            .map(|(i, p)| (i, Rect::from_min_size(p.position, p.size)))
+            .collect();
+
+        if pane_data.is_empty() {
+            return Vec::new();
+        }
+
+        let rects: Vec<Rect> = pane_data.iter().map(|(_, r)| *r).collect();
+        let result = super::layout_helpers::resolve_overlaps_with_anchors(&rects, gap, anchor_strength, 100);
+
+        if !result.changed {
+            return Vec::new();
+        }
+
+        let mut moved_ids = Vec::new();
+        for (i, new_pos) in result.positions.iter().enumerate() {
+            let pane_idx = pane_data[i].0;
+            let pane = &mut self.panes[pane_idx];
+            if pane.position != *new_pos {
+                pane.position = *new_pos;
+                moved_ids.push(pane.id.clone());
+            }
+        }
+
+        moved_ids
+    }
+
+    /// Count overlapping pane pairs
+    pub fn count_overlaps(&self, gap: f32) -> usize {
+        let rects: Vec<Rect> = self
+            .panes
+            .iter()
+            .filter(|p| !p.collapsed && !p.maximized)
+            .map(|p| Rect::from_min_size(p.position, p.size))
+            .collect();
+        super::layout_helpers::count_overlaps(&rects, gap)
+    }
+
+    /// Auto-arrange panes using the specified strategy.
+    ///
+    /// # Arguments
+    /// * `strategy` - The arrangement strategy to use
+    /// * `gap` - Gap between panes
+    /// * `origin` - Optional origin point (defaults to current bounding box min or (0,0))
+    ///
+    /// # Returns
+    /// IDs of panes that were moved
+    pub fn auto_arrange(
+        &mut self,
+        strategy: ArrangeStrategy,
+        gap: f32,
+        origin: Option<Pos2>,
+    ) -> Vec<String> {
+        use super::layout_helpers;
+
+        // For Cascade, sort panes by ID first to ensure consistent Z-order
+        if matches!(strategy, ArrangeStrategy::Cascade) {
+            // Sort panes by ID (this also updates Z-order since panes order = draw order)
+            self.panes.sort_by(|a, b| a.id.cmp(&b.id));
+            // Rebuild index map
+            self.id_to_index.clear();
+            for (i, p) in self.panes.iter().enumerate() {
+                self.id_to_index.insert(p.id.clone(), i);
+            }
+        }
+
+        // Collect non-collapsed, non-maximized panes
+        let pane_data: Vec<(usize, Rect)> = self
+            .panes
+            .iter()
+            .enumerate()
+            .filter(|(_, p)| !p.collapsed && !p.maximized)
+            .map(|(i, p)| (i, Rect::from_min_size(p.position, p.size)))
+            .collect();
+
+        if pane_data.is_empty() {
+            return Vec::new();
+        }
+
+        let rects: Vec<Rect> = pane_data.iter().map(|(_, r)| *r).collect();
+
+        // Determine origin
+        let origin = origin.unwrap_or_else(|| {
+            layout_helpers::bounding_box(&rects)
+                .map(|b| b.min)
+                .unwrap_or(Pos2::ZERO)
+        });
+
+        // Apply the appropriate arrangement
+        let result = match strategy {
+            ArrangeStrategy::ResolveOverlaps => {
+                layout_helpers::resolve_overlaps(&rects, gap, 100).into()
+            }
+            ArrangeStrategy::Grid { columns } => {
+                layout_helpers::arrange_grid_proportional(&rects, columns, origin, gap)
+            }
+            ArrangeStrategy::Cascade => {
+                let offset = Vec2::new(30.0, 30.0);
+                layout_helpers::arrange_cascade(&rects, origin, offset)
+            }
+            ArrangeStrategy::Horizontal => {
+                layout_helpers::arrange_horizontal(&rects, origin, gap, false)
+            }
+            ArrangeStrategy::Vertical => {
+                layout_helpers::arrange_vertical(&rects, origin, gap, false)
+            }
+        };
+
+        if !result.changed {
+            return Vec::new();
+        }
+
+        // Apply new positions
+        let mut moved_ids = Vec::new();
+        for (i, new_pos) in result.positions.iter().enumerate() {
+            let pane_idx = pane_data[i].0;
+            let pane = &mut self.panes[pane_idx];
+            if pane.position != *new_pos {
+                pane.position = *new_pos;
+                moved_ids.push(pane.id.clone());
+            }
+        }
+
+        moved_ids
+    }
+
+    /// Get the bounding box of all visible panes
+    pub fn bounding_box(&self) -> Option<Rect> {
+        let rects: Vec<Rect> = self
+            .panes
+            .iter()
+            .filter(|p| !p.collapsed && !p.maximized)
+            .map(|p| Rect::from_min_size(p.position, p.size))
+            .collect();
+        super::layout_helpers::bounding_box(&rects)
+    }
 }
 
 /// Node layout area widget
@@ -304,6 +527,10 @@ pub struct NodeLayoutArea<'a, F> {
     grid_alpha: u8,
     min_scale: f32,
     max_scale: f32,
+    /// Whether to show the menu bar
+    show_menu_bar: bool,
+    /// Menu bar height
+    menu_bar_height: f32,
 }
 
 impl<'a, F> NodeLayoutArea<'a, F>
@@ -322,7 +549,21 @@ where
             grid_alpha: 30,
             min_scale: 0.25,
             max_scale: 2.0,
+            show_menu_bar: false,
+            menu_bar_height: 28.0,
         }
+    }
+
+    /// Show/hide the menu bar
+    pub fn show_menu_bar(mut self, show: bool) -> Self {
+        self.show_menu_bar = show;
+        self
+    }
+
+    /// Set menu bar height
+    pub fn menu_bar_height(mut self, height: f32) -> Self {
+        self.menu_bar_height = height;
+        self
     }
 
     /// Set lock level (controls what operations are allowed)
@@ -374,7 +615,30 @@ where
         let mut events = Vec::new();
 
         // Get available rect
-        let (rect, response) = ui.allocate_exact_size(ui.available_size(), Sense::hover());
+        let full_rect = ui.available_rect_before_wrap();
+
+        // Calculate menu bar and canvas rects
+        let (menu_rect, canvas_rect) = if self.show_menu_bar {
+            let menu_rect = Rect::from_min_size(
+                full_rect.min,
+                Vec2::new(full_rect.width(), self.menu_bar_height),
+            );
+            let canvas_rect = Rect::from_min_max(
+                Pos2::new(full_rect.min.x, full_rect.min.y + self.menu_bar_height),
+                full_rect.max,
+            );
+            (Some(menu_rect), canvas_rect)
+        } else {
+            (None, full_rect)
+        };
+
+        // Draw menu bar FIRST (before allocating canvas) so it can receive input
+        if let Some(menu_rect) = menu_rect {
+            self.draw_menu_bar(ui, menu_rect, &theme, &mut events);
+        }
+
+        // Use canvas_rect for the rest
+        let rect = canvas_rect;
 
         // Load state
         let state_id = ui.id().with("node_layout_state");
@@ -395,10 +659,43 @@ where
         // Handle pan/zoom (only if canvas allows move/resize)
         let mut to_screen = state.to_screen;
         if self.lock_level.allows_move_resize() {
-            let mut scene_response = response.clone();
+            // Create a response for the canvas area only
+            let canvas_response = ui.allocate_rect(rect, Sense::drag());
+            let mut scene_response = canvas_response;
             Scene::new()
                 .zoom_range(self.min_scale..=self.max_scale)
                 .register_pan_and_zoom(ui, &mut scene_response, &mut to_screen);
+        }
+
+        // Handle zoom events from menu bar
+        for event in &events {
+            match event {
+                NodeLayoutEvent::ZoomToFit => {
+                    if let Some(bounds) = self.layout.bounding_box() {
+                        // Add margin around the bounding box
+                        let margin = 20.0;
+                        let bounds = bounds.expand(margin);
+
+                        // Calculate scale to fit bounds in canvas
+                        let scale_x = rect.width() / bounds.width();
+                        let scale_y = rect.height() / bounds.height();
+                        let scale = scale_x.min(scale_y).clamp(self.min_scale, self.max_scale);
+
+                        // Calculate translation to center the bounds
+                        let bounds_center = bounds.center();
+                        let rect_center = rect.center();
+
+                        to_screen = TSTransform::from_translation(
+                            rect_center.to_vec2() - bounds_center.to_vec2() * scale,
+                        ) * TSTransform::from_scaling(scale);
+                    }
+                }
+                NodeLayoutEvent::ZoomReset => {
+                    // Reset to 100% zoom, keeping content at origin
+                    to_screen = TSTransform::from_translation(rect.min.to_vec2());
+                }
+                _ => {}
+            }
         }
 
         let from_screen = to_screen.inverse();
@@ -990,6 +1287,154 @@ where
                 state.draw_order.push(pane.id.clone());
             }
         }
+    }
+
+    /// Draw the menu bar
+    fn draw_menu_bar(
+        &mut self,
+        ui: &mut Ui,
+        rect: Rect,
+        theme: &Theme,
+        events: &mut Vec<NodeLayoutEvent>,
+    ) {
+        use crate::atoms::icons;
+
+        // Draw background
+        let painter = ui.painter_at(rect);
+        painter.rect_filled(rect, 0.0, theme.bg_primary);
+        painter.hline(
+            rect.x_range(),
+            rect.max.y,
+            egui::Stroke::new(1.0, theme.border),
+        );
+
+        // Inset rect for better vertical centering
+        let inner_rect = rect.shrink2(Vec2::new(theme.spacing_sm, 2.0));
+
+        // Use allocate_ui_at_rect to properly handle input
+        ui.allocate_ui_at_rect(inner_rect, |child_ui| {
+            child_ui.horizontal_centered(|child_ui| {
+                child_ui.style_mut().spacing.item_spacing = Vec2::new(4.0, 0.0);
+
+        // Helper to create icon text
+        let icon_text = |icon: &str| -> egui::RichText {
+            egui::RichText::new(icon).family(FontFamily::Name("icons".into()))
+        };
+
+        // Lock button with Phosphor icon
+        let (lock_icon, lock_tooltip) = match self.lock_level {
+            LockLevel::None => (icons::LOCK_OPEN, "Unlocked - Click to lock position"),
+            LockLevel::Light => (icons::LOCK_KEY, "Position locked - Click to fully lock"),
+            LockLevel::Full => (icons::LOCK, "Fully locked - Click to unlock"),
+        };
+
+        if child_ui
+            .add(egui::Button::new(icon_text(lock_icon)).min_size(Vec2::new(24.0, 20.0)))
+            .on_hover_text(lock_tooltip)
+            .clicked()
+        {
+            let new_level = match self.lock_level {
+                LockLevel::None => LockLevel::Light,
+                LockLevel::Light => LockLevel::Full,
+                LockLevel::Full => LockLevel::None,
+            };
+            self.lock_level = new_level;
+            events.push(NodeLayoutEvent::CanvasLockChanged(new_level));
+        }
+
+        child_ui.separator();
+
+        // Arrange dropdown with Phosphor icon
+        let gap = super::layout_helpers::DEFAULT_GAP;
+
+        child_ui.menu_button(icon_text(icons::SLIDERS_HORIZONTAL), |ui| {
+            use crate::atoms::ListItem;
+
+            if ListItem::new("Grid").icon(icons::GRID_FOUR).compact().show(ui).clicked() {
+                let moved = self.layout.auto_arrange(ArrangeStrategy::Grid { columns: None }, gap, None);
+                if !moved.is_empty() {
+                    events.push(NodeLayoutEvent::AutoArranged {
+                        strategy: ArrangeStrategy::Grid { columns: None },
+                        moved_pane_ids: moved,
+                    });
+                }
+                ui.close();
+            }
+            if ListItem::new("Horizontal").icon(icons::ARROWS_OUT_LINE_HORIZONTAL).compact().show(ui).clicked() {
+                let moved = self.layout.auto_arrange(ArrangeStrategy::Horizontal, gap, None);
+                if !moved.is_empty() {
+                    events.push(NodeLayoutEvent::AutoArranged {
+                        strategy: ArrangeStrategy::Horizontal,
+                        moved_pane_ids: moved,
+                    });
+                }
+                ui.close();
+            }
+            if ListItem::new("Vertical").icon(icons::ARROWS_OUT_LINE_VERTICAL).compact().show(ui).clicked() {
+                let moved = self.layout.auto_arrange(ArrangeStrategy::Vertical, gap, None);
+                if !moved.is_empty() {
+                    events.push(NodeLayoutEvent::AutoArranged {
+                        strategy: ArrangeStrategy::Vertical,
+                        moved_pane_ids: moved,
+                    });
+                }
+                ui.close();
+            }
+            if ListItem::new("Cascade").icon(icons::SQUARES_FOUR).compact().show(ui).clicked() {
+                let moved = self.layout.auto_arrange(ArrangeStrategy::Cascade, gap, None);
+                if !moved.is_empty() {
+                    events.push(NodeLayoutEvent::AutoArranged {
+                        strategy: ArrangeStrategy::Cascade,
+                        moved_pane_ids: moved,
+                    });
+                }
+                ui.close();
+            }
+            ui.separator();
+            if ListItem::new("Resolve Overlaps").icon(icons::BROOM).compact().show(ui).clicked() {
+                let moved = self.layout.auto_arrange(ArrangeStrategy::ResolveOverlaps, gap, None);
+                if !moved.is_empty() {
+                    events.push(NodeLayoutEvent::AutoArranged {
+                        strategy: ArrangeStrategy::ResolveOverlaps,
+                        moved_pane_ids: moved,
+                    });
+                }
+                ui.close();
+            }
+        });
+
+        child_ui.separator();
+
+        // Zoom buttons with Phosphor icons
+        if child_ui
+            .add(egui::Button::new(icon_text(icons::FRAME_CORNERS)).min_size(Vec2::new(28.0, 20.0)))
+            .on_hover_text("Zoom to fit all panes")
+            .clicked()
+        {
+            events.push(NodeLayoutEvent::ZoomToFit);
+        }
+
+        if child_ui
+            .add(egui::Button::new("100%").min_size(Vec2::new(40.0, 20.0)))
+            .on_hover_text("Reset zoom to 100%")
+            .clicked()
+        {
+            events.push(NodeLayoutEvent::ZoomReset);
+        }
+
+                // Show pane count on the right
+                child_ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    ui.add_space(theme.spacing_sm);
+                    let visible_count = self.layout.panes.iter().filter(|p| !p.collapsed).count();
+                    let total_count = self.layout.panes.len();
+                    ui.label(
+                        egui::RichText::new(format!("{}/{} panes", visible_count, total_count))
+                            .color(theme.text_secondary)
+                            .small(),
+                    );
+                });
+            }); // end horizontal_centered
+        }); // end allocate_ui_at_rect
     }
 
     fn draw_grid_screen(

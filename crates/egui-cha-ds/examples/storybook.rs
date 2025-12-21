@@ -184,6 +184,7 @@ struct Model {
     // NodeLayout demo
     node_layout: RefCell<NodeLayout>,
     node_layout_lock_level: egui_cha_ds::LockLevel,
+    node_layout_show_menu_bar: bool,
 }
 
 /// Demo node type for NodeGraph showcase
@@ -459,6 +460,8 @@ enum Msg {
 
     // NodeLayout
     ToggleNodeLayoutLock,
+    SetNodeLayoutLock(egui_cha_ds::LockLevel),
+    ToggleNodeLayoutMenuBar,
 
     // === VJ/DAW Demo Messages ===
 
@@ -734,6 +737,7 @@ impl App for StorybookApp {
                     layout
                 }),
                 node_layout_lock_level: egui_cha_ds::LockLevel::None,
+                node_layout_show_menu_bar: true,
                 ..Default::default()
             },
             Cmd::none(),
@@ -1142,6 +1146,14 @@ impl App for StorybookApp {
 
             Msg::ToggleNodeLayoutLock => {
                 model.node_layout_lock_level = model.node_layout_lock_level.cycle();
+            }
+
+            Msg::SetNodeLayoutLock(level) => {
+                model.node_layout_lock_level = level;
+            }
+
+            Msg::ToggleNodeLayoutMenuBar => {
+                model.node_layout_show_menu_bar = !model.node_layout_show_menu_bar;
             }
 
             // === VJ/DAW Demo Messages ===
@@ -4034,21 +4046,20 @@ NodeLayoutArea::new(&mut layout, |ui, pane| {
             ctx.ui.label("Drag panes to move them on the infinite canvas. Pan/zoom supported.");
             ctx.ui.add_space(8.0);
 
-            // Lock level toggle (external control)
+            // Menu bar toggle
             ctx.horizontal(|ctx| {
-                let (lock_label, lock_desc) = match model.node_layout_lock_level {
-                    egui_cha_ds::LockLevel::None => ("🔓 None", "All operations allowed"),
-                    egui_cha_ds::LockLevel::Light => ("🔒 Light", "No move/resize, controls work"),
-                    egui_cha_ds::LockLevel::Full => ("🔒 Full", "All operations disabled"),
-                };
-                Button::new(lock_label).on_click(ctx, Msg::ToggleNodeLayoutLock);
-                ctx.ui.label(lock_desc);
+                let menu_label = if model.node_layout_show_menu_bar { "☑ Show Menu Bar" } else { "☐ Show Menu Bar" };
+                Button::new(menu_label).on_click(ctx, Msg::ToggleNodeLayoutMenuBar);
+                ctx.ui.label("(Lock and Arrange controls are in the menu bar)");
             });
             ctx.ui.add_space(8.0);
 
             // Use fixed-size area for node layout
             let available = ctx.ui.available_size();
             let layout_height = 350.0_f32.min(available.y - 50.0).max(200.0);
+
+            // Capture lock change events from menu bar
+            let lock_event: std::cell::Cell<Option<egui_cha_ds::LockLevel>> = std::cell::Cell::new(None);
 
             egui::Frame::default()
                 .stroke(egui::Stroke::new(1.0, ctx.ui.visuals().widgets.noninteractive.bg_stroke.color))
@@ -4057,7 +4068,8 @@ NodeLayoutArea::new(&mut layout, |ui, pane| {
                     ui.set_min_size(egui::vec2(available.x - 20.0, layout_height));
 
                     let lock_level = model.node_layout_lock_level;
-                    NodeLayoutArea::new(&mut model.node_layout.borrow_mut(), |ui, pane| {
+                    let mut binding = model.node_layout.borrow_mut();
+                    let events = NodeLayoutArea::new(&mut binding, |ui, pane| {
                         // Render pane content based on id
                         match pane.id.as_str() {
                             "preview" => {
@@ -4128,8 +4140,23 @@ NodeLayoutArea::new(&mut layout, |ui, pane| {
                                 ui.label(&pane.title);
                             }
                         }
-                    }).lock_level(lock_level).show(ui);
+                    })
+                    .lock_level(lock_level)
+                    .show_menu_bar(model.node_layout_show_menu_bar)
+                    .show(ui);
+
+                    // Capture lock change events for processing outside closure
+                    for event in events {
+                        if let egui_cha_ds::NodeLayoutEvent::CanvasLockChanged(new_level) = event {
+                            lock_event.set(Some(new_level));
+                        }
+                    }
                 });
+
+            // Handle captured lock event via Elm architecture
+            if let Some(new_level) = lock_event.get() {
+                ctx.emit(Msg::SetNodeLayoutLock(new_level));
+            }
 
             ctx.ui.add_space(16.0);
 
