@@ -67,6 +67,8 @@ pub struct WorkspacePane {
     pub minimized: bool,
     /// Order in the layout (for Tile mode)
     pub order: usize,
+    /// Weight for proportional sizing in Tile mode (default: 1.0)
+    pub weight: f32,
 }
 
 impl WorkspacePane {
@@ -81,6 +83,7 @@ impl WorkspacePane {
             visible: true,
             minimized: false,
             order: 0,
+            weight: 1.0,
         }
     }
 
@@ -113,6 +116,12 @@ impl WorkspacePane {
         self.visible = visible;
         self
     }
+
+    /// Set weight for proportional sizing (default: 1.0)
+    pub fn with_weight(mut self, weight: f32) -> Self {
+        self.weight = weight.max(0.1); // Minimum weight to prevent zero-size
+        self
+    }
 }
 
 /// Events emitted by WorkspaceCanvas
@@ -128,6 +137,8 @@ pub enum WorkspaceEvent {
     PaneMinimized { id: String, minimized: bool },
     /// Pane order changed (drag reorder in Tile mode)
     PaneReordered { from: usize, to: usize },
+    /// Pane weights changed (divider drag in Tile mode)
+    WeightsChanged(Vec<(String, f32)>),
     /// Layout mode changed
     LayoutChanged(LayoutMode),
     /// Lock state changed
@@ -154,19 +165,49 @@ pub enum Edge {
     Bottom,
 }
 
+/// Divider info for tile resize
+#[derive(Clone, Debug)]
+struct DividerInfo {
+    /// Divider orientation (true = vertical, false = horizontal)
+    is_vertical: bool,
+    /// Position of the divider line
+    position: f32,
+    /// Pane orders on either side (left/top, right/bottom)
+    panes: (Vec<usize>, Vec<usize>),
+    /// Divider rect for hit testing
+    rect: Rect,
+}
+
 /// Internal state for drag operations
 #[derive(Clone, Debug, Default)]
 struct DragState {
     /// Currently dragging pane ID
     dragging: Option<String>,
-    /// Drag start position
-    drag_start: Option<Pos2>,
-    /// Original pane position at drag start
+    /// Original pane position at drag start (Free mode)
     original_pos: Option<Pos2>,
     /// Current snap target (for visual feedback)
     snap_target: Option<SnapTarget>,
     /// Resizing pane ID and edge
     resizing: Option<(String, ResizeEdge)>,
+    /// Tile reorder: source pane order
+    tile_drag_source: Option<usize>,
+    /// Tile reorder: current drop target order (for highlight)
+    tile_drop_target: Option<usize>,
+    /// Divider drag: which divider is being dragged
+    divider_drag: Option<DividerDrag>,
+}
+
+/// State for divider dragging
+#[derive(Clone, Debug)]
+struct DividerDrag {
+    /// Is this a vertical divider (resize columns)?
+    is_vertical: bool,
+    /// Column or row index of the divider
+    index: usize,
+    /// Starting position of the drag
+    start_pos: f32,
+    /// Original weights of affected panes
+    original_weights: Vec<(usize, f32)>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -331,6 +372,10 @@ impl<'a> WorkspaceCanvas<'a> {
         visible_panes.sort_by_key(|(_, p)| p.order);
 
         // Calculate layout based on mode
+        let columns = match self.layout_mode {
+            LayoutMode::Tile { columns } => columns,
+            LayoutMode::Free => None,
+        };
         let pane_rects: Vec<(usize, Rect)> = match self.layout_mode {
             LayoutMode::Tile { columns } => {
                 self.calculate_tile_layout(&visible_panes, rect, columns)
@@ -340,6 +385,85 @@ impl<'a> WorkspaceCanvas<'a> {
                 .map(|(idx, pane)| (*idx, Rect::from_min_size(pane.position, pane.size)))
                 .collect(),
         };
+
+        // Calculate dividers for Tile mode
+        let dividers = if matches!(self.layout_mode, LayoutMode::Tile { .. }) && !self.locked {
+            self.calculate_dividers(&visible_panes, rect, columns)
+        } else {
+            Vec::new()
+        };
+
+        // Handle divider interactions
+        if !self.locked && !dividers.is_empty() {
+            let pointer_pos = ui.input(|i| i.pointer.hover_pos());
+
+            // Check for divider hover and start drag
+            if let Some(pos) = pointer_pos {
+                for (div_idx, divider) in dividers.iter().enumerate() {
+                    if divider.rect.contains(pos) {
+                        // Set cursor
+                        if divider.is_vertical {
+                            ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeHorizontal);
+                        } else {
+                            ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeVertical);
+                        }
+
+                        // Start drag
+                        if ui.input(|i| i.pointer.any_pressed()) && drag_state.divider_drag.is_none() {
+                            let original_weights: Vec<(usize, f32)> = self
+                                .panes
+                                .iter()
+                                .map(|p| (p.order, p.weight))
+                                .collect();
+                            drag_state.divider_drag = Some(DividerDrag {
+                                is_vertical: divider.is_vertical,
+                                index: div_idx,
+                                start_pos: if divider.is_vertical { pos.x } else { pos.y },
+                                original_weights,
+                            });
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // Handle ongoing divider drag
+            if let Some(ref drag) = drag_state.divider_drag {
+                if let Some(pos) = pointer_pos {
+                    let divider = &dividers[drag.index.min(dividers.len().saturating_sub(1))];
+                    let delta = if drag.is_vertical {
+                        pos.x - drag.start_pos
+                    } else {
+                        pos.y - drag.start_pos
+                    };
+
+                    // Calculate weight changes
+                    let sensitivity = 0.005; // Weight change per pixel
+                    let weight_delta = delta * sensitivity;
+
+                    let mut new_weights: Vec<(String, f32)> = Vec::new();
+                    for (order, orig_weight) in &drag.original_weights {
+                        let pane = self.panes.iter().find(|p| p.order == *order);
+                        if let Some(pane) = pane {
+                            let is_left = divider.panes.0.contains(order);
+                            let is_right = divider.panes.1.contains(order);
+                            let new_weight = if is_left {
+                                (*orig_weight + weight_delta).max(0.2)
+                            } else if is_right {
+                                (*orig_weight - weight_delta).max(0.2)
+                            } else {
+                                *orig_weight
+                            };
+                            new_weights.push((pane.id.clone(), new_weight));
+                        }
+                    }
+
+                    if !new_weights.is_empty() {
+                        events.push(WorkspaceEvent::WeightsChanged(new_weights));
+                    }
+                }
+            }
+        }
 
         // Collect interaction info
         let mut interactions: Vec<PaneInteraction> = Vec::new();
@@ -420,7 +544,32 @@ impl<'a> WorkspaceCanvas<'a> {
                 });
             }
 
-            // Handle drag (Free mode)
+            // Handle drag (Tile mode - reorder)
+            if interaction.title_dragged && matches!(self.layout_mode, LayoutMode::Tile { .. }) {
+                // Start drag
+                if drag_state.tile_drag_source.is_none() {
+                    drag_state.dragging = Some(pane.id.clone());
+                    drag_state.tile_drag_source = Some(pane.order);
+                }
+
+                // Find drop target (which pane is the pointer over?)
+                if drag_state.dragging.as_ref() == Some(&pane.id) {
+                    let pointer_pos = ui.input(|i| i.pointer.hover_pos());
+                    if let Some(pos) = pointer_pos {
+                        // Find which pane rect contains the pointer
+                        let mut new_target = None;
+                        for other in &interactions {
+                            if other.idx != interaction.idx && other.rect.contains(pos) {
+                                new_target = Some(self.panes[other.idx].order);
+                                break;
+                            }
+                        }
+                        drag_state.tile_drop_target = new_target;
+                    }
+                }
+            }
+
+            // Handle drag (Free mode - position)
             if interaction.title_dragged && matches!(self.layout_mode, LayoutMode::Free) {
                 if drag_state.dragging.is_none() {
                     drag_state.dragging = Some(pane.id.clone());
@@ -484,16 +633,60 @@ impl<'a> WorkspaceCanvas<'a> {
             );
         }
 
+        // Draw dividers (Tile mode only)
+        if !self.locked {
+            for divider in &dividers {
+                let is_active = drag_state.divider_drag.as_ref().map_or(false, |d| {
+                    d.is_vertical == divider.is_vertical
+                });
+                let divider_color = if is_active {
+                    theme.primary
+                } else {
+                    theme.border.gamma_multiply(0.5)
+                };
+
+                // Draw divider line (subtle)
+                if divider.is_vertical {
+                    painter.line_segment(
+                        [
+                            Pos2::new(divider.position, divider.rect.min.y + self.gap),
+                            Pos2::new(divider.position, divider.rect.max.y - self.gap),
+                        ],
+                        Stroke::new(2.0, divider_color),
+                    );
+                } else {
+                    painter.line_segment(
+                        [
+                            Pos2::new(divider.rect.min.x + self.gap, divider.position),
+                            Pos2::new(divider.rect.max.x - self.gap, divider.position),
+                        ],
+                        Stroke::new(2.0, divider_color),
+                    );
+                }
+            }
+        }
+
         // Draw snap guides
         if let Some(ref target) = drag_state.snap_target {
             self.draw_snap_guide(painter, target, rect, &theme);
         }
 
-        // Clear drag state if not dragging
+        // Handle drag end (mouse released)
         if !ui.input(|i| i.pointer.any_down()) {
+            // Tile reorder: emit event if we have a valid drop target
+            if let (Some(from), Some(to)) = (drag_state.tile_drag_source, drag_state.tile_drop_target) {
+                if from != to {
+                    events.push(WorkspaceEvent::PaneReordered { from, to });
+                }
+            }
+
+            // Clear drag state
             drag_state.dragging = None;
             drag_state.snap_target = None;
             drag_state.resizing = None;
+            drag_state.tile_drag_source = None;
+            drag_state.tile_drop_target = None;
+            drag_state.divider_drag = None;
         }
 
         // Save drag state
@@ -531,11 +724,47 @@ impl<'a> WorkspaceCanvas<'a> {
 
         let rows = (count + cols - 1) / cols;
 
+        // Calculate column weights (use max weight of panes in each column)
+        let mut col_weights = vec![0.0f32; cols];
+        for (i, (_, pane)) in visible_panes.iter().enumerate() {
+            let col = i % cols;
+            col_weights[col] = col_weights[col].max(pane.weight);
+        }
+        let total_col_weight: f32 = col_weights.iter().sum();
+
+        // Calculate row weights (use max weight of panes in each row)
+        let mut row_weights = vec![0.0f32; rows];
+        for (i, (_, pane)) in visible_panes.iter().enumerate() {
+            let row = i / cols;
+            row_weights[row] = row_weights[row].max(pane.weight);
+        }
+        let total_row_weight: f32 = row_weights.iter().sum();
+
         let available_width = rect.width() - self.gap * (cols + 1) as f32;
         let available_height = rect.height() - self.gap * (rows + 1) as f32;
 
-        let cell_width = available_width / cols as f32;
-        let cell_height = available_height / rows as f32;
+        // Calculate column widths based on weights
+        let col_widths: Vec<f32> = col_weights
+            .iter()
+            .map(|w| available_width * (w / total_col_weight))
+            .collect();
+
+        // Calculate row heights based on weights
+        let row_heights: Vec<f32> = row_weights
+            .iter()
+            .map(|w| available_height * (w / total_row_weight))
+            .collect();
+
+        // Calculate cumulative positions
+        let mut col_positions = vec![rect.min.x + self.gap];
+        for (i, width) in col_widths.iter().enumerate() {
+            col_positions.push(col_positions[i] + width + self.gap);
+        }
+
+        let mut row_positions = vec![rect.min.y + self.gap];
+        for (i, height) in row_heights.iter().enumerate() {
+            row_positions.push(row_positions[i] + height + self.gap);
+        }
 
         visible_panes
             .iter()
@@ -544,12 +773,115 @@ impl<'a> WorkspaceCanvas<'a> {
                 let col = i % cols;
                 let row = i / cols;
 
-                let x = rect.min.x + self.gap + col as f32 * (cell_width + self.gap);
-                let y = rect.min.y + self.gap + row as f32 * (cell_height + self.gap);
+                let x = col_positions[col];
+                let y = row_positions[row];
+                let w = col_widths[col];
+                let h = row_heights[row];
 
-                (*pane_idx, Rect::from_min_size(Pos2::new(x, y), Vec2::new(cell_width, cell_height)))
+                (*pane_idx, Rect::from_min_size(Pos2::new(x, y), Vec2::new(w, h)))
             })
             .collect()
+    }
+
+    /// Calculate divider positions for tile layout
+    fn calculate_dividers(
+        &self,
+        visible_panes: &[(usize, &WorkspacePane)],
+        rect: Rect,
+        columns: Option<usize>,
+    ) -> Vec<DividerInfo> {
+        if visible_panes.len() <= 1 {
+            return Vec::new();
+        }
+
+        let count = visible_panes.len();
+        let cols = columns.unwrap_or_else(|| {
+            match count {
+                1 => 1,
+                2 => 2,
+                3..=4 => 2,
+                5..=6 => 3,
+                _ => ((count as f32).sqrt().ceil() as usize).max(2),
+            }
+        });
+
+        let rows = (count + cols - 1) / cols;
+        let mut dividers = Vec::new();
+
+        // Calculate current layout to get positions
+        let pane_rects = self.calculate_tile_layout(visible_panes, rect, columns);
+
+        // Vertical dividers (between columns)
+        for col in 0..cols.saturating_sub(1) {
+            // Get panes on either side
+            let left_panes: Vec<usize> = visible_panes
+                .iter()
+                .enumerate()
+                .filter(|(i, _)| i % cols == col)
+                .map(|(_, (_, p))| p.order)
+                .collect();
+            let right_panes: Vec<usize> = visible_panes
+                .iter()
+                .enumerate()
+                .filter(|(i, _)| i % cols == col + 1)
+                .map(|(_, (_, p))| p.order)
+                .collect();
+
+            if !left_panes.is_empty() && !right_panes.is_empty() {
+                // Find the x position of the divider (right edge of left column)
+                if let Some((_, left_rect)) = pane_rects.iter().find(|(idx, _)| {
+                    visible_panes.iter().position(|(i, _)| *i == *idx).map_or(false, |pos| pos % cols == col)
+                }) {
+                    let div_x = left_rect.max.x + self.gap / 2.0;
+                    let div_rect = Rect::from_min_max(
+                        Pos2::new(div_x - 4.0, rect.min.y),
+                        Pos2::new(div_x + 4.0, rect.max.y),
+                    );
+                    dividers.push(DividerInfo {
+                        is_vertical: true,
+                        position: div_x,
+                        panes: (left_panes, right_panes),
+                        rect: div_rect,
+                    });
+                }
+            }
+        }
+
+        // Horizontal dividers (between rows)
+        for row in 0..rows.saturating_sub(1) {
+            let top_panes: Vec<usize> = visible_panes
+                .iter()
+                .enumerate()
+                .filter(|(i, _)| i / cols == row)
+                .map(|(_, (_, p))| p.order)
+                .collect();
+            let bottom_panes: Vec<usize> = visible_panes
+                .iter()
+                .enumerate()
+                .filter(|(i, _)| i / cols == row + 1)
+                .map(|(_, (_, p))| p.order)
+                .collect();
+
+            if !top_panes.is_empty() && !bottom_panes.is_empty() {
+                if let Some((_, top_rect)) = pane_rects.iter().find(|(idx, _)| {
+                    visible_panes.iter().position(|(i, _)| *i == *idx).map_or(false, |pos| pos / cols == row)
+                }) {
+                    let div_y = top_rect.max.y + self.gap / 2.0;
+                    let div_rect = Rect::from_min_max(
+                        Pos2::new(rect.min.x, div_y - 4.0),
+                        Pos2::new(rect.max.x, div_y + 4.0),
+                    );
+                    dividers.push(DividerInfo {
+                        is_vertical: false,
+                        position: div_y,
+                        panes: (top_panes, bottom_panes),
+                        rect: div_rect,
+                    });
+                }
+            }
+        }
+
+        dividers
     }
 
     fn check_resize_edge(&self, ui: &mut Ui, rect: Rect) -> Option<ResizeEdge> {
@@ -675,10 +1007,21 @@ impl<'a> WorkspaceCanvas<'a> {
         locked: bool,
     ) {
         let is_dragging = drag_state.dragging.as_ref() == Some(&pane.id);
+        let is_drop_target = drag_state.tile_drop_target == Some(pane.order)
+            && drag_state.tile_drag_source.is_some()
+            && drag_state.tile_drag_source != Some(pane.order);
 
         // Pane background
         let bg_color = if is_dragging {
             theme.bg_tertiary
+        } else if is_drop_target {
+            // Highlight drop target with primary color tint
+            Color32::from_rgba_unmultiplied(
+                theme.primary.r(),
+                theme.primary.g(),
+                theme.primary.b(),
+                40,
+            )
         } else {
             theme.bg_secondary
         };
@@ -746,7 +1089,7 @@ impl<'a> WorkspaceCanvas<'a> {
         }
 
         // Border
-        let border_color = if is_dragging {
+        let border_color = if is_dragging || is_drop_target {
             theme.primary
         } else {
             theme.border

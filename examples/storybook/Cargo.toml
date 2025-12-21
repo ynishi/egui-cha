@@ -1,0 +1,16 @@
+[package]
+name = "storybook"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+egui-cha.workspace = true
+egui-cha-ds.workspace = true
+eframe.workspace = true
+egui.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tracing.workspace = true
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
