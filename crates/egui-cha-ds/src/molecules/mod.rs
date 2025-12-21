@@ -67,13 +67,13 @@ mod table;
 mod tabs;
 // #[cfg(feature = "tiles")]
 // mod tiles;  // TODO: egui 0.31 compat
-mod toast;
 #[cfg(feature = "dock")]
 mod dock;
-#[cfg(feature = "snarl")]
-mod snarl;
 pub mod layout_helpers;
 mod node_layout;
+#[cfg(feature = "snarl")]
+mod snarl;
+mod toast;
 mod workspace;
 
 pub use card::Card;
@@ -85,19 +85,19 @@ pub use menu::{IconMenu, Menu};
 pub use modal::{ConfirmDialog, ConfirmResult, Modal};
 pub use navbar::{navbar, sidebar, Navbar};
 pub use search_bar::SearchBar;
-pub use table::{DataTable, Table};
 #[cfg(feature = "extras")]
 pub use table::DataColumnWidth;
+pub use table::{DataTable, Table};
 pub use tabs::{TabPanel, Tabs};
 // #[cfg(feature = "tiles")]
 // pub use tiles::{...};  // TODO: egui 0.31 compat
-pub use toast::{ToastContainer, ToastId, ToastPosition, ToastVariant};
+pub use node_layout::{
+    ArrangeStrategy, LayoutPane, LockLevel, NodeLayout, NodeLayoutArea, NodeLayoutEvent,
+};
 #[cfg(feature = "snarl")]
 pub use snarl::{
-    presets as node_presets, MenuAction, NodeGraph, NodeGraphArea, NodeGraphEvent,
-    NodeGraphStyle, NodeId, InPin, InPinId, OutPin, OutPinId, PinInfo, Snarl, SnarlViewer,
+    presets as node_presets, InPin, InPinId, MenuAction, NodeGraph, NodeGraphArea, NodeGraphEvent,
+    NodeGraphStyle, NodeId, OutPin, OutPinId, PinInfo, Snarl, SnarlViewer,
 };
-pub use node_layout::{ArrangeStrategy, LayoutPane, LockLevel, NodeLayout, NodeLayoutArea, NodeLayoutEvent};
-pub use workspace::{
-    Edge, LayoutMode, SnapTarget, WorkspaceCanvas, WorkspaceEvent, WorkspacePane,
-};
+pub use toast::{ToastContainer, ToastId, ToastPosition, ToastVariant};
+pub use workspace::{Edge, LayoutMode, SnapTarget, WorkspaceCanvas, WorkspaceEvent, WorkspacePane};

@@ -314,18 +314,26 @@ impl<'a> Timeline<'a> {
 
             // Loop boundaries
             painter.line_segment(
-                [egui::pos2(start_x, track_rect.min.y), egui::pos2(start_x, track_rect.max.y)],
+                [
+                    egui::pos2(start_x, track_rect.min.y),
+                    egui::pos2(start_x, track_rect.max.y),
+                ],
                 Stroke::new(2.0, theme.primary),
             );
             painter.line_segment(
-                [egui::pos2(end_x, track_rect.min.y), egui::pos2(end_x, track_rect.max.y)],
+                [
+                    egui::pos2(end_x, track_rect.min.y),
+                    egui::pos2(end_x, track_rect.max.y),
+                ],
                 Stroke::new(2.0, theme.primary),
             );
         }
 
         // Draw tick marks
         if self.show_ticks {
-            let interval = self.tick_interval.unwrap_or_else(|| self.auto_tick_interval());
+            let interval = self
+                .tick_interval
+                .unwrap_or_else(|| self.auto_tick_interval());
             let num_ticks = (self.duration / interval).ceil() as usize;
 
             for i in 0..=num_ticks {

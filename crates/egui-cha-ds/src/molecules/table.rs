@@ -70,8 +70,8 @@ impl<'a> Table<'a> {
                             };
 
                             for cell in row {
-                                let mut frame = egui::Frame::new()
-                                    .inner_margin(egui::Margin::symmetric(12, 8));
+                                let mut frame =
+                                    egui::Frame::new().inner_margin(egui::Margin::symmetric(12, 8));
 
                                 if let Some(bg_color) = bg {
                                     frame = frame.fill(bg_color);
@@ -178,7 +178,9 @@ impl<'a, T> DataTable<'a, T> {
     /// Show the table, returns clicked row index if any
     pub fn show(self, ui: &mut Ui) -> Option<usize> {
         let theme = Theme::current(ui.ctx());
-        let row_height = self.row_height.unwrap_or(theme.spacing_lg + theme.spacing_sm);
+        let row_height = self
+            .row_height
+            .unwrap_or(theme.spacing_lg + theme.spacing_sm);
         let mut clicked_row: Option<usize> = None;
 
         let mut builder = TableBuilder::new(ui)

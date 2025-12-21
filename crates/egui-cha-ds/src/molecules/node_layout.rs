@@ -386,7 +386,8 @@ impl NodeLayout {
         }
 
         let rects: Vec<Rect> = pane_data.iter().map(|(_, r)| *r).collect();
-        let result = super::layout_helpers::resolve_overlaps_with_anchors(&rects, gap, anchor_strength, 100);
+        let result =
+            super::layout_helpers::resolve_overlaps_with_anchors(&rects, gap, anchor_strength, 100);
 
         if !result.changed {
             return Vec::new();
@@ -597,7 +598,11 @@ where
 
     /// Set locked state (shorthand for Full lock)
     pub fn locked(mut self, locked: bool) -> Self {
-        self.lock_level = if locked { LockLevel::Full } else { LockLevel::None };
+        self.lock_level = if locked {
+            LockLevel::Full
+        } else {
+            LockLevel::None
+        };
         self
     }
 
@@ -660,10 +665,7 @@ where
 
         // Load state (before menu bar so we can pass draw_order)
         let state_id = ui.id().with("node_layout_state");
-        let mut state: LayoutState = ui
-            .ctx()
-            .data(|d| d.get_temp(state_id))
-            .unwrap_or_default();
+        let mut state: LayoutState = ui.ctx().data(|d| d.get_temp(state_id)).unwrap_or_default();
 
         // Ensure draw order contains all panes
         self.sync_draw_order(&mut state);
@@ -731,7 +733,14 @@ where
         bg_painter.rect_filled(rect, 0.0, theme.bg_secondary);
 
         // Draw grid (in screen space, clipped to rect)
-        self.draw_grid_screen(&bg_painter, rect, self.grid_size, self.grid_alpha, &to_screen, &theme);
+        self.draw_grid_screen(
+            &bg_painter,
+            rect,
+            self.grid_size,
+            self.grid_alpha,
+            &to_screen,
+            &theme,
+        );
 
         // Use clipped painter for panes (clips to canvas area)
         let painter = ui.painter_at(rect).clone();
@@ -770,7 +779,10 @@ where
 
             // For collapsed panes, use only title height
             let effective_pane_rect = if pane.collapsed && !is_maximized {
-                Rect::from_min_size(pane_rect.min, Vec2::new(pane_rect.width(), self.title_height))
+                Rect::from_min_size(
+                    pane_rect.min,
+                    Vec2::new(pane_rect.width(), self.title_height),
+                )
             } else {
                 pane_rect
             };
@@ -825,7 +837,8 @@ where
             let mut button_x = screen_title_rect.max.x - scaled_button_padding - scaled_button_size;
 
             // Helper to draw icon button
-            let icon_font = egui::FontId::new(scaled_button_size * 0.7, FontFamily::Name("icons".into()));
+            let icon_font =
+                egui::FontId::new(scaled_button_size * 0.7, FontFamily::Name("icons".into()));
 
             // Check if window controls are allowed (not Full locked)
             let pane_allows_window_ctrl = pane.lock_level.allows_window_controls();
@@ -841,7 +854,11 @@ where
                 let close_response = ui.interact(
                     close_rect,
                     ui.id().with(&pane_id).with("close"),
-                    if window_ctrl_enabled { Sense::click() } else { Sense::hover() },
+                    if window_ctrl_enabled {
+                        Sense::click()
+                    } else {
+                        Sense::hover()
+                    },
                 );
                 let close_color = if !window_ctrl_enabled {
                     theme.text_muted
@@ -871,7 +888,11 @@ where
             let max_response = ui.interact(
                 max_rect,
                 ui.id().with(&pane_id).with("maximize"),
-                if window_ctrl_enabled { Sense::click() } else { Sense::hover() },
+                if window_ctrl_enabled {
+                    Sense::click()
+                } else {
+                    Sense::hover()
+                },
             );
             let max_color = if !window_ctrl_enabled {
                 theme.text_muted
@@ -909,7 +930,11 @@ where
             let collapse_response = ui.interact(
                 collapse_rect,
                 ui.id().with(&pane_id).with("collapse"),
-                if window_ctrl_enabled { Sense::click() } else { Sense::hover() },
+                if window_ctrl_enabled {
+                    Sense::click()
+                } else {
+                    Sense::hover()
+                },
             );
             let collapse_color = if !window_ctrl_enabled {
                 theme.text_muted
@@ -945,7 +970,11 @@ where
             let lock_response = ui.interact(
                 lock_rect,
                 ui.id().with(&pane_id).with("lock"),
-                if lock_button_enabled { Sense::click() } else { Sense::hover() },
+                if lock_button_enabled {
+                    Sense::click()
+                } else {
+                    Sense::hover()
+                },
             );
             let (lock_icon, lock_color) = if !lock_button_enabled {
                 (icons::LOCK, theme.text_muted)
@@ -953,15 +982,27 @@ where
                 match pane.lock_level {
                     LockLevel::None => (
                         icons::LOCK_OPEN,
-                        if lock_response.hovered() { theme.text_primary } else { theme.text_secondary },
+                        if lock_response.hovered() {
+                            theme.text_primary
+                        } else {
+                            theme.text_secondary
+                        },
                     ),
                     LockLevel::Light => (
                         icons::LOCK,
-                        if lock_response.hovered() { theme.text_primary } else { theme.primary },
+                        if lock_response.hovered() {
+                            theme.text_primary
+                        } else {
+                            theme.primary
+                        },
                     ),
                     LockLevel::Full => (
                         icons::LOCK,
-                        if lock_response.hovered() { theme.text_primary } else { theme.state_danger },
+                        if lock_response.hovered() {
+                            theme.text_primary
+                        } else {
+                            theme.state_danger
+                        },
                     ),
                 }
             };
@@ -997,7 +1038,10 @@ where
                     theme.text_secondary,
                 );
                 clipped_painter.galley(
-                    Pos2::new(title_x, screen_title_rect.center().y - icon_galley.size().y * 0.5),
+                    Pos2::new(
+                        title_x,
+                        screen_title_rect.center().y - icon_galley.size().y * 0.5,
+                    ),
                     icon_galley.clone(),
                     theme.text_secondary,
                 );
@@ -1021,8 +1065,10 @@ where
 
             // Compute effective lock: use stricter of canvas and pane lock levels
             let pane_lock = pane.lock_level;
-            let can_move_resize = self.lock_level.allows_move_resize() && pane_lock.allows_move_resize();
-            let can_window_control = self.lock_level.allows_window_controls() && pane_lock.allows_window_controls();
+            let can_move_resize =
+                self.lock_level.allows_move_resize() && pane_lock.allows_move_resize();
+            let _can_window_control =
+                self.lock_level.allows_window_controls() && pane_lock.allows_window_controls();
 
             let title_response = ui.interact(
                 title_drag_rect,
@@ -1091,10 +1137,18 @@ where
                 if let Some(hover_pos) = pointer.hover_pos() {
                     if let Some(edge) = detect_edge(hover_pos) {
                         let cursor = match edge {
-                            ResizeEdge::Left | ResizeEdge::Right => egui::CursorIcon::ResizeHorizontal,
-                            ResizeEdge::Top | ResizeEdge::Bottom => egui::CursorIcon::ResizeVertical,
-                            ResizeEdge::TopLeft | ResizeEdge::BottomRight => egui::CursorIcon::ResizeNwSe,
-                            ResizeEdge::TopRight | ResizeEdge::BottomLeft => egui::CursorIcon::ResizeNeSw,
+                            ResizeEdge::Left | ResizeEdge::Right => {
+                                egui::CursorIcon::ResizeHorizontal
+                            }
+                            ResizeEdge::Top | ResizeEdge::Bottom => {
+                                egui::CursorIcon::ResizeVertical
+                            }
+                            ResizeEdge::TopLeft | ResizeEdge::BottomRight => {
+                                egui::CursorIcon::ResizeNwSe
+                            }
+                            ResizeEdge::TopRight | ResizeEdge::BottomLeft => {
+                                egui::CursorIcon::ResizeNeSw
+                            }
                         };
                         ui.ctx().set_cursor_icon(cursor);
                     }
@@ -1184,7 +1238,8 @@ where
                 let base_padding = self.content_padding.unwrap_or(theme.spacing_sm);
                 let content_padding = base_padding * to_screen.scaling;
                 let screen_content_rect = Rect::from_min_max(
-                    screen_pane_rect.min + Vec2::new(content_padding, scaled_title_height + content_padding),
+                    screen_pane_rect.min
+                        + Vec2::new(content_padding, scaled_title_height + content_padding),
                     screen_pane_rect.max - Vec2::new(content_padding, content_padding),
                 );
 
@@ -1193,7 +1248,9 @@ where
 
                 // Only draw content if there's visible space
                 let min_size = theme.spacing_sm * to_screen.scaling;
-                if clipped_content_rect.height() > min_size && clipped_content_rect.width() > min_size {
+                if clipped_content_rect.height() > min_size
+                    && clipped_content_rect.width() > min_size
+                {
                     // Create child UI for content
                     let mut child_ui = ui.new_child(
                         egui::UiBuilder::new()
@@ -1201,7 +1258,8 @@ where
                             .layout(egui::Layout::top_down(egui::Align::LEFT)),
                     );
                     child_ui.set_clip_rect(clipped_content_rect);
-                    child_ui.spacing_mut().item_spacing = egui::vec2(theme.spacing_xs, theme.spacing_xs);
+                    child_ui.spacing_mut().item_spacing =
+                        egui::vec2(theme.spacing_xs, theme.spacing_xs);
 
                     let pane_ref = self.layout.get_pane(&pane_id).unwrap();
                     (self.content_fn)(&mut child_ui, pane_ref);
@@ -1340,112 +1398,159 @@ where
             child_ui.horizontal_centered(|child_ui| {
                 child_ui.style_mut().spacing.item_spacing = Vec2::new(4.0, 0.0);
 
-        // Helper to create icon text
-        let icon_text = |icon: &str| -> egui::RichText {
-            egui::RichText::new(icon).family(FontFamily::Name("icons".into()))
-        };
+                // Helper to create icon text
+                let icon_text = |icon: &str| -> egui::RichText {
+                    egui::RichText::new(icon).family(FontFamily::Name("icons".into()))
+                };
 
-        // Lock button with Phosphor icon
-        let (lock_icon, lock_tooltip) = match self.lock_level {
-            LockLevel::None => (icons::LOCK_OPEN, "Unlocked - Click to lock position"),
-            LockLevel::Light => (icons::LOCK_KEY, "Position locked - Click to fully lock"),
-            LockLevel::Full => (icons::LOCK, "Fully locked - Click to unlock"),
-        };
+                // Lock button with Phosphor icon
+                let (lock_icon, lock_tooltip) = match self.lock_level {
+                    LockLevel::None => (icons::LOCK_OPEN, "Unlocked - Click to lock position"),
+                    LockLevel::Light => (icons::LOCK_KEY, "Position locked - Click to fully lock"),
+                    LockLevel::Full => (icons::LOCK, "Fully locked - Click to unlock"),
+                };
 
-        if child_ui
-            .add(egui::Button::new(icon_text(lock_icon)).min_size(Vec2::new(24.0, 20.0)))
-            .on_hover_text(lock_tooltip)
-            .clicked()
-        {
-            let new_level = match self.lock_level {
-                LockLevel::None => LockLevel::Light,
-                LockLevel::Light => LockLevel::Full,
-                LockLevel::Full => LockLevel::None,
-            };
-            self.lock_level = new_level;
-            events.push(NodeLayoutEvent::CanvasLockChanged(new_level));
-        }
-
-        child_ui.separator();
-
-        // Arrange dropdown with Phosphor icon
-        let gap = super::layout_helpers::DEFAULT_GAP;
-
-        child_ui.menu_button(icon_text(icons::SLIDERS_HORIZONTAL), |ui| {
-            use crate::atoms::ListItem;
-
-            if ListItem::new("Grid").icon(icons::GRID_FOUR).compact().show(ui).clicked() {
-                let moved = self.layout.auto_arrange(ArrangeStrategy::Grid { columns: None }, gap, None, None);
-                if !moved.is_empty() {
-                    events.push(NodeLayoutEvent::AutoArranged {
-                        strategy: ArrangeStrategy::Grid { columns: None },
-                        moved_pane_ids: moved,
-                    });
+                if child_ui
+                    .add(egui::Button::new(icon_text(lock_icon)).min_size(Vec2::new(24.0, 20.0)))
+                    .on_hover_text(lock_tooltip)
+                    .clicked()
+                {
+                    let new_level = match self.lock_level {
+                        LockLevel::None => LockLevel::Light,
+                        LockLevel::Light => LockLevel::Full,
+                        LockLevel::Full => LockLevel::None,
+                    };
+                    self.lock_level = new_level;
+                    events.push(NodeLayoutEvent::CanvasLockChanged(new_level));
                 }
-                ui.close();
-            }
-            if ListItem::new("Horizontal").icon(icons::ARROWS_OUT_LINE_HORIZONTAL).compact().show(ui).clicked() {
-                let moved = self.layout.auto_arrange(ArrangeStrategy::Horizontal, gap, None, None);
-                if !moved.is_empty() {
-                    events.push(NodeLayoutEvent::AutoArranged {
-                        strategy: ArrangeStrategy::Horizontal,
-                        moved_pane_ids: moved,
-                    });
-                }
-                ui.close();
-            }
-            if ListItem::new("Vertical").icon(icons::ARROWS_OUT_LINE_VERTICAL).compact().show(ui).clicked() {
-                let moved = self.layout.auto_arrange(ArrangeStrategy::Vertical, gap, None, None);
-                if !moved.is_empty() {
-                    events.push(NodeLayoutEvent::AutoArranged {
-                        strategy: ArrangeStrategy::Vertical,
-                        moved_pane_ids: moved,
-                    });
-                }
-                ui.close();
-            }
-            if ListItem::new("Cascade").icon(icons::SQUARES_FOUR).compact().show(ui).clicked() {
-                // Use Z-order: back pane at top-left, front pane at bottom-right
-                let moved = self.layout.auto_arrange(ArrangeStrategy::Cascade, gap, None, Some(draw_order));
-                if !moved.is_empty() {
-                    events.push(NodeLayoutEvent::AutoArranged {
-                        strategy: ArrangeStrategy::Cascade,
-                        moved_pane_ids: moved,
-                    });
-                }
-                ui.close();
-            }
-            ui.separator();
-            if ListItem::new("Resolve Overlaps").icon(icons::BROOM).compact().show(ui).clicked() {
-                let moved = self.layout.auto_arrange(ArrangeStrategy::ResolveOverlaps, gap, None, None);
-                if !moved.is_empty() {
-                    events.push(NodeLayoutEvent::AutoArranged {
-                        strategy: ArrangeStrategy::ResolveOverlaps,
-                        moved_pane_ids: moved,
-                    });
-                }
-                ui.close();
-            }
-        });
 
-        child_ui.separator();
+                child_ui.separator();
 
-        // Zoom buttons with Phosphor icons
-        if child_ui
-            .add(egui::Button::new(icon_text(icons::FRAME_CORNERS)).min_size(Vec2::new(28.0, 20.0)))
-            .on_hover_text("Zoom to fit all panes")
-            .clicked()
-        {
-            events.push(NodeLayoutEvent::ZoomToFit);
-        }
+                // Arrange dropdown with Phosphor icon
+                let gap = super::layout_helpers::DEFAULT_GAP;
 
-        if child_ui
-            .add(egui::Button::new("100%").min_size(Vec2::new(40.0, 20.0)))
-            .on_hover_text("Reset zoom to 100%")
-            .clicked()
-        {
-            events.push(NodeLayoutEvent::ZoomReset);
-        }
+                child_ui.menu_button(icon_text(icons::SLIDERS_HORIZONTAL), |ui| {
+                    use crate::atoms::ListItem;
+
+                    if ListItem::new("Grid")
+                        .icon(icons::GRID_FOUR)
+                        .compact()
+                        .show(ui)
+                        .clicked()
+                    {
+                        let moved = self.layout.auto_arrange(
+                            ArrangeStrategy::Grid { columns: None },
+                            gap,
+                            None,
+                            None,
+                        );
+                        if !moved.is_empty() {
+                            events.push(NodeLayoutEvent::AutoArranged {
+                                strategy: ArrangeStrategy::Grid { columns: None },
+                                moved_pane_ids: moved,
+                            });
+                        }
+                        ui.close();
+                    }
+                    if ListItem::new("Horizontal")
+                        .icon(icons::ARROWS_OUT_LINE_HORIZONTAL)
+                        .compact()
+                        .show(ui)
+                        .clicked()
+                    {
+                        let moved =
+                            self.layout
+                                .auto_arrange(ArrangeStrategy::Horizontal, gap, None, None);
+                        if !moved.is_empty() {
+                            events.push(NodeLayoutEvent::AutoArranged {
+                                strategy: ArrangeStrategy::Horizontal,
+                                moved_pane_ids: moved,
+                            });
+                        }
+                        ui.close();
+                    }
+                    if ListItem::new("Vertical")
+                        .icon(icons::ARROWS_OUT_LINE_VERTICAL)
+                        .compact()
+                        .show(ui)
+                        .clicked()
+                    {
+                        let moved =
+                            self.layout
+                                .auto_arrange(ArrangeStrategy::Vertical, gap, None, None);
+                        if !moved.is_empty() {
+                            events.push(NodeLayoutEvent::AutoArranged {
+                                strategy: ArrangeStrategy::Vertical,
+                                moved_pane_ids: moved,
+                            });
+                        }
+                        ui.close();
+                    }
+                    if ListItem::new("Cascade")
+                        .icon(icons::SQUARES_FOUR)
+                        .compact()
+                        .show(ui)
+                        .clicked()
+                    {
+                        // Use Z-order: back pane at top-left, front pane at bottom-right
+                        let moved = self.layout.auto_arrange(
+                            ArrangeStrategy::Cascade,
+                            gap,
+                            None,
+                            Some(draw_order),
+                        );
+                        if !moved.is_empty() {
+                            events.push(NodeLayoutEvent::AutoArranged {
+                                strategy: ArrangeStrategy::Cascade,
+                                moved_pane_ids: moved,
+                            });
+                        }
+                        ui.close();
+                    }
+                    ui.separator();
+                    if ListItem::new("Resolve Overlaps")
+                        .icon(icons::BROOM)
+                        .compact()
+                        .show(ui)
+                        .clicked()
+                    {
+                        let moved = self.layout.auto_arrange(
+                            ArrangeStrategy::ResolveOverlaps,
+                            gap,
+                            None,
+                            None,
+                        );
+                        if !moved.is_empty() {
+                            events.push(NodeLayoutEvent::AutoArranged {
+                                strategy: ArrangeStrategy::ResolveOverlaps,
+                                moved_pane_ids: moved,
+                            });
+                        }
+                        ui.close();
+                    }
+                });
+
+                child_ui.separator();
+
+                // Zoom buttons with Phosphor icons
+                if child_ui
+                    .add(
+                        egui::Button::new(icon_text(icons::FRAME_CORNERS))
+                            .min_size(Vec2::new(28.0, 20.0)),
+                    )
+                    .on_hover_text("Zoom to fit all panes")
+                    .clicked()
+                {
+                    events.push(NodeLayoutEvent::ZoomToFit);
+                }
+
+                if child_ui
+                    .add(egui::Button::new("100%").min_size(Vec2::new(40.0, 20.0)))
+                    .on_hover_text("Reset zoom to 100%")
+                    .clicked()
+                {
+                    events.push(NodeLayoutEvent::ZoomReset);
+                }
 
                 // Show pane count on the right
                 child_ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -1496,7 +1601,10 @@ where
             let screen_x = to_screen.translation.x + x * to_screen.scaling;
             if screen_x >= rect.min.x && screen_x <= rect.max.x {
                 painter.line_segment(
-                    [Pos2::new(screen_x, rect.min.y), Pos2::new(screen_x, rect.max.y)],
+                    [
+                        Pos2::new(screen_x, rect.min.y),
+                        Pos2::new(screen_x, rect.max.y),
+                    ],
                     Stroke::new(theme.stroke_width, grid_color),
                 );
             }
@@ -1510,7 +1618,10 @@ where
             let screen_y = to_screen.translation.y + y * to_screen.scaling;
             if screen_y >= rect.min.y && screen_y <= rect.max.y {
                 painter.line_segment(
-                    [Pos2::new(rect.min.x, screen_y), Pos2::new(rect.max.x, screen_y)],
+                    [
+                        Pos2::new(rect.min.x, screen_y),
+                        Pos2::new(rect.max.x, screen_y),
+                    ],
                     Stroke::new(theme.stroke_width, grid_color),
                 );
             }

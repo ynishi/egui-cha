@@ -9,10 +9,7 @@ use egui_cha_ds::prelude::*;
 fn main() -> eframe::Result<()> {
     tracing_subscriber::fmt::init();
 
-    egui_cha::run::<AnalyzerApp>(
-        RunConfig::new("egui-cha Analyzer")
-            .with_size(1000.0, 700.0),
-    )
+    egui_cha::run::<AnalyzerApp>(RunConfig::new("egui-cha Analyzer").with_size(1000.0, 700.0))
 }
 
 // ============================================================
@@ -160,9 +157,11 @@ impl App for CounterApp {
                 // File path input
                 ctx.horizontal(|ctx| {
                     ctx.ui.label("File:");
-                    Input::new()
-                        .placeholder("path/to/file.rs")
-                        .show_with(ctx, &model.file_path, Msg::FilePathChanged);
+                    Input::new().placeholder("path/to/file.rs").show_with(
+                        ctx,
+                        &model.file_path,
+                        Msg::FilePathChanged,
+                    );
                 });
 
                 ctx.horizontal(|ctx| {
@@ -175,12 +174,16 @@ impl App for CounterApp {
                 // Source code text area
                 ctx.scroll_area_id("source_code", |ctx| {
                     let mut code = model.source_code.clone();
-                    if ctx.ui.add(
-                        egui::TextEdit::multiline(&mut code)
-                            .font(egui::TextStyle::Monospace)
-                            .desired_width(f32::INFINITY)
-                            .desired_rows(30),
-                    ).changed() {
+                    if ctx
+                        .ui
+                        .add(
+                            egui::TextEdit::multiline(&mut code)
+                                .font(egui::TextStyle::Monospace)
+                                .desired_width(f32::INFINITY)
+                                .desired_rows(30),
+                        )
+                        .changed()
+                    {
                         ctx.emit(Msg::SourceCodeChanged(code));
                     }
                 });
@@ -207,10 +210,11 @@ impl App for CounterApp {
                 ctx.ui.add_space(4.0);
 
                 // Tabs using DS Tabs component
-                Tabs::new(&["TEA Flows", "Mermaid", "Raw Data"])
-                    .show_with(ctx, tab_to_index(&model.active_tab), |idx| {
-                        Msg::SetTab(index_to_tab(idx))
-                    });
+                Tabs::new(&["TEA Flows", "Mermaid", "Raw Data"]).show_with(
+                    ctx,
+                    tab_to_index(&model.active_tab),
+                    |idx| Msg::SetTab(index_to_tab(idx)),
+                );
 
                 ctx.ui.add_space(4.0);
 
@@ -325,14 +329,20 @@ fn analyze_code(model: &mut Model) {
 
             // Raw data section
             output.push_str("\n=== Raw Detections ===\n\n");
-            output.push_str(&format!("Msg Emissions: {}\n", analysis.msg_emissions.len()));
+            output.push_str(&format!(
+                "Msg Emissions: {}\n",
+                analysis.msg_emissions.len()
+            ));
             for em in &analysis.msg_emissions {
                 output.push_str(&format!(
                     "  {}::{}({:?}) -> {} -> {}\n",
                     em.component, em.variant, em.label, em.action, em.msg
                 ));
             }
-            output.push_str(&format!("\nMsg Handlers: {}\n", analysis.msg_handlers.len()));
+            output.push_str(&format!(
+                "\nMsg Handlers: {}\n",
+                analysis.msg_handlers.len()
+            ));
             for h in &analysis.msg_handlers {
                 output.push_str(&format!(
                     "  {} -> {} mutation(s)\n",
@@ -389,10 +399,7 @@ fn generate_tea_mermaid(analysis: &egui_cha_analyzer::types::FileAnalysis) -> St
 
         // Action node
         let act_node = format!("{}_ACT", flow_id);
-        lines.push(format!(
-            "    {}{{\"{}\"}}",
-            act_node, flow.emission.action
-        ));
+        lines.push(format!("    {}{{\"{}\"}}", act_node, flow.emission.action));
         lines.push(format!("    style {} fill:#fff9c4", act_node));
 
         // Msg node

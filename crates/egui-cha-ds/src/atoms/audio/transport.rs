@@ -165,7 +165,8 @@ impl TransportBar {
             };
 
             // Background
-            ui.painter().rect_filled(rect, CornerRadius::same(4), bg_color);
+            ui.painter()
+                .rect_filled(rect, CornerRadius::same(4), bg_color);
 
             // Square icon
             let icon_size = size * 0.35;
@@ -175,7 +176,8 @@ impl TransportBar {
             } else {
                 visuals.fg_stroke.color
             };
-            ui.painter().rect_filled(icon_rect, CornerRadius::ZERO, icon_color);
+            ui.painter()
+                .rect_filled(icon_rect, CornerRadius::ZERO, icon_color);
         }
 
         response.clicked()
@@ -193,7 +195,8 @@ impl TransportBar {
             };
 
             // Background
-            ui.painter().rect_filled(rect, CornerRadius::same(4), bg_color);
+            ui.painter()
+                .rect_filled(rect, CornerRadius::same(4), bg_color);
 
             // Triangle icon (play)
             let icon_size = size * 0.4;
@@ -231,7 +234,8 @@ impl TransportBar {
             };
 
             // Background
-            ui.painter().rect_filled(rect, CornerRadius::same(4), bg_color);
+            ui.painter()
+                .rect_filled(rect, CornerRadius::same(4), bg_color);
 
             // Circle icon (record)
             let icon_radius = size * 0.2;
@@ -240,7 +244,8 @@ impl TransportBar {
             } else {
                 theme.state_danger
             };
-            ui.painter().circle_filled(rect.center(), icon_radius, icon_color);
+            ui.painter()
+                .circle_filled(rect.center(), icon_radius, icon_color);
         }
 
         response.clicked()
@@ -268,9 +273,13 @@ impl TransportBar {
 
             if response.changed() {
                 // Get the actual value from the drag
-                if let Some(bpm) = response.drag_delta().y.abs().gt(&0.0).then(|| {
-                    (self.bpm - response.drag_delta().y * 0.5).clamp(20.0, 300.0)
-                }) {
+                if let Some(bpm) = response
+                    .drag_delta()
+                    .y
+                    .abs()
+                    .gt(&0.0)
+                    .then(|| (self.bpm - response.drag_delta().y * 0.5).clamp(20.0, 300.0))
+                {
                     new_bpm = Some(bpm);
                 }
             }
@@ -318,7 +327,8 @@ impl BeatIndicator {
             ui.spacing_mut().item_spacing.x = spacing;
 
             for i in 0..self.beats {
-                let (rect, _response) = ui.allocate_exact_size(Vec2::splat(self.size), Sense::hover());
+                let (rect, _response) =
+                    ui.allocate_exact_size(Vec2::splat(self.size), Sense::hover());
 
                 if ui.is_rect_visible(rect) {
                     let is_current = i == self.current;

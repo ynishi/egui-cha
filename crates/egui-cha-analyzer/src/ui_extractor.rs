@@ -120,7 +120,9 @@ fn is_ui_receiver(expr: &Expr) -> bool {
 }
 
 /// Extract the first string literal argument from a method call
-fn extract_first_string_arg(args: &syn::punctuated::Punctuated<Expr, syn::token::Comma>) -> Option<String> {
+fn extract_first_string_arg(
+    args: &syn::punctuated::Punctuated<Expr, syn::token::Comma>,
+) -> Option<String> {
     for arg in args {
         if let Some(s) = extract_string_from_expr(arg) {
             return Some(s);

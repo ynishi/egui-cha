@@ -29,7 +29,11 @@ fn main() {
                 println!("\nDS component patterns like Button::primary().on_click() are not yet supported.");
             } else {
                 for (i, flow) in analysis.flows.iter().enumerate() {
-                    let ui_label = flow.ui_element.label.as_deref().unwrap_or(&flow.ui_element.element_type);
+                    let ui_label = flow
+                        .ui_element
+                        .label
+                        .as_deref()
+                        .unwrap_or(&flow.ui_element.element_type);
                     println!(
                         "Flow {}: {} \"{}\" -> .{}()",
                         i + 1,
@@ -57,13 +61,19 @@ fn main() {
             println!("\n=== TEA Patterns ===");
             println!("Msg Emissions: {}", analysis.msg_emissions.len());
             for em in &analysis.msg_emissions {
-                println!("  {}::{}({:?}) -> {} -> {}",
-                    em.component, em.variant, em.label, em.action, em.msg);
+                println!(
+                    "  {}::{}({:?}) -> {} -> {}",
+                    em.component, em.variant, em.label, em.action, em.msg
+                );
             }
 
             println!("\nMsg Handlers: {}", analysis.msg_handlers.len());
             for h in &analysis.msg_handlers {
-                println!("  {} -> {} mutations", h.msg_pattern, h.state_mutations.len());
+                println!(
+                    "  {} -> {} mutations",
+                    h.msg_pattern,
+                    h.state_mutations.len()
+                );
                 for m in &h.state_mutations {
                     println!("    -> {} [{}]", m.target, m.mutation_type);
                 }
@@ -72,7 +82,8 @@ fn main() {
             println!("\n=== TEA Flows (Complete) ===");
             for (i, flow) in analysis.tea_flows.iter().enumerate() {
                 let label = flow.emission.label.as_deref().unwrap_or("-");
-                print!("Flow {}: {}::{}(\"{}\") -> {} -> {}",
+                print!(
+                    "Flow {}: {}::{}(\"{}\") -> {} -> {}",
                     i + 1,
                     flow.emission.component,
                     flow.emission.variant,

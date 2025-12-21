@@ -147,7 +147,11 @@ impl<'a> Knob<'a> {
 
         let (rect, mut response) = ui.allocate_exact_size(
             Vec2::new(diameter, total_height),
-            if self.disabled { Sense::hover() } else { Sense::click_and_drag() },
+            if self.disabled {
+                Sense::hover()
+            } else {
+                Sense::click_and_drag()
+            },
         );
 
         // Handle drag
@@ -193,7 +197,8 @@ impl<'a> Knob<'a> {
             );
 
             // Value arc (foreground)
-            let normalized = (*value - *self.range.start()) / (*self.range.end() - *self.range.start());
+            let normalized =
+                (*value - *self.range.start()) / (*self.range.end() - *self.range.start());
             let value_angle = self.arc_start + (self.arc_end - self.arc_start) * normalized as f32;
 
             if normalized > 0.001 {
@@ -210,10 +215,11 @@ impl<'a> Knob<'a> {
             // Indicator dot
             let dot_radius = theme.spacing_xs / 2.0;
             let dot_distance = radius - stroke_width * 2.5;
-            let dot_pos = knob_center + Vec2::new(
-                value_angle.sin() * dot_distance,
-                -value_angle.cos() * dot_distance,
-            );
+            let dot_pos = knob_center
+                + Vec2::new(
+                    value_angle.sin() * dot_distance,
+                    -value_angle.cos() * dot_distance,
+                );
             painter.circle_filled(dot_pos, dot_radius, arc_color);
 
             // Value text (center of knob)
@@ -228,7 +234,11 @@ impl<'a> Knob<'a> {
                     egui::Align2::CENTER_CENTER,
                     &value_text,
                     egui::FontId::proportional(theme.font_size_xs),
-                    if self.disabled { theme.text_muted } else { theme.text_primary },
+                    if self.disabled {
+                        theme.text_muted
+                    } else {
+                        theme.text_primary
+                    },
                 );
             }
 
@@ -240,7 +250,11 @@ impl<'a> Knob<'a> {
                     egui::Align2::CENTER_CENTER,
                     label,
                     egui::FontId::proportional(theme.font_size_xs),
-                    if self.disabled { theme.text_muted } else { theme.text_secondary },
+                    if self.disabled {
+                        theme.text_muted
+                    } else {
+                        theme.text_secondary
+                    },
                 );
             }
         }

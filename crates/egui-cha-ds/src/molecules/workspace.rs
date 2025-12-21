@@ -356,7 +356,7 @@ impl<'a> WorkspaceCanvas<'a> {
             .data_mut(|d| d.get_temp(canvas_id).unwrap_or_default());
 
         // Allocate the canvas area
-        let (rect, response) = ui.allocate_exact_size(available_rect.size(), Sense::hover());
+        let (rect, _response) = ui.allocate_exact_size(available_rect.size(), Sense::hover());
 
         if !ui.is_rect_visible(rect) {
             return events;
@@ -413,12 +413,11 @@ impl<'a> WorkspaceCanvas<'a> {
                         }
 
                         // Start drag
-                        if ui.input(|i| i.pointer.any_pressed()) && drag_state.divider_drag.is_none() {
-                            let original_weights: Vec<(usize, f32)> = self
-                                .panes
-                                .iter()
-                                .map(|p| (p.order, p.weight))
-                                .collect();
+                        if ui.input(|i| i.pointer.any_pressed())
+                            && drag_state.divider_drag.is_none()
+                        {
+                            let original_weights: Vec<(usize, f32)> =
+                                self.panes.iter().map(|p| (p.order, p.weight)).collect();
                             drag_state.divider_drag = Some(DividerDrag {
                                 is_vertical: divider.is_vertical,
                                 index: div_idx,
@@ -473,7 +472,7 @@ impl<'a> WorkspaceCanvas<'a> {
         let mut interactions: Vec<PaneInteraction> = Vec::new();
 
         for (idx, pane_rect) in &pane_rects {
-            let pane = &self.panes[*idx];
+            let _pane = &self.panes[*idx];
 
             // Title bar rect
             let title_rect = Rect::from_min_size(
@@ -585,13 +584,8 @@ impl<'a> WorkspaceCanvas<'a> {
                     let new_pos = pane.position + delta;
 
                     // Apply snapping
-                    let (snapped_pos, snap_target) = self.apply_snap(
-                        new_pos,
-                        pane.size,
-                        rect,
-                        &pane_rects,
-                        interaction.idx,
-                    );
+                    let (snapped_pos, snap_target) =
+                        self.apply_snap(new_pos, pane.size, rect, &pane_rects, interaction.idx);
 
                     drag_state.snap_target = snap_target;
 
@@ -620,14 +614,7 @@ impl<'a> WorkspaceCanvas<'a> {
             // Draw pane frames (background and borders)
             for interaction in &interactions {
                 let pane = &self.panes[interaction.idx];
-                self.draw_pane(
-                    painter,
-                    interaction,
-                    pane,
-                    &theme,
-                    &drag_state,
-                    self.locked,
-                );
+                self.draw_pane(painter, interaction, pane, &theme, &drag_state, self.locked);
             }
         }
 
@@ -635,7 +622,10 @@ impl<'a> WorkspaceCanvas<'a> {
         for interaction in &interactions {
             let pane = &self.panes[interaction.idx];
             let content_rect = Rect::from_min_max(
-                Pos2::new(interaction.rect.min.x, interaction.rect.min.y + self.title_bar_height),
+                Pos2::new(
+                    interaction.rect.min.x,
+                    interaction.rect.min.y + self.title_bar_height,
+                ),
                 interaction.rect.max,
             );
             let mut child_ui = ui.new_child(egui::UiBuilder::new().max_rect(content_rect));
@@ -649,9 +639,10 @@ impl<'a> WorkspaceCanvas<'a> {
             // Draw dividers (Tile mode only)
             if !self.locked {
                 for divider in &dividers {
-                    let is_active = drag_state.divider_drag.as_ref().map_or(false, |d| {
-                        d.is_vertical == divider.is_vertical
-                    });
+                    let is_active = drag_state
+                        .divider_drag
+                        .as_ref()
+                        .map_or(false, |d| d.is_vertical == divider.is_vertical);
                     let divider_color = if is_active {
                         theme.primary
                     } else {
@@ -693,7 +684,9 @@ impl<'a> WorkspaceCanvas<'a> {
         // Handle drag end (mouse released)
         if !ui.input(|i| i.pointer.any_down()) {
             // Tile reorder: emit event if we have a valid drop target
-            if let (Some(from), Some(to)) = (drag_state.tile_drag_source, drag_state.tile_drop_target) {
+            if let (Some(from), Some(to)) =
+                (drag_state.tile_drag_source, drag_state.tile_drop_target)
+            {
                 if from != to {
                     events.push(WorkspaceEvent::PaneReordered { from, to });
                 }
@@ -792,7 +785,10 @@ impl<'a> WorkspaceCanvas<'a> {
                 let w = col_widths[col];
                 let h = row_heights[row];
 
-                (*pane_idx, Rect::from_min_size(Pos2::new(x, y), Vec2::new(w, h)))
+                (
+                    *pane_idx,
+                    Rect::from_min_size(Pos2::new(x, y), Vec2::new(w, h)),
+                )
             })
             .collect()
     }
@@ -809,14 +805,12 @@ impl<'a> WorkspaceCanvas<'a> {
         }
 
         let count = visible_panes.len();
-        let cols = columns.unwrap_or_else(|| {
-            match count {
-                1 => 1,
-                2 => 2,
-                3..=4 => 2,
-                5..=6 => 3,
-                _ => ((count as f32).sqrt().ceil() as usize).max(2),
-            }
+        let cols = columns.unwrap_or_else(|| match count {
+            1 => 1,
+            2 => 2,
+            3..=4 => 2,
+            5..=6 => 3,
+            _ => ((count as f32).sqrt().ceil() as usize).max(2),
         });
 
         let rows = (count + cols - 1) / cols;
@@ -844,7 +838,10 @@ impl<'a> WorkspaceCanvas<'a> {
             if !left_panes.is_empty() && !right_panes.is_empty() {
                 // Find the x position of the divider (right edge of left column)
                 if let Some((_, left_rect)) = pane_rects.iter().find(|(idx, _)| {
-                    visible_panes.iter().position(|(i, _)| *i == *idx).map_or(false, |pos| pos % cols == col)
+                    visible_panes
+                        .iter()
+                        .position(|(i, _)| *i == *idx)
+                        .map_or(false, |pos| pos % cols == col)
                 }) {
                     let div_x = left_rect.max.x + self.gap / 2.0;
                     let div_rect = Rect::from_min_max(
@@ -878,7 +875,10 @@ impl<'a> WorkspaceCanvas<'a> {
 
             if !top_panes.is_empty() && !bottom_panes.is_empty() {
                 if let Some((_, top_rect)) = pane_rects.iter().find(|(idx, _)| {
-                    visible_panes.iter().position(|(i, _)| *i == *idx).map_or(false, |pos| pos / cols == row)
+                    visible_panes
+                        .iter()
+                        .position(|(i, _)| *i == *idx)
+                        .map_or(false, |pos| pos / cols == row)
                 }) {
                     let div_y = top_rect.max.y + self.gap / 2.0;
                     let div_rect = Rect::from_min_max(
@@ -902,14 +902,10 @@ impl<'a> WorkspaceCanvas<'a> {
         let pointer_pos = ui.input(|i| i.pointer.hover_pos())?;
         let edge_size = 8.0;
 
-        let right_edge = Rect::from_min_max(
-            Pos2::new(rect.max.x - edge_size, rect.min.y),
-            rect.max,
-        );
-        let bottom_edge = Rect::from_min_max(
-            Pos2::new(rect.min.x, rect.max.y - edge_size),
-            rect.max,
-        );
+        let right_edge =
+            Rect::from_min_max(Pos2::new(rect.max.x - edge_size, rect.min.y), rect.max);
+        let bottom_edge =
+            Rect::from_min_max(Pos2::new(rect.min.x, rect.max.y - edge_size), rect.max);
         let corner = Rect::from_min_max(
             Pos2::new(rect.max.x - edge_size, rect.max.y - edge_size),
             rect.max,
@@ -1004,7 +1000,10 @@ impl<'a> WorkspaceCanvas<'a> {
                 let grid_y = (snapped_pos.y / grid_size).round() as i32;
                 snapped_pos.x = grid_x as f32 * grid_size;
                 snapped_pos.y = grid_y as f32 * grid_size;
-                snap_target = Some(SnapTarget::Grid { x: grid_x, y: grid_y });
+                snap_target = Some(SnapTarget::Grid {
+                    x: grid_x,
+                    y: grid_y,
+                });
             }
         }
 
@@ -1122,9 +1121,15 @@ impl<'a> WorkspaceCanvas<'a> {
                 let handle_size = 6.0;
 
                 let handle_pos = match edge {
-                    ResizeEdge::Right => Pos2::new(interaction.rect.max.x - 3.0, interaction.rect.center().y),
-                    ResizeEdge::Bottom => Pos2::new(interaction.rect.center().x, interaction.rect.max.y - 3.0),
-                    ResizeEdge::BottomRight => Pos2::new(interaction.rect.max.x - 3.0, interaction.rect.max.y - 3.0),
+                    ResizeEdge::Right => {
+                        Pos2::new(interaction.rect.max.x - 3.0, interaction.rect.center().y)
+                    }
+                    ResizeEdge::Bottom => {
+                        Pos2::new(interaction.rect.center().x, interaction.rect.max.y - 3.0)
+                    }
+                    ResizeEdge::BottomRight => {
+                        Pos2::new(interaction.rect.max.x - 3.0, interaction.rect.max.y - 3.0)
+                    }
                 };
 
                 painter.circle_filled(handle_pos, handle_size, handle_color);

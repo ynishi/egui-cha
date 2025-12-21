@@ -93,7 +93,12 @@ pub struct MidiMapping {
 }
 
 impl MidiMapping {
-    pub fn new(param_id: impl Into<String>, msg_type: MidiMsgType, channel: u8, number: u8) -> Self {
+    pub fn new(
+        param_id: impl Into<String>,
+        msg_type: MidiMsgType,
+        channel: u8,
+        number: u8,
+    ) -> Self {
         Self {
             param_id: param_id.into(),
             msg_type,
@@ -128,7 +133,9 @@ impl MidiMapping {
 }
 
 fn note_name(note: u8) -> String {
-    let names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    let names = [
+        "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
+    ];
     let octave = (note / 12) as i32 - 1;
     let name = names[(note % 12) as usize];
     format!("{}{}", name, octave)
@@ -151,7 +158,11 @@ pub enum MidiMapperEvent {
     AssignMapping(MidiMapping),
     RemoveMapping(String),
     SelectParam(String),
-    SetMappingRange { param_id: String, min: f32, max: f32 },
+    SetMappingRange {
+        param_id: String,
+        min: f32,
+        max: f32,
+    },
     ToggleInvert(String),
 }
 
@@ -237,7 +248,11 @@ impl<'a> MidiMapper<'a> {
         let mut event: Option<MidiMapperEvent> = None;
 
         let header_height = theme.spacing_xl;
-        let row_height = if self.compact { theme.spacing_lg } else { theme.spacing_xl + theme.spacing_xs };
+        let row_height = if self.compact {
+            theme.spacing_lg
+        } else {
+            theme.spacing_xl + theme.spacing_xs
+        };
 
         let (rect, _response) = ui.allocate_exact_size(self.size, Sense::hover());
 
@@ -249,7 +264,8 @@ impl<'a> MidiMapper<'a> {
         let inner_rect = rect.shrink(padding);
 
         // Header area
-        let header_rect = Rect::from_min_size(inner_rect.min, Vec2::new(inner_rect.width(), header_height));
+        let header_rect =
+            Rect::from_min_size(inner_rect.min, Vec2::new(inner_rect.width(), header_height));
 
         // Content area
         let content_rect = Rect::from_min_max(
@@ -275,7 +291,10 @@ impl<'a> MidiMapper<'a> {
         // Header cancel button (when learning)
         if matches!(self.learn_state, LearnState::WaitingForMidi(_)) {
             let cancel_rect = Rect::from_min_size(
-                Pos2::new(header_rect.max.x - 60.0, header_rect.min.y + (header_height - theme.spacing_md) / 2.0),
+                Pos2::new(
+                    header_rect.max.x - 60.0,
+                    header_rect.min.y + (header_height - theme.spacing_md) / 2.0,
+                ),
                 Vec2::new(55.0, theme.spacing_md),
             );
             let resp = ui.allocate_rect(cancel_rect, Sense::click());
@@ -289,11 +308,17 @@ impl<'a> MidiMapper<'a> {
                 break;
             }
 
-            let row_rect = Rect::from_min_size(Pos2::new(content_rect.min.x, y), Vec2::new(content_rect.width(), row_height));
+            let row_rect = Rect::from_min_size(
+                Pos2::new(content_rect.min.x, y),
+                Vec2::new(content_rect.width(), row_height),
+            );
 
             // Learn button
             let learn_rect = Rect::from_min_size(
-                Pos2::new(row_rect.max.x - 50.0, row_rect.min.y + (row_height - theme.spacing_md) / 2.0),
+                Pos2::new(
+                    row_rect.max.x - 50.0,
+                    row_rect.min.y + (row_height - theme.spacing_md) / 2.0,
+                ),
                 Vec2::new(45.0, theme.spacing_md),
             );
 
@@ -303,7 +328,10 @@ impl<'a> MidiMapper<'a> {
             // Remove button (if has mapping)
             let remove_rect = if has_mapping {
                 Some(Rect::from_min_size(
-                    Pos2::new(learn_rect.min.x - 25.0, row_rect.min.y + (row_height - theme.spacing_md) / 2.0),
+                    Pos2::new(
+                        learn_rect.min.x - 25.0,
+                        row_rect.min.y + (row_height - theme.spacing_md) / 2.0,
+                    ),
                     Vec2::new(20.0, theme.spacing_md),
                 ))
             } else {
@@ -319,7 +347,9 @@ impl<'a> MidiMapper<'a> {
                 rect: row_rect,
                 learn_rect,
                 remove_rect,
-                clicked: row_resp.clicked() && !learn_resp.hovered() && remove_resp.as_ref().map(|r| !r.hovered()).unwrap_or(true),
+                clicked: row_resp.clicked()
+                    && !learn_resp.hovered()
+                    && remove_resp.as_ref().map(|r| !r.hovered()).unwrap_or(true),
                 learn_clicked: learn_resp.clicked(),
                 remove_clicked: remove_resp.map(|r| r.clicked()).unwrap_or(false),
                 hovered: row_resp.hovered(),
@@ -339,7 +369,7 @@ impl<'a> MidiMapper<'a> {
 
         let header_text = match self.learn_state {
             LearnState::Inactive => "MIDI Mapper",
-            LearnState::WaitingForMidi(param_id) => {
+            LearnState::WaitingForMidi(_param_id) => {
                 // Show which param we're learning for
                 "Waiting for MIDI..."
             }
@@ -373,10 +403,17 @@ impl<'a> MidiMapper<'a> {
         // Cancel button
         if matches!(self.learn_state, LearnState::WaitingForMidi(_)) {
             let cancel_rect = Rect::from_min_size(
-                Pos2::new(header_rect.max.x - 60.0, header_rect.min.y + (header_height - theme.spacing_md) / 2.0),
+                Pos2::new(
+                    header_rect.max.x - 60.0,
+                    header_rect.min.y + (header_height - theme.spacing_md) / 2.0,
+                ),
                 Vec2::new(55.0, theme.spacing_md),
             );
-            painter.rect_filled(cancel_rect, theme.radius_sm, theme.state_danger.gamma_multiply(0.3));
+            painter.rect_filled(
+                cancel_rect,
+                theme.radius_sm,
+                theme.state_danger.gamma_multiply(0.3),
+            );
             painter.text(
                 cancel_rect.center(),
                 egui::Align2::CENTER_CENTER,
@@ -389,7 +426,8 @@ impl<'a> MidiMapper<'a> {
         // Param rows
         for (info, param) in row_infos.iter().zip(self.params.iter()) {
             let is_selected = self.selected_param == Some(&param.id);
-            let is_learning = matches!(self.learn_state, LearnState::WaitingForMidi(ref id) if id == &param.id);
+            let is_learning =
+                matches!(self.learn_state, LearnState::WaitingForMidi(ref id) if id == &param.id);
             let mapping = self.mappings.iter().find(|m| m.param_id == param.id);
             let is_hovered = info.hovered;
 
@@ -436,8 +474,12 @@ impl<'a> MidiMapper<'a> {
                 );
                 painter.rect_filled(bar_rect, 3.0, theme.bg_tertiary);
 
-                let normalized = (param.current_value - param.min_value) / (param.max_value - param.min_value);
-                let fill_rect = Rect::from_min_size(bar_rect.min, Vec2::new(bar_width * normalized.clamp(0.0, 1.0), 6.0));
+                let normalized =
+                    (param.current_value - param.min_value) / (param.max_value - param.min_value);
+                let fill_rect = Rect::from_min_size(
+                    bar_rect.min,
+                    Vec2::new(bar_width * normalized.clamp(0.0, 1.0), 6.0),
+                );
                 painter.rect_filled(fill_rect, 3.0, theme.primary);
 
                 // Value text
@@ -453,7 +495,11 @@ impl<'a> MidiMapper<'a> {
             // Mapping info
             if let Some(m) = mapping {
                 let mapping_x = info.learn_rect.min.x - 80.0;
-                let mapping_color = if m.inverted { theme.state_warning } else { theme.state_success };
+                let mapping_color = if m.inverted {
+                    theme.state_warning
+                } else {
+                    theme.state_success
+                };
                 painter.text(
                     Pos2::new(mapping_x, info.rect.center().y),
                     egui::Align2::LEFT_CENTER,
@@ -465,7 +511,11 @@ impl<'a> MidiMapper<'a> {
 
             // Remove button
             if let Some(remove_rect) = info.remove_rect {
-                painter.rect_filled(remove_rect, theme.radius_sm, theme.state_danger.gamma_multiply(0.3));
+                painter.rect_filled(
+                    remove_rect,
+                    theme.radius_sm,
+                    theme.state_danger.gamma_multiply(0.3),
+                );
                 painter.text(
                     remove_rect.center(),
                     egui::Align2::CENTER_CENTER,
@@ -483,8 +533,18 @@ impl<'a> MidiMapper<'a> {
             } else {
                 theme.bg_tertiary
             };
-            let learn_text = if is_learning { "..." } else if mapping.is_some() { "Edit" } else { "Learn" };
-            let learn_color = if is_learning { theme.bg_primary } else { theme.text_secondary };
+            let learn_text = if is_learning {
+                "..."
+            } else if mapping.is_some() {
+                "Edit"
+            } else {
+                "Learn"
+            };
+            let learn_color = if is_learning {
+                theme.bg_primary
+            } else {
+                theme.text_secondary
+            };
 
             painter.rect_filled(info.learn_rect, theme.radius_sm, learn_bg);
             painter.text(
@@ -497,13 +557,21 @@ impl<'a> MidiMapper<'a> {
 
             // Row separator
             painter.line_segment(
-                [Pos2::new(info.rect.min.x, info.rect.max.y), Pos2::new(info.rect.max.x, info.rect.max.y)],
+                [
+                    Pos2::new(info.rect.min.x, info.rect.max.y),
+                    Pos2::new(info.rect.max.x, info.rect.max.y),
+                ],
                 Stroke::new(0.5, theme.border.gamma_multiply(0.5)),
             );
         }
 
         // Border
-        painter.rect_stroke(rect, theme.radius_md, Stroke::new(theme.border_width, theme.border), egui::StrokeKind::Inside);
+        painter.rect_stroke(
+            rect,
+            theme.radius_md,
+            Stroke::new(theme.border_width, theme.border),
+            egui::StrokeKind::Inside,
+        );
 
         // Process events
         if cancel_learn_clicked {

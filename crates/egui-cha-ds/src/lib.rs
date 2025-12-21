@@ -1,3 +1,19 @@
+// Clippy/compiler warnings to address in v0.2.0
+#![allow(dead_code)] // Some fields reserved for future use
+#![allow(deprecated)] // allocate_ui_at_rect -> allocate_new_ui migration pending
+#![allow(clippy::too_many_arguments)]
+#![allow(clippy::unnecessary_map_or)]
+#![allow(clippy::collapsible_if)]
+#![allow(clippy::unnecessary_cast)]
+#![allow(clippy::needless_borrows_for_generic_args)]
+#![allow(clippy::manual_div_ceil)]
+#![allow(clippy::explicit_auto_deref)]
+#![allow(clippy::needless_lifetimes)]
+#![allow(clippy::let_and_return)]
+#![allow(clippy::doc_overindented_list_items)]
+#![allow(clippy::manual_range_contains)]
+#![allow(clippy::derivable_impls)]
+
 //! egui-cha-ds: Design System for egui-cha
 //!
 //! Provides themed UI components following Atomic Design principles:

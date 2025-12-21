@@ -343,20 +343,27 @@ impl<'a> AutomationLane<'a> {
 
             // Vertical grid lines
             for i in 0..=self.grid_divisions {
-                let x = graph_rect.min.x + graph_rect.width() * i as f32 / self.grid_divisions as f32;
+                let x =
+                    graph_rect.min.x + graph_rect.width() * i as f32 / self.grid_divisions as f32;
                 let is_major = i % 4 == 0;
                 let stroke = if is_major {
                     Stroke::new(1.0, grid_color)
                 } else {
-                    Stroke::new(0.5, Color32::from_rgba_unmultiplied(
-                        grid_color.r(),
-                        grid_color.g(),
-                        grid_color.b(),
-                        grid_color.a() / 2,
-                    ))
+                    Stroke::new(
+                        0.5,
+                        Color32::from_rgba_unmultiplied(
+                            grid_color.r(),
+                            grid_color.g(),
+                            grid_color.b(),
+                            grid_color.a() / 2,
+                        ),
+                    )
                 };
                 painter.line_segment(
-                    [egui::pos2(x, graph_rect.min.y), egui::pos2(x, graph_rect.max.y)],
+                    [
+                        egui::pos2(x, graph_rect.min.y),
+                        egui::pos2(x, graph_rect.max.y),
+                    ],
                     stroke,
                 );
             }
@@ -365,7 +372,10 @@ impl<'a> AutomationLane<'a> {
             for i in 1..4 {
                 let y = graph_rect.min.y + graph_rect.height() * i as f32 / 4.0;
                 painter.line_segment(
-                    [egui::pos2(graph_rect.min.x, y), egui::pos2(graph_rect.max.x, y)],
+                    [
+                        egui::pos2(graph_rect.min.x, y),
+                        egui::pos2(graph_rect.max.x, y),
+                    ],
                     Stroke::new(0.5, grid_color),
                 );
             }
@@ -523,8 +533,8 @@ impl<'a> AutomationLane<'a> {
         // Value at current position
         if self.show_value_at_position && !self.points.is_empty() {
             let current_value = self.interpolate_value(self.position);
-            let display_value = *self.range.start()
-                + current_value * (*self.range.end() - *self.range.start());
+            let display_value =
+                *self.range.start() + current_value * (*self.range.end() - *self.range.start());
             let value_str = format!("{:.2}", display_value);
 
             painter.text(
@@ -576,7 +586,9 @@ impl<'a> AutomationLane<'a> {
             AutomationCurve::Linear => {
                 painter.line_segment([from_pos, to_pos], Stroke::new(2.0, color));
             }
-            AutomationCurve::Smooth | AutomationCurve::Exponential | AutomationCurve::Logarithmic => {
+            AutomationCurve::Smooth
+            | AutomationCurve::Exponential
+            | AutomationCurve::Logarithmic => {
                 // Use bezier curve for smooth transitions
                 let segments = 16;
                 let mut points = Vec::with_capacity(segments + 1);

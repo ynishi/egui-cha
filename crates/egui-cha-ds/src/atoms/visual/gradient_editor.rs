@@ -101,12 +101,14 @@ impl Gradient {
     pub fn add_stop(&mut self, position: f32) {
         let color = self.sample(position);
         self.stops.push(GradientStop::new(position, color));
-        self.stops.sort_by(|a, b| a.position.partial_cmp(&b.position).unwrap());
+        self.stops
+            .sort_by(|a, b| a.position.partial_cmp(&b.position).unwrap());
     }
 
     pub fn add_stop_with_color(&mut self, position: f32, color: Color32) {
         self.stops.push(GradientStop::new(position, color));
-        self.stops.sort_by(|a, b| a.position.partial_cmp(&b.position).unwrap());
+        self.stops
+            .sort_by(|a, b| a.position.partial_cmp(&b.position).unwrap());
     }
 
     pub fn remove_stop(&mut self, index: usize) {
@@ -119,7 +121,8 @@ impl Gradient {
         if let Some(stop) = self.stops.get_mut(index) {
             stop.position = new_position.clamp(0.0, 1.0);
         }
-        self.stops.sort_by(|a, b| a.position.partial_cmp(&b.position).unwrap());
+        self.stops
+            .sort_by(|a, b| a.position.partial_cmp(&b.position).unwrap());
     }
 }
 
@@ -234,10 +237,8 @@ impl<'a> GradientEditor<'a> {
 
         let total_height = self.height + stop_area_height + values_height + theme.spacing_xs;
 
-        let (rect, _response) = ui.allocate_exact_size(
-            Vec2::new(self.width, total_height),
-            Sense::hover(),
-        );
+        let (rect, _response) =
+            ui.allocate_exact_size(Vec2::new(self.width, total_height), Sense::hover());
 
         if !ui.is_rect_visible(rect) {
             return None;
@@ -278,7 +279,8 @@ impl<'a> GradientEditor<'a> {
             };
 
             let handle_pos = Pos2::new(stop_x, stop_y);
-            let handle_rect = Rect::from_center_size(handle_pos, Vec2::new(stop_handle_size, stop_handle_size));
+            let handle_rect =
+                Rect::from_center_size(handle_pos, Vec2::new(stop_handle_size, stop_handle_size));
 
             if self.editable {
                 let resp = ui.allocate_rect(handle_rect.expand(4.0), Sense::click_and_drag());
@@ -314,11 +316,19 @@ impl<'a> GradientEditor<'a> {
         for row in 0..rows {
             for col in 0..cols {
                 let is_dark = (row + col) % 2 == 0;
-                let color = if is_dark { Color32::from_gray(60) } else { Color32::from_gray(100) };
+                let color = if is_dark {
+                    Color32::from_gray(60)
+                } else {
+                    Color32::from_gray(100)
+                };
                 let check_rect = Rect::from_min_size(
-                    Pos2::new(bar_rect.min.x + col as f32 * checker_size, bar_rect.min.y + row as f32 * checker_size),
+                    Pos2::new(
+                        bar_rect.min.x + col as f32 * checker_size,
+                        bar_rect.min.y + row as f32 * checker_size,
+                    ),
                     Vec2::splat(checker_size),
-                ).intersect(bar_rect);
+                )
+                .intersect(bar_rect);
                 painter.rect_filled(check_rect, 0.0, color);
             }
         }
@@ -354,14 +364,21 @@ impl<'a> GradientEditor<'a> {
         }
 
         // Border
-        painter.rect_stroke(bar_rect, theme.radius_sm, Stroke::new(theme.border_width, theme.border), egui::StrokeKind::Inside);
+        painter.rect_stroke(
+            bar_rect,
+            theme.radius_sm,
+            Stroke::new(theme.border_width, theme.border),
+            egui::StrokeKind::Inside,
+        );
 
         // Handle bar click to add stop
         if let Some((double_clicked, pos)) = bar_response {
             if double_clicked {
                 if let Some(pos) = pos {
                     let t = match self.direction {
-                        GradientDirection::Horizontal => (pos.x - bar_rect.min.x) / bar_rect.width(),
+                        GradientDirection::Horizontal => {
+                            (pos.x - bar_rect.min.x) / bar_rect.width()
+                        }
                         GradientDirection::Vertical => (pos.y - bar_rect.min.y) / bar_rect.height(),
                     };
                     event = Some(GradientEvent::AddStop(t.clamp(0.0, 1.0)));
@@ -406,7 +423,12 @@ impl<'a> GradientEditor<'a> {
                 Vec2::new(stop_handle_size, stop_handle_size / 2.0),
             );
             painter.rect_filled(swatch_rect, theme.radius_sm, stop.color);
-            painter.rect_stroke(swatch_rect, theme.radius_sm, Stroke::new(1.0, outline_color), egui::StrokeKind::Outside);
+            painter.rect_stroke(
+                swatch_rect,
+                theme.radius_sm,
+                Stroke::new(1.0, outline_color),
+                egui::StrokeKind::Outside,
+            );
 
             // Position value on hover
             if self.show_stop_values && is_hovered {
@@ -428,7 +450,10 @@ impl<'a> GradientEditor<'a> {
                 let x1 = bar_rect.min.x + self.gradient.stops[i].position * bar_rect.width();
                 let x2 = bar_rect.min.x + self.gradient.stops[i + 1].position * bar_rect.width();
                 painter.line_segment(
-                    [Pos2::new(x1 + stop_handle_size / 2.0, line_y), Pos2::new(x2 - stop_handle_size / 2.0, line_y)],
+                    [
+                        Pos2::new(x1 + stop_handle_size / 2.0, line_y),
+                        Pos2::new(x2 - stop_handle_size / 2.0, line_y),
+                    ],
                     Stroke::new(1.0, theme.border),
                 );
             }
@@ -455,7 +480,9 @@ impl<'a> GradientEditor<'a> {
             } else if info.dragged {
                 if let Some(pos) = info.drag_pos {
                     let new_pos = match self.direction {
-                        GradientDirection::Horizontal => (pos.x - bar_rect.min.x) / bar_rect.width(),
+                        GradientDirection::Horizontal => {
+                            (pos.x - bar_rect.min.x) / bar_rect.width()
+                        }
                         GradientDirection::Vertical => (pos.y - bar_rect.min.y) / bar_rect.height(),
                     };
                     event = Some(GradientEvent::MoveStop {

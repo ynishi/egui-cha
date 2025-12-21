@@ -159,10 +159,8 @@ impl<'a> Waveform<'a> {
         };
         let width = ui.available_width();
 
-        let (rect, response) = ui.allocate_exact_size(
-            Vec2::new(width, total_height),
-            Sense::hover(),
-        );
+        let (rect, response) =
+            ui.allocate_exact_size(Vec2::new(width, total_height), Sense::hover());
 
         if ui.is_rect_visible(rect) {
             // Colors
@@ -171,10 +169,7 @@ impl<'a> Waveform<'a> {
 
             if self.samples_right.is_some() {
                 // Stereo: draw two waveforms
-                let left_rect = Rect::from_min_size(
-                    rect.min,
-                    Vec2::new(width, height),
-                );
+                let left_rect = Rect::from_min_size(rect.min, Vec2::new(width, height));
                 let right_rect = Rect::from_min_size(
                     rect.min + Vec2::new(0.0, height + theme.spacing_xs),
                     Vec2::new(width, height),
@@ -183,7 +178,13 @@ impl<'a> Waveform<'a> {
                 self.draw_waveform_in_rect(ui, left_rect, self.samples, primary_color, &theme);
 
                 if let Some(right_samples) = self.samples_right {
-                    self.draw_waveform_in_rect(ui, right_rect, right_samples, secondary_color, &theme);
+                    self.draw_waveform_in_rect(
+                        ui,
+                        right_rect,
+                        right_samples,
+                        secondary_color,
+                        &theme,
+                    );
                 }
             } else {
                 // Mono: single waveform
@@ -235,7 +236,8 @@ impl<'a> Waveform<'a> {
         theme: &Theme,
     ) {
         // Draw background first
-        ui.painter().rect_filled(rect, theme.radius_sm, theme.bg_secondary);
+        ui.painter()
+            .rect_filled(rect, theme.radius_sm, theme.bg_secondary);
 
         // Convert samples to plot points
         let plot_points: PlotPoints = samples

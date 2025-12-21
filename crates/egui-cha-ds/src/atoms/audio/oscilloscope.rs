@@ -201,10 +201,8 @@ impl<'a> Oscilloscope<'a> {
         let theme = Theme::current(ui.ctx());
 
         let width = self.width.unwrap_or_else(|| ui.available_width());
-        let (rect, response) = ui.allocate_exact_size(
-            Vec2::new(width, self.height),
-            Sense::hover(),
-        );
+        let (rect, response) =
+            ui.allocate_exact_size(Vec2::new(width, self.height), Sense::hover());
 
         if !ui.is_rect_visible(rect) {
             return response;
@@ -290,7 +288,11 @@ impl<'a> Oscilloscope<'a> {
             )
         };
         let center_y = rect.center().y;
-        painter.hline(rect.min.x..=rect.max.x, center_y, Stroke::new(0.5, center_color));
+        painter.hline(
+            rect.min.x..=rect.max.x,
+            center_y,
+            Stroke::new(0.5, center_color),
+        );
     }
 
     fn draw_trace(&self, painter: &egui::Painter, rect: Rect, color: Color32) {
@@ -323,9 +325,8 @@ impl<'a> Oscilloscope<'a> {
 
                 if self.phosphor_glow {
                     // Draw glow layer
-                    let glow_color = Color32::from_rgba_unmultiplied(
-                        color.r(), color.g(), color.b(), 40,
-                    );
+                    let glow_color =
+                        Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), 40);
                     painter.add(egui::Shape::line(
                         points.clone(),
                         Stroke::new(self.line_width * 3.0, glow_color),
@@ -350,9 +351,8 @@ impl<'a> Oscilloscope<'a> {
 
                 points.push(egui::pos2(rect.max.x, rect.center().y));
 
-                let fill_color = Color32::from_rgba_unmultiplied(
-                    color.r(), color.g(), color.b(), 80,
-                );
+                let fill_color =
+                    Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), 80);
                 painter.add(egui::Shape::convex_polygon(
                     points.clone(),
                     fill_color,
@@ -360,7 +360,7 @@ impl<'a> Oscilloscope<'a> {
                 ));
 
                 // Draw line on top
-                let line_points: Vec<egui::Pos2> = points[1..points.len()-1].to_vec();
+                let line_points: Vec<egui::Pos2> = points[1..points.len() - 1].to_vec();
                 painter.add(egui::Shape::line(
                     line_points,
                     Stroke::new(self.line_width, color),
@@ -375,9 +375,8 @@ impl<'a> Oscilloscope<'a> {
                     let pos = egui::pos2(rect.min.x + x as f32, y);
 
                     if self.phosphor_glow {
-                        let glow_color = Color32::from_rgba_unmultiplied(
-                            color.r(), color.g(), color.b(), 40,
-                        );
+                        let glow_color =
+                            Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), 40);
                         painter.circle_filled(pos, self.line_width * 2.0, glow_color);
                     }
                     painter.circle_filled(pos, self.line_width, color);
@@ -408,9 +407,7 @@ impl<'a> Oscilloscope<'a> {
 
         if self.phosphor_glow {
             // Draw glow
-            let glow_color = Color32::from_rgba_unmultiplied(
-                color.r(), color.g(), color.b(), 30,
-            );
+            let glow_color = Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), 30);
             painter.add(egui::Shape::line(
                 points.clone(),
                 Stroke::new(self.line_width * 4.0, glow_color),

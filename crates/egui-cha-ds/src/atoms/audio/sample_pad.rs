@@ -148,11 +148,7 @@ impl<'a> SamplePad<'a> {
     }
 
     /// TEA-style: Show pad grid and emit events
-    pub fn show_with<Msg>(
-        self,
-        ctx: &mut ViewCtx<'_, Msg>,
-        on_event: impl Fn(PadEvent) -> Msg,
-    ) {
+    pub fn show_with<Msg>(self, ctx: &mut ViewCtx<'_, Msg>, on_event: impl Fn(PadEvent) -> Msg) {
         if let Some(event) = self.render(ctx.ui) {
             ctx.emit(on_event(event));
         }
@@ -169,15 +165,13 @@ impl<'a> SamplePad<'a> {
         let mut event = None;
 
         let total_pads = self.cols * self.rows;
-        let total_width = self.cols as f32 * self.pad_size
-            + (self.cols.saturating_sub(1)) as f32 * self.spacing;
-        let total_height = self.rows as f32 * self.pad_size
-            + (self.rows.saturating_sub(1)) as f32 * self.spacing;
+        let total_width =
+            self.cols as f32 * self.pad_size + (self.cols.saturating_sub(1)) as f32 * self.spacing;
+        let total_height =
+            self.rows as f32 * self.pad_size + (self.rows.saturating_sub(1)) as f32 * self.spacing;
 
-        let (rect, _) = ui.allocate_exact_size(
-            Vec2::new(total_width, total_height),
-            Sense::hover(),
-        );
+        let (rect, _) =
+            ui.allocate_exact_size(Vec2::new(total_width, total_height), Sense::hover());
 
         if !ui.is_rect_visible(rect) {
             return None;
@@ -203,10 +197,8 @@ impl<'a> SamplePad<'a> {
 
             let pad_x = rect.min.x + col as f32 * (self.pad_size + self.spacing);
             let pad_y = rect.min.y + display_row as f32 * (self.pad_size + self.spacing);
-            let pad_rect = Rect::from_min_size(
-                egui::pos2(pad_x, pad_y),
-                Vec2::splat(self.pad_size),
-            );
+            let pad_rect =
+                Rect::from_min_size(egui::pos2(pad_x, pad_y), Vec2::splat(self.pad_size));
 
             // Get pad data
             let pad_data = if let Some(pads) = self.pads {
@@ -299,7 +291,11 @@ impl<'a> SamplePad<'a> {
             painter.rect_filled(pad.rect, theme.radius_sm, bg_color);
 
             // Draw border
-            let border_width = if pad.is_active || pad.is_selected { 2.0 } else { 1.0 };
+            let border_width = if pad.is_active || pad.is_selected {
+                2.0
+            } else {
+                1.0
+            };
             painter.rect_stroke(
                 pad.rect,
                 theme.radius_sm,
@@ -339,10 +335,17 @@ impl<'a> SamplePad<'a> {
             // Active indicator (small triangle in corner)
             if pad.is_active {
                 let indicator_size = 8.0;
-                let center = pad.rect.right_bottom() + Vec2::new(-indicator_size - 2.0, -indicator_size - 2.0);
+                let center = pad.rect.right_bottom()
+                    + Vec2::new(-indicator_size - 2.0, -indicator_size - 2.0);
                 let points = vec![
-                    egui::pos2(center.x - indicator_size / 2.0, center.y - indicator_size / 2.0),
-                    egui::pos2(center.x - indicator_size / 2.0, center.y + indicator_size / 2.0),
+                    egui::pos2(
+                        center.x - indicator_size / 2.0,
+                        center.y - indicator_size / 2.0,
+                    ),
+                    egui::pos2(
+                        center.x - indicator_size / 2.0,
+                        center.y + indicator_size / 2.0,
+                    ),
                     egui::pos2(center.x + indicator_size / 2.0, center.y),
                 ];
                 painter.add(egui::Shape::convex_polygon(

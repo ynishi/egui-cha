@@ -92,11 +92,7 @@ impl Strip {
     }
 
     /// Show the strip with content functions
-    pub fn show<R>(
-        self,
-        ui: &mut Ui,
-        mut add_contents: impl FnMut(usize, &mut Ui) -> R,
-    ) -> Vec<R> {
+    pub fn show<R>(self, ui: &mut Ui, mut add_contents: impl FnMut(usize, &mut Ui) -> R) -> Vec<R> {
         let mut results = Vec::new();
 
         match self.direction {

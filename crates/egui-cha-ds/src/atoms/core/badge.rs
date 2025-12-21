@@ -76,36 +76,58 @@ impl<'a> Badge<'a> {
         let is_dark = theme.variant == crate::ThemeVariant::Dark;
 
         match self.variant {
-            BadgeVariant::Default => {
-                (theme.bg_tertiary, theme.text_secondary)
-            }
+            BadgeVariant::Default => (theme.bg_tertiary, theme.text_secondary),
             BadgeVariant::Success => {
                 // Subtle style: light green bg, dark green text
                 if is_dark {
-                    (darken(theme.state_success, 0.3), lighten(theme.state_success, 0.7))
+                    (
+                        darken(theme.state_success, 0.3),
+                        lighten(theme.state_success, 0.7),
+                    )
                 } else {
-                    (lighten(theme.state_success, 0.85), darken(theme.state_success, 0.3))
+                    (
+                        lighten(theme.state_success, 0.85),
+                        darken(theme.state_success, 0.3),
+                    )
                 }
             }
             BadgeVariant::Warning => {
                 if is_dark {
-                    (darken(theme.state_warning, 0.3), lighten(theme.state_warning, 0.7))
+                    (
+                        darken(theme.state_warning, 0.3),
+                        lighten(theme.state_warning, 0.7),
+                    )
                 } else {
-                    (lighten(theme.state_warning, 0.85), darken(theme.state_warning, 0.4))
+                    (
+                        lighten(theme.state_warning, 0.85),
+                        darken(theme.state_warning, 0.4),
+                    )
                 }
             }
             BadgeVariant::Error => {
                 if is_dark {
-                    (darken(theme.state_danger, 0.3), lighten(theme.state_danger, 0.7))
+                    (
+                        darken(theme.state_danger, 0.3),
+                        lighten(theme.state_danger, 0.7),
+                    )
                 } else {
-                    (lighten(theme.state_danger, 0.85), darken(theme.state_danger, 0.3))
+                    (
+                        lighten(theme.state_danger, 0.85),
+                        darken(theme.state_danger, 0.3),
+                    )
                 }
             }
             BadgeVariant::Info => {
                 if is_dark {
-                    (darken(theme.state_info, 0.3), lighten(theme.state_info, 0.7))
+                    (
+                        darken(theme.state_info, 0.3),
+                        lighten(theme.state_info, 0.7),
+                    )
                 } else {
-                    (lighten(theme.state_info, 0.85), darken(theme.state_info, 0.3))
+                    (
+                        lighten(theme.state_info, 0.85),
+                        darken(theme.state_info, 0.3),
+                    )
                 }
             }
         }

@@ -217,15 +217,26 @@ impl ColorWheel {
         let theme = Theme::current(ui.ctx());
 
         let wheel_size = self.size;
-        let alpha_height = if self.show_alpha { theme.spacing_lg } else { 0.0 };
-        let preview_height = if self.show_preview { theme.spacing_xl } else { 0.0 };
-        let values_height = if self.show_values { theme.font_size_sm * 2.0 + theme.spacing_xs } else { 0.0 };
-        let total_height = wheel_size + alpha_height + preview_height + values_height + theme.spacing_sm * 3.0;
+        let alpha_height = if self.show_alpha {
+            theme.spacing_lg
+        } else {
+            0.0
+        };
+        let preview_height = if self.show_preview {
+            theme.spacing_xl
+        } else {
+            0.0
+        };
+        let values_height = if self.show_values {
+            theme.font_size_sm * 2.0 + theme.spacing_xs
+        } else {
+            0.0
+        };
+        let total_height =
+            wheel_size + alpha_height + preview_height + values_height + theme.spacing_sm * 3.0;
 
-        let (rect, mut response) = ui.allocate_exact_size(
-            Vec2::new(wheel_size, total_height),
-            Sense::hover(),
-        );
+        let (rect, mut response) =
+            ui.allocate_exact_size(Vec2::new(wheel_size, total_height), Sense::hover());
 
         if !ui.is_rect_visible(rect) {
             return response;
@@ -245,18 +256,36 @@ impl ColorWheel {
         let (sv_response, sv_interact_pos) = match self.style {
             WheelStyle::Triangle => {
                 let hue_angle = hsva.h * 2.0 * PI - PI / 2.0;
-                let v0 = center + Vec2::new(hue_angle.cos() * inner_radius * 0.9, hue_angle.sin() * inner_radius * 0.9);
-                let v1 = center + Vec2::new((hue_angle + 2.0 * PI / 3.0).cos() * inner_radius * 0.9, (hue_angle + 2.0 * PI / 3.0).sin() * inner_radius * 0.9);
-                let v2 = center + Vec2::new((hue_angle - 2.0 * PI / 3.0).cos() * inner_radius * 0.9, (hue_angle - 2.0 * PI / 3.0).sin() * inner_radius * 0.9);
+                let v0 = center
+                    + Vec2::new(
+                        hue_angle.cos() * inner_radius * 0.9,
+                        hue_angle.sin() * inner_radius * 0.9,
+                    );
+                let v1 = center
+                    + Vec2::new(
+                        (hue_angle + 2.0 * PI / 3.0).cos() * inner_radius * 0.9,
+                        (hue_angle + 2.0 * PI / 3.0).sin() * inner_radius * 0.9,
+                    );
+                let v2 = center
+                    + Vec2::new(
+                        (hue_angle - 2.0 * PI / 3.0).cos() * inner_radius * 0.9,
+                        (hue_angle - 2.0 * PI / 3.0).sin() * inner_radius * 0.9,
+                    );
                 let tri_rect = Rect::from_points(&[v0, v1, v2]);
                 let resp = ui.allocate_rect(tri_rect, Sense::click_and_drag());
-                (resp.clicked() || resp.dragged(), resp.interact_pointer_pos())
+                (
+                    resp.clicked() || resp.dragged(),
+                    resp.interact_pointer_pos(),
+                )
             }
             WheelStyle::Square => {
                 let half_size = inner_radius * 0.7;
                 let sq_rect = Rect::from_center_size(center, Vec2::splat(half_size * 2.0));
                 let resp = ui.allocate_rect(sq_rect, Sense::click_and_drag());
-                (resp.clicked() || resp.dragged(), resp.interact_pointer_pos())
+                (
+                    resp.clicked() || resp.dragged(),
+                    resp.interact_pointer_pos(),
+                )
             }
         };
 
@@ -268,7 +297,10 @@ impl ColorWheel {
                 Vec2::new(wheel_size, theme.spacing_md),
             );
             let resp = ui.allocate_rect(alpha_rect, Sense::click_and_drag());
-            (resp.clicked() || resp.dragged(), resp.interact_pointer_pos())
+            (
+                resp.clicked() || resp.dragged(),
+                resp.interact_pointer_pos(),
+            )
         } else {
             (false, None)
         };
@@ -288,16 +320,36 @@ impl ColorWheel {
             let color1 = Hsva::new(hue1, 1.0, 1.0).to_color32();
             let color2 = Hsva::new(hue2, 1.0, 1.0).to_color32();
 
-            let outer1 = center + Vec2::new(angle1.cos() * outer_radius, angle1.sin() * outer_radius);
-            let outer2 = center + Vec2::new(angle2.cos() * outer_radius, angle2.sin() * outer_radius);
-            let inner1 = center + Vec2::new(angle1.cos() * inner_radius, angle1.sin() * inner_radius);
-            let inner2 = center + Vec2::new(angle2.cos() * inner_radius, angle2.sin() * inner_radius);
+            let outer1 =
+                center + Vec2::new(angle1.cos() * outer_radius, angle1.sin() * outer_radius);
+            let outer2 =
+                center + Vec2::new(angle2.cos() * outer_radius, angle2.sin() * outer_radius);
+            let inner1 =
+                center + Vec2::new(angle1.cos() * inner_radius, angle1.sin() * inner_radius);
+            let inner2 =
+                center + Vec2::new(angle2.cos() * inner_radius, angle2.sin() * inner_radius);
 
             let mut mesh = egui::Mesh::default();
-            mesh.vertices.push(egui::epaint::Vertex { pos: outer1, uv: egui::epaint::WHITE_UV, color: color1 });
-            mesh.vertices.push(egui::epaint::Vertex { pos: outer2, uv: egui::epaint::WHITE_UV, color: color2 });
-            mesh.vertices.push(egui::epaint::Vertex { pos: inner2, uv: egui::epaint::WHITE_UV, color: color2 });
-            mesh.vertices.push(egui::epaint::Vertex { pos: inner1, uv: egui::epaint::WHITE_UV, color: color1 });
+            mesh.vertices.push(egui::epaint::Vertex {
+                pos: outer1,
+                uv: egui::epaint::WHITE_UV,
+                color: color1,
+            });
+            mesh.vertices.push(egui::epaint::Vertex {
+                pos: outer2,
+                uv: egui::epaint::WHITE_UV,
+                color: color2,
+            });
+            mesh.vertices.push(egui::epaint::Vertex {
+                pos: inner2,
+                uv: egui::epaint::WHITE_UV,
+                color: color2,
+            });
+            mesh.vertices.push(egui::epaint::Vertex {
+                pos: inner1,
+                uv: egui::epaint::WHITE_UV,
+                color: color1,
+            });
             mesh.indices.extend_from_slice(&[0, 1, 2, 0, 2, 3]);
             painter.add(egui::Shape::mesh(mesh));
         }
@@ -319,9 +371,17 @@ impl ColorWheel {
         // Draw hue indicator
         let hue_angle = hsva.h * 2.0 * PI - PI;
         let indicator_radius = (inner_radius + outer_radius) / 2.0;
-        let indicator_pos = center + Vec2::new(hue_angle.cos() * indicator_radius, hue_angle.sin() * indicator_radius);
+        let indicator_pos = center
+            + Vec2::new(
+                hue_angle.cos() * indicator_radius,
+                hue_angle.sin() * indicator_radius,
+            );
         painter.circle_filled(indicator_pos, self.ring_width / 2.0 - 2.0, hsva.hue_color());
-        painter.circle_stroke(indicator_pos, self.ring_width / 2.0 - 2.0, Stroke::new(2.0, Color32::WHITE));
+        painter.circle_stroke(
+            indicator_pos,
+            self.ring_width / 2.0 - 2.0,
+            Stroke::new(2.0, Color32::WHITE),
+        );
 
         // Draw SV area
         match self.style {
@@ -329,17 +389,40 @@ impl ColorWheel {
                 let hue_angle = hsva.h * 2.0 * PI - PI / 2.0;
                 let radius = inner_radius * 0.9;
                 let v0 = center + Vec2::new(hue_angle.cos() * radius, hue_angle.sin() * radius);
-                let v1 = center + Vec2::new((hue_angle + 2.0 * PI / 3.0).cos() * radius, (hue_angle + 2.0 * PI / 3.0).sin() * radius);
-                let v2 = center + Vec2::new((hue_angle - 2.0 * PI / 3.0).cos() * radius, (hue_angle - 2.0 * PI / 3.0).sin() * radius);
+                let v1 = center
+                    + Vec2::new(
+                        (hue_angle + 2.0 * PI / 3.0).cos() * radius,
+                        (hue_angle + 2.0 * PI / 3.0).sin() * radius,
+                    );
+                let v2 = center
+                    + Vec2::new(
+                        (hue_angle - 2.0 * PI / 3.0).cos() * radius,
+                        (hue_angle - 2.0 * PI / 3.0).sin() * radius,
+                    );
 
                 let pure_hue = Hsva::new(hsva.h, 1.0, 1.0).to_color32();
                 let mut mesh = egui::Mesh::default();
-                mesh.vertices.push(egui::epaint::Vertex { pos: v0, uv: egui::epaint::WHITE_UV, color: pure_hue });
-                mesh.vertices.push(egui::epaint::Vertex { pos: v1, uv: egui::epaint::WHITE_UV, color: Color32::BLACK });
-                mesh.vertices.push(egui::epaint::Vertex { pos: v2, uv: egui::epaint::WHITE_UV, color: Color32::WHITE });
+                mesh.vertices.push(egui::epaint::Vertex {
+                    pos: v0,
+                    uv: egui::epaint::WHITE_UV,
+                    color: pure_hue,
+                });
+                mesh.vertices.push(egui::epaint::Vertex {
+                    pos: v1,
+                    uv: egui::epaint::WHITE_UV,
+                    color: Color32::BLACK,
+                });
+                mesh.vertices.push(egui::epaint::Vertex {
+                    pos: v2,
+                    uv: egui::epaint::WHITE_UV,
+                    color: Color32::WHITE,
+                });
                 mesh.indices.extend_from_slice(&[0, 1, 2]);
                 painter.add(egui::Shape::mesh(mesh));
-                painter.add(egui::Shape::closed_line(vec![v0, v1, v2], Stroke::new(1.0, theme.border)));
+                painter.add(egui::Shape::closed_line(
+                    vec![v0, v1, v2],
+                    Stroke::new(1.0, theme.border),
+                ));
 
                 if sv_response {
                     if let Some(pos) = sv_interact_pos {
@@ -367,13 +450,21 @@ impl ColorWheel {
                         let v = 1.0 - (y as f32 / steps as f32);
                         let color = Hsva::new(hsva.h, s, v).to_color32();
                         let cell_rect = Rect::from_min_size(
-                            Pos2::new(sq_rect.min.x + x as f32 * sq_rect.width() / steps as f32, sq_rect.min.y + y as f32 * sq_rect.height() / steps as f32),
+                            Pos2::new(
+                                sq_rect.min.x + x as f32 * sq_rect.width() / steps as f32,
+                                sq_rect.min.y + y as f32 * sq_rect.height() / steps as f32,
+                            ),
                             Vec2::splat(sq_rect.width() / steps as f32 + 1.0),
                         );
                         painter.rect_filled(cell_rect, 0.0, color);
                     }
                 }
-                painter.rect_stroke(sq_rect, 0.0, Stroke::new(1.0, theme.border), egui::StrokeKind::Inside);
+                painter.rect_stroke(
+                    sq_rect,
+                    0.0,
+                    Stroke::new(1.0, theme.border),
+                    egui::StrokeKind::Inside,
+                );
 
                 if sv_response {
                     if let Some(pos) = sv_interact_pos {
@@ -385,7 +476,10 @@ impl ColorWheel {
                     }
                 }
 
-                let sv_pos = Pos2::new(sq_rect.min.x + hsva.s * sq_rect.width(), sq_rect.min.y + (1.0 - hsva.v) * sq_rect.height());
+                let sv_pos = Pos2::new(
+                    sq_rect.min.x + hsva.s * sq_rect.width(),
+                    sq_rect.min.y + (1.0 - hsva.v) * sq_rect.height(),
+                );
                 painter.circle_filled(sv_pos, 6.0, hsva.to_color32());
                 painter.circle_stroke(sv_pos, 6.0, Stroke::new(2.0, Color32::WHITE));
                 painter.circle_stroke(sv_pos, 7.0, Stroke::new(1.0, Color32::BLACK));
@@ -396,7 +490,10 @@ impl ColorWheel {
 
         // Alpha slider
         if self.show_alpha {
-            let alpha_rect = Rect::from_min_size(Pos2::new(rect.min.x, y_offset), Vec2::new(wheel_size, theme.spacing_md));
+            let alpha_rect = Rect::from_min_size(
+                Pos2::new(rect.min.x, y_offset),
+                Vec2::new(wheel_size, theme.spacing_md),
+            );
 
             // Checkerboard
             let checker_size = 6.0;
@@ -405,11 +502,19 @@ impl ColorWheel {
             for row in 0..rows {
                 for col in 0..cols {
                     let is_dark = (row + col) % 2 == 0;
-                    let color = if is_dark { Color32::from_gray(80) } else { Color32::from_gray(120) };
+                    let color = if is_dark {
+                        Color32::from_gray(80)
+                    } else {
+                        Color32::from_gray(120)
+                    };
                     let check_rect = Rect::from_min_size(
-                        Pos2::new(alpha_rect.min.x + col as f32 * checker_size, alpha_rect.min.y + row as f32 * checker_size),
+                        Pos2::new(
+                            alpha_rect.min.x + col as f32 * checker_size,
+                            alpha_rect.min.y + row as f32 * checker_size,
+                        ),
                         Vec2::splat(checker_size),
-                    ).intersect(alpha_rect);
+                    )
+                    .intersect(alpha_rect);
                     painter.rect_filled(check_rect, 0.0, color);
                 }
             }
@@ -420,18 +525,40 @@ impl ColorWheel {
                 let t = i as f32 / 32.0;
                 let x = alpha_rect.min.x + t * alpha_rect.width();
                 let a = (t * 255.0) as u8;
-                let color = Color32::from_rgba_unmultiplied(alpha_color.r(), alpha_color.g(), alpha_color.b(), a);
+                let color = Color32::from_rgba_unmultiplied(
+                    alpha_color.r(),
+                    alpha_color.g(),
+                    alpha_color.b(),
+                    a,
+                );
                 painter.rect_filled(
-                    Rect::from_min_size(Pos2::new(x, alpha_rect.min.y), Vec2::new(alpha_rect.width() / 32.0 + 1.0, alpha_rect.height())),
-                    0.0, color,
+                    Rect::from_min_size(
+                        Pos2::new(x, alpha_rect.min.y),
+                        Vec2::new(alpha_rect.width() / 32.0 + 1.0, alpha_rect.height()),
+                    ),
+                    0.0,
+                    color,
                 );
             }
 
-            painter.rect_stroke(alpha_rect, theme.radius_sm, Stroke::new(theme.border_width, theme.border), egui::StrokeKind::Inside);
+            painter.rect_stroke(
+                alpha_rect,
+                theme.radius_sm,
+                Stroke::new(theme.border_width, theme.border),
+                egui::StrokeKind::Inside,
+            );
 
             let alpha_x = alpha_rect.min.x + hsva.a * alpha_rect.width();
-            painter.circle_filled(Pos2::new(alpha_x, alpha_rect.center().y), theme.spacing_sm, Color32::WHITE);
-            painter.circle_stroke(Pos2::new(alpha_x, alpha_rect.center().y), theme.spacing_sm, Stroke::new(1.0, theme.border));
+            painter.circle_filled(
+                Pos2::new(alpha_x, alpha_rect.center().y),
+                theme.spacing_sm,
+                Color32::WHITE,
+            );
+            painter.circle_stroke(
+                Pos2::new(alpha_x, alpha_rect.center().y),
+                theme.spacing_sm,
+                Stroke::new(1.0, theme.border),
+            );
 
             if alpha_active {
                 if let Some(pos) = alpha_pos {
@@ -445,7 +572,10 @@ impl ColorWheel {
 
         // Preview swatch
         if self.show_preview {
-            let preview_rect = Rect::from_min_size(Pos2::new(rect.min.x, y_offset), Vec2::new(wheel_size, theme.spacing_xl));
+            let preview_rect = Rect::from_min_size(
+                Pos2::new(rect.min.x, y_offset),
+                Vec2::new(wheel_size, theme.spacing_xl),
+            );
 
             if hsva.a < 1.0 {
                 let checker_size = 8.0;
@@ -454,18 +584,31 @@ impl ColorWheel {
                 for row in 0..rows {
                     for col in 0..cols {
                         let is_dark = (row + col) % 2 == 0;
-                        let color = if is_dark { Color32::from_gray(60) } else { Color32::from_gray(100) };
+                        let color = if is_dark {
+                            Color32::from_gray(60)
+                        } else {
+                            Color32::from_gray(100)
+                        };
                         let check_rect = Rect::from_min_size(
-                            Pos2::new(preview_rect.min.x + col as f32 * checker_size, preview_rect.min.y + row as f32 * checker_size),
+                            Pos2::new(
+                                preview_rect.min.x + col as f32 * checker_size,
+                                preview_rect.min.y + row as f32 * checker_size,
+                            ),
                             Vec2::splat(checker_size),
-                        ).intersect(preview_rect);
+                        )
+                        .intersect(preview_rect);
                         painter.rect_filled(check_rect, 0.0, color);
                     }
                 }
             }
 
             painter.rect_filled(preview_rect, theme.radius_sm, hsva.to_color32());
-            painter.rect_stroke(preview_rect, theme.radius_sm, Stroke::new(theme.border_width, theme.border), egui::StrokeKind::Inside);
+            painter.rect_stroke(
+                preview_rect,
+                theme.radius_sm,
+                Stroke::new(theme.border_width, theme.border),
+                egui::StrokeKind::Inside,
+            );
 
             y_offset += theme.spacing_xl + theme.spacing_xs;
         }
@@ -473,11 +616,34 @@ impl ColorWheel {
         // Values display
         if self.show_values {
             let color = hsva.to_color32();
-            let hex = format!("#{:02X}{:02X}{:02X}{:02X}", color.r(), color.g(), color.b(), color.a());
-            let hsv_text = format!("H:{:.0}° S:{:.0}% V:{:.0}%", hsva.h * 360.0, hsva.s * 100.0, hsva.v * 100.0);
+            let hex = format!(
+                "#{:02X}{:02X}{:02X}{:02X}",
+                color.r(),
+                color.g(),
+                color.b(),
+                color.a()
+            );
+            let hsv_text = format!(
+                "H:{:.0}° S:{:.0}% V:{:.0}%",
+                hsva.h * 360.0,
+                hsva.s * 100.0,
+                hsva.v * 100.0
+            );
 
-            painter.text(Pos2::new(rect.center().x, y_offset), egui::Align2::CENTER_TOP, &hex, egui::FontId::monospace(theme.font_size_sm), theme.text_primary);
-            painter.text(Pos2::new(rect.center().x, y_offset + theme.font_size_sm + 2.0), egui::Align2::CENTER_TOP, &hsv_text, egui::FontId::proportional(theme.font_size_xs), theme.text_muted);
+            painter.text(
+                Pos2::new(rect.center().x, y_offset),
+                egui::Align2::CENTER_TOP,
+                &hex,
+                egui::FontId::monospace(theme.font_size_sm),
+                theme.text_primary,
+            );
+            painter.text(
+                Pos2::new(rect.center().x, y_offset + theme.font_size_sm + 2.0),
+                egui::Align2::CENTER_TOP,
+                &hsv_text,
+                egui::FontId::proportional(theme.font_size_xs),
+                theme.text_muted,
+            );
         }
 
         response
@@ -525,5 +691,8 @@ fn sv_to_triangle_point(s: f32, v: f32, v0: Pos2, v1: Pos2, v2: Pos2) -> Pos2 {
     let w = v - t;
     let u = 1.0 - v;
 
-    Pos2::new(t * v0.x + u * v1.x + w * v2.x, t * v0.y + u * v1.y + w * v2.y)
+    Pos2::new(
+        t * v0.x + u * v1.x + w * v2.x,
+        t * v0.y + u * v1.y + w * v2.y,
+    )
 }

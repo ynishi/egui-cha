@@ -9,6 +9,8 @@ mod midi_monitor;
 mod piano_roll;
 
 pub use midi_keyboard::{ActiveNote, KeyboardEvent, MidiKeyboard};
-pub use midi_mapper::{LearnState, MappableParam, MidiMapper, MidiMapperEvent, MidiMapping, MidiMsgType};
+pub use midi_mapper::{
+    LearnState, MappableParam, MidiMapper, MidiMapperEvent, MidiMapping, MidiMsgType,
+};
 pub use midi_monitor::{CcValue, MidiMessage, MidiMonitor, MonitorMode};
 pub use piano_roll::{MidiNote, PianoRoll, PianoRollEvent};

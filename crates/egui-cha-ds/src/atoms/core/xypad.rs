@@ -141,7 +141,11 @@ impl<'a> XYPad<'a> {
 
         let (rect, mut response) = ui.allocate_exact_size(
             Vec2::new(total_width, total_height),
-            if self.disabled { Sense::hover() } else { Sense::click_and_drag() },
+            if self.disabled {
+                Sense::hover()
+            } else {
+                Sense::click_and_drag()
+            },
         );
 
         // Pad area (excluding labels)
@@ -179,11 +183,26 @@ impl<'a> XYPad<'a> {
 
             // Colors
             let (bg_color, border_color, cursor_color, grid_color) = if self.disabled {
-                (theme.bg_tertiary, theme.border, theme.text_muted, theme.border)
+                (
+                    theme.bg_tertiary,
+                    theme.border,
+                    theme.text_muted,
+                    theme.border,
+                )
             } else if response.hovered() || response.dragged() {
-                (theme.bg_secondary, theme.primary, theme.primary, theme.border)
+                (
+                    theme.bg_secondary,
+                    theme.primary,
+                    theme.primary,
+                    theme.border,
+                )
             } else {
-                (theme.bg_secondary, theme.border, theme.primary, theme.border)
+                (
+                    theme.bg_secondary,
+                    theme.border,
+                    theme.primary,
+                    theme.border,
+                )
             };
 
             // Background
@@ -275,16 +294,18 @@ impl<'a> XYPad<'a> {
 
             // X-axis label
             if let Some(label) = self.label_x {
-                let label_pos = Pos2::new(
-                    pad_rect.center().x,
-                    rect.max.y - theme.font_size_xs / 2.0,
-                );
+                let label_pos =
+                    Pos2::new(pad_rect.center().x, rect.max.y - theme.font_size_xs / 2.0);
                 painter.text(
                     label_pos,
                     egui::Align2::CENTER_CENTER,
                     label,
                     egui::FontId::proportional(theme.font_size_xs),
-                    if self.disabled { theme.text_muted } else { theme.text_secondary },
+                    if self.disabled {
+                        theme.text_muted
+                    } else {
+                        theme.text_secondary
+                    },
                 );
             }
 
@@ -301,14 +322,21 @@ impl<'a> XYPad<'a> {
                     egui::Align2::CENTER_CENTER,
                     label.chars().next().unwrap_or(' '), // First char as indicator
                     egui::FontId::proportional(theme.font_size_xs),
-                    if self.disabled { theme.text_muted } else { theme.text_secondary },
+                    if self.disabled {
+                        theme.text_muted
+                    } else {
+                        theme.text_secondary
+                    },
                 );
             }
 
             // Value display (top right corner)
             let value_text = format!("({:.2}, {:.2})", value.0, value.1);
             painter.text(
-                Pos2::new(pad_rect.max.x - theme.spacing_xs, pad_rect.min.y + theme.spacing_xs),
+                Pos2::new(
+                    pad_rect.max.x - theme.spacing_xs,
+                    pad_rect.min.y + theme.spacing_xs,
+                ),
                 egui::Align2::RIGHT_TOP,
                 &value_text,
                 egui::FontId::proportional(theme.font_size_xs),

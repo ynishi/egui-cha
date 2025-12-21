@@ -170,10 +170,8 @@ impl Widget for ListItem {
             // Selected indicator (left border, respects stroke_scale)
             let indicator_width = theme.stroke_width * 3.0;
             if self.selected {
-                let indicator_rect = egui::Rect::from_min_size(
-                    rect.min,
-                    egui::vec2(indicator_width, rect.height()),
-                );
+                let indicator_rect =
+                    egui::Rect::from_min_size(rect.min, egui::vec2(indicator_width, rect.height()));
                 painter.rect_filled(indicator_rect, 0.0, theme.primary);
             }
 
@@ -221,10 +219,8 @@ impl Widget for ListItem {
                     egui::vec2(badge_width, badge_height),
                 );
                 painter.rect_filled(badge_rect, theme.radius_sm, theme.primary);
-                let text_pos = egui::pos2(
-                    badge_x + theme.spacing_sm,
-                    center_y - galley.size().y / 2.0,
-                );
+                let text_pos =
+                    egui::pos2(badge_x + theme.spacing_sm, center_y - galley.size().y / 2.0);
                 painter.galley(text_pos, galley, theme.primary_text);
             }
         }

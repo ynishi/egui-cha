@@ -439,15 +439,13 @@ impl<A: App> TestRunner<A> {
     {
         match self.last_cmd() {
             Some(CmdRecord::Msg(msg)) => {
-                assert_eq!(
-                    msg, &expected,
-                    "expect_cmd_msg_eq: message mismatch"
-                );
+                assert_eq!(msg, &expected, "expect_cmd_msg_eq: message mismatch");
             }
             _ => {
                 panic!(
                     "expect_cmd_msg_eq: last command was {}, expected Msg({:?})",
-                    self.last_cmd_kind(), expected
+                    self.last_cmd_kind(),
+                    expected
                 );
             }
         }
@@ -497,7 +495,8 @@ impl<A: App> TestRunner<A> {
             _ => {
                 panic!(
                     "expect_cmd_batch_size: last command was {}, expected Batch({})",
-                    self.last_cmd_kind(), expected_size
+                    self.last_cmd_kind(),
+                    expected_size
                 );
             }
         }

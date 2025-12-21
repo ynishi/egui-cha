@@ -8,10 +8,7 @@
 
 use crate::types::{Action, StateMutation, UiElement, UiFlow};
 use std::collections::HashMap;
-use syn::{
-    visit::Visit, BinOp, Expr, ExprBinary, ExprIf, ExprMethodCall, File, Lit,
-    Pat, Stmt,
-};
+use syn::{visit::Visit, BinOp, Expr, ExprBinary, ExprIf, ExprMethodCall, File, Lit, Pat, Stmt};
 
 /// Extract UI flows with scope tracking
 pub fn extract_flows(file_path: &str, syntax_tree: &File) -> Vec<UiFlow> {
@@ -62,7 +59,9 @@ impl<'ast> Visit<'ast> for FlowVisitor {
         // Check for `let var = ui.xxx()` bindings
         if let Stmt::Local(local) = node {
             if let Some(init) = &local.init {
-                if let Some(ui_element) = try_extract_ui_from_expr(&init.expr, &self.file_path, &self.current_function) {
+                if let Some(ui_element) =
+                    try_extract_ui_from_expr(&init.expr, &self.file_path, &self.current_function)
+                {
                     // Get variable name from pattern
                     if let Pat::Ident(pat_ident) = &local.pat {
                         let var_name = pat_ident.ident.to_string();
@@ -85,7 +84,11 @@ impl<'ast> Visit<'ast> for FlowVisitor {
         );
 
         // Extract state mutations from then block
-        let mutations = extract_mutations_from_block(&node.then_branch, &self.file_path, &self.current_function);
+        let mutations = extract_mutations_from_block(
+            &node.then_branch,
+            &self.file_path,
+            &self.current_function,
+        );
 
         // Create flows for each trigger-mutation pair
         for trigger in &triggers {
@@ -142,7 +145,13 @@ fn extract_triggers_from_condition(
     response_bindings: &HashMap<String, UiElement>,
 ) -> Vec<(UiElement, Action)> {
     let mut triggers = Vec::new();
-    collect_triggers(expr, file_path, current_function, response_bindings, &mut triggers);
+    collect_triggers(
+        expr,
+        file_path,
+        current_function,
+        response_bindings,
+        &mut triggers,
+    );
     triggers
 }
 
@@ -155,24 +164,69 @@ fn collect_triggers(
 ) {
     match expr {
         // Handle || (Or) - multiple conditions
-        Expr::Binary(ExprBinary { left, op: BinOp::Or(_), right, .. }) => {
-            collect_triggers(left, file_path, current_function, response_bindings, triggers);
-            collect_triggers(right, file_path, current_function, response_bindings, triggers);
+        Expr::Binary(ExprBinary {
+            left,
+            op: BinOp::Or(_),
+            right,
+            ..
+        }) => {
+            collect_triggers(
+                left,
+                file_path,
+                current_function,
+                response_bindings,
+                triggers,
+            );
+            collect_triggers(
+                right,
+                file_path,
+                current_function,
+                response_bindings,
+                triggers,
+            );
         }
         // Handle && (And) - just recurse
-        Expr::Binary(ExprBinary { left, op: BinOp::And(_), right, .. }) => {
-            collect_triggers(left, file_path, current_function, response_bindings, triggers);
-            collect_triggers(right, file_path, current_function, response_bindings, triggers);
+        Expr::Binary(ExprBinary {
+            left,
+            op: BinOp::And(_),
+            right,
+            ..
+        }) => {
+            collect_triggers(
+                left,
+                file_path,
+                current_function,
+                response_bindings,
+                triggers,
+            );
+            collect_triggers(
+                right,
+                file_path,
+                current_function,
+                response_bindings,
+                triggers,
+            );
         }
         // Handle method call like `.clicked()`, `.changed()`
         Expr::MethodCall(call) => {
-            if let Some(trigger) = extract_trigger_from_method_call(call, file_path, current_function, response_bindings) {
+            if let Some(trigger) = extract_trigger_from_method_call(
+                call,
+                file_path,
+                current_function,
+                response_bindings,
+            ) {
                 triggers.push(trigger);
             }
         }
         // Handle parenthesized expression
         Expr::Paren(paren) => {
-            collect_triggers(&paren.expr, file_path, current_function, response_bindings, triggers);
+            collect_triggers(
+                &paren.expr,
+                file_path,
+                current_function,
+                response_bindings,
+                triggers,
+            );
         }
         _ => {}
     }
@@ -180,10 +234,20 @@ fn collect_triggers(
 
 /// Known action methods
 const ACTION_METHODS: &[&str] = &[
-    "clicked", "clicked_by", "secondary_clicked", "middle_clicked",
-    "double_clicked", "triple_clicked", "changed", "dragged",
-    "drag_started", "drag_stopped", "hovered", "has_focus",
-    "gained_focus", "lost_focus",
+    "clicked",
+    "clicked_by",
+    "secondary_clicked",
+    "middle_clicked",
+    "double_clicked",
+    "triple_clicked",
+    "changed",
+    "dragged",
+    "drag_started",
+    "drag_stopped",
+    "hovered",
+    "has_focus",
+    "gained_focus",
+    "lost_focus",
 ];
 
 /// Extract a trigger (UiElement + Action) from a method call chain
@@ -209,17 +273,35 @@ fn extract_trigger_from_method_call(
     };
 
     // Try to find the UI element in the receiver chain (with variable resolution)
-    let ui_element = extract_ui_from_chain(&call.receiver, file_path, current_function, response_bindings);
+    let ui_element = extract_ui_from_chain(
+        &call.receiver,
+        file_path,
+        current_function,
+        response_bindings,
+    );
 
     Some((ui_element, action))
 }
 
 /// Known UI methods
 const UI_METHODS: &[&str] = &[
-    "button", "small_button", "label", "heading", "checkbox", "radio",
-    "radio_value", "selectable_label", "selectable_value",
-    "text_edit_singleline", "text_edit_multiline", "slider", "drag_value",
-    "toggle_value", "menu_button", "collapsing", "add",
+    "button",
+    "small_button",
+    "label",
+    "heading",
+    "checkbox",
+    "radio",
+    "radio_value",
+    "selectable_label",
+    "selectable_value",
+    "text_edit_singleline",
+    "text_edit_multiline",
+    "slider",
+    "drag_value",
+    "toggle_value",
+    "menu_button",
+    "collapsing",
+    "add",
 ];
 
 /// Extract UI element from a method call chain (e.g., `ui.button("x")`)
@@ -249,7 +331,12 @@ fn extract_ui_from_chain(
             }
 
             // Recurse into receiver
-            extract_ui_from_chain(&call.receiver, file_path, current_function, response_bindings)
+            extract_ui_from_chain(
+                &call.receiver,
+                file_path,
+                current_function,
+                response_bindings,
+            )
         }
         Expr::Path(path) => {
             // Variable reference (e.g., `response`)
@@ -367,8 +454,8 @@ impl<'ast, 'a> Visit<'ast> for MutationVisitor<'a> {
     fn visit_expr_method_call(&mut self, node: &'ast ExprMethodCall) {
         let method = node.method.to_string();
         let mutating_methods = [
-            "push", "pop", "insert", "remove", "clear", "append", "extend",
-            "retain", "drain", "truncate", "toggle", "set", "take", "replace",
+            "push", "pop", "insert", "remove", "clear", "append", "extend", "retain", "drain",
+            "truncate", "toggle", "set", "take", "replace",
         ];
 
         if mutating_methods.contains(&method.as_str()) {
@@ -403,14 +490,13 @@ fn is_likely_state_mutation(target: &str) -> bool {
 
 fn describe_expr(expr: &Expr) -> String {
     match expr {
-        Expr::Path(path) => {
-            path.path
-                .segments
-                .iter()
-                .map(|s| s.ident.to_string())
-                .collect::<Vec<_>>()
-                .join("::")
-        }
+        Expr::Path(path) => path
+            .path
+            .segments
+            .iter()
+            .map(|s| s.ident.to_string())
+            .collect::<Vec<_>>()
+            .join("::"),
         Expr::Field(field) => {
             let base = describe_expr(&field.base);
             match &field.member {
@@ -600,7 +686,10 @@ mod tests {
         // Should resolve 'response' to the original button
         assert_eq!(flows[0].ui_element.element_type, "button");
         assert_eq!(flows[0].ui_element.label, Some("Save".to_string()));
-        assert_eq!(flows[0].ui_element.response_var, Some("response".to_string()));
+        assert_eq!(
+            flows[0].ui_element.response_var,
+            Some("response".to_string())
+        );
         assert_eq!(flows[0].action.action_type, "clicked");
     }
 

@@ -213,10 +213,7 @@ impl<'a> EnvelopeEditor<'a> {
         let value_height = if self.show_values { 14.0 } else { 0.0 };
         let graph_height = self.height - label_height - value_height;
 
-        let (rect, _) = ui.allocate_exact_size(
-            Vec2::new(self.width, self.height),
-            Sense::hover(),
-        );
+        let (rect, _) = ui.allocate_exact_size(Vec2::new(self.width, self.height), Sense::hover());
 
         if !ui.is_rect_visible(rect) {
             return None;
@@ -325,7 +322,8 @@ impl<'a> EnvelopeEditor<'a> {
                     3 => {
                         // Release - horizontal only (from sustain point)
                         let delta_norm = delta.x / graph_rect.width();
-                        let new_release = (self.release - delta_norm * total_time).clamp(0.01, 0.99);
+                        let new_release =
+                            (self.release - delta_norm * total_time).clamp(0.01, 0.99);
                         event = Some(EnvelopeEvent::ReleaseChange(new_release));
                     }
                     _ => {}
@@ -351,7 +349,10 @@ impl<'a> EnvelopeEditor<'a> {
             for i in 1..4 {
                 let y = graph_rect.min.y + graph_rect.height() * i as f32 / 4.0;
                 painter.line_segment(
-                    [egui::pos2(graph_rect.min.x, y), egui::pos2(graph_rect.max.x, y)],
+                    [
+                        egui::pos2(graph_rect.min.x, y),
+                        egui::pos2(graph_rect.max.x, y),
+                    ],
                     Stroke::new(1.0, grid_color),
                 );
             }
@@ -359,7 +360,10 @@ impl<'a> EnvelopeEditor<'a> {
             for x_norm in [attack_x, decay_x, sustain_x] {
                 let x = graph_rect.min.x + x_norm * graph_rect.width();
                 painter.line_segment(
-                    [egui::pos2(x, graph_rect.min.y), egui::pos2(x, graph_rect.max.y)],
+                    [
+                        egui::pos2(x, graph_rect.min.y),
+                        egui::pos2(x, graph_rect.max.y),
+                    ],
                     Stroke::new(1.0, grid_color),
                 );
             }
@@ -385,12 +389,8 @@ impl<'a> EnvelopeEditor<'a> {
 
         // Fill under curve
         if self.fill {
-            let fill_color = Color32::from_rgba_unmultiplied(
-                env_color.r(),
-                env_color.g(),
-                env_color.b(),
-                40,
-            );
+            let fill_color =
+                Color32::from_rgba_unmultiplied(env_color.r(), env_color.g(), env_color.b(), 40);
             let mut fill_points = points.to_vec();
             fill_points.push(egui::pos2(graph_rect.max.x, graph_rect.max.y));
             fill_points.push(egui::pos2(graph_rect.min.x, graph_rect.max.y));
@@ -403,10 +403,7 @@ impl<'a> EnvelopeEditor<'a> {
 
         // Draw envelope line
         for window in points.windows(2) {
-            painter.line_segment(
-                [window[0], window[1]],
-                Stroke::new(2.0, env_color),
-            );
+            painter.line_segment([window[0], window[1]], Stroke::new(2.0, env_color));
         }
 
         // Draw handles
@@ -422,11 +419,7 @@ impl<'a> EnvelopeEditor<'a> {
             };
 
             painter.circle_filled(center, handle_size / 2.0, handle_color);
-            painter.circle_stroke(
-                center,
-                handle_size / 2.0,
-                Stroke::new(1.0, theme.border),
-            );
+            painter.circle_stroke(center, handle_size / 2.0, Stroke::new(1.0, theme.border));
         }
 
         // Labels

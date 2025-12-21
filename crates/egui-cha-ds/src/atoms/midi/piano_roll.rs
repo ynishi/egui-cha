@@ -227,7 +227,7 @@ impl<'a> PianoRoll<'a> {
         );
 
         let beat_width = grid_width / total_beats as f32;
-        let snap_width = beat_width / (self.snap_division as f32 / self.beats_per_bar as f32);
+        let _snap_width = beat_width / (self.snap_division as f32 / self.beats_per_bar as f32);
 
         // Collect interactions first
         struct NoteInfo {
@@ -281,8 +281,8 @@ impl<'a> PianoRoll<'a> {
                 let new_note = (note.note as i16 + note_delta as i16).clamp(0, 127) as u8;
 
                 // Snap to grid
-                let snapped_start = (new_start * self.snap_division as f32).round()
-                    / self.snap_division as f32;
+                let snapped_start =
+                    (new_start * self.snap_division as f32).round() / self.snap_division as f32;
 
                 if beat_delta.abs() > note_delta.abs() as f32 * beat_width / self.row_height {
                     event = Some(PianoRollEvent::NoteMove(idx, note.note, snapped_start));
@@ -322,10 +322,15 @@ impl<'a> PianoRoll<'a> {
                 // Snap
                 let snapped_beat =
                     (beat * self.snap_division as f32).floor() / self.snap_division as f32;
-                let default_duration = 1.0 / (self.snap_division as f32 / self.beats_per_bar as f32);
+                let default_duration =
+                    1.0 / (self.snap_division as f32 / self.beats_per_bar as f32);
 
                 if note >= self.note_range.0 && note <= self.note_range.1 {
-                    event = Some(PianoRollEvent::NoteAdd(note, snapped_beat, default_duration));
+                    event = Some(PianoRollEvent::NoteAdd(
+                        note,
+                        snapped_beat,
+                        default_duration,
+                    ));
                 }
             }
         }
@@ -372,7 +377,11 @@ impl<'a> PianoRoll<'a> {
                     egui::Align2::LEFT_CENTER,
                     label,
                     egui::FontId::proportional(theme.font_size_xs * 0.8),
-                    if is_black { Color32::WHITE } else { Color32::BLACK },
+                    if is_black {
+                        Color32::WHITE
+                    } else {
+                        Color32::BLACK
+                    },
                 );
             }
 
@@ -402,17 +411,16 @@ impl<'a> PianoRoll<'a> {
                     egui::pos2(grid_rect.min.x, y),
                     Vec2::new(grid_width, self.row_height),
                 );
-                painter.rect_filled(
-                    row_rect,
-                    0.0,
-                    Color32::from_rgba_unmultiplied(0, 0, 0, 20),
-                );
+                painter.rect_filled(row_rect, 0.0, Color32::from_rgba_unmultiplied(0, 0, 0, 20));
             }
 
             // Horizontal line
             let line_alpha = if note_num % 12 == 0 { 80 } else { 30 };
             painter.line_segment(
-                [egui::pos2(grid_rect.min.x, y), egui::pos2(grid_rect.max.x, y)],
+                [
+                    egui::pos2(grid_rect.min.x, y),
+                    egui::pos2(grid_rect.max.x, y),
+                ],
                 Stroke::new(
                     0.5,
                     Color32::from_rgba_unmultiplied(
@@ -443,7 +451,10 @@ impl<'a> PianoRoll<'a> {
             };
 
             painter.line_segment(
-                [egui::pos2(x, grid_rect.min.y), egui::pos2(x, grid_rect.max.y)],
+                [
+                    egui::pos2(x, grid_rect.min.y),
+                    egui::pos2(x, grid_rect.max.y),
+                ],
                 Stroke::new(
                     stroke_width,
                     Color32::from_rgba_unmultiplied(
@@ -473,12 +484,7 @@ impl<'a> PianoRoll<'a> {
             let note_color = if info.is_selected {
                 Color32::WHITE
             } else if info.is_hovered {
-                Color32::from_rgba_unmultiplied(
-                    info.color.r(),
-                    info.color.g(),
-                    info.color.b(),
-                    255,
-                )
+                Color32::from_rgba_unmultiplied(info.color.r(), info.color.g(), info.color.b(), 255)
             } else {
                 Color32::from_rgba_unmultiplied(
                     info.color.r(),

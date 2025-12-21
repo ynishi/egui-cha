@@ -103,9 +103,13 @@ impl Default for Model {
             workspace_locked: false,
             workspace_tile_mode: true,
             layers: vec![
-                Layer::new("Main Output").with_opacity(1.0).with_visible(true),
+                Layer::new("Main Output")
+                    .with_opacity(1.0)
+                    .with_visible(true),
                 Layer::new("Overlay").with_opacity(0.8).with_visible(true),
-                Layer::new("Background").with_opacity(0.5).with_visible(false),
+                Layer::new("Background")
+                    .with_opacity(0.5)
+                    .with_visible(false),
             ],
             effects: vec![
                 Effect::new("Blend", EffectCategory::Utility)
@@ -121,7 +125,9 @@ impl Default for Model {
             clips: vec![
                 ClipCell::new("Intro").with_color(Color32::from_rgb(100, 150, 255)),
                 ClipCell::new("Build").with_color(Color32::from_rgb(150, 200, 100)),
-                ClipCell::new("Drop").with_color(Color32::from_rgb(255, 100, 100)).with_state(ClipState::Playing),
+                ClipCell::new("Drop")
+                    .with_color(Color32::from_rgb(255, 100, 100))
+                    .with_state(ClipState::Playing),
                 ClipCell::new("Break").with_color(Color32::from_rgb(255, 180, 100)),
             ],
             current_clip: Some(2),
@@ -178,7 +184,9 @@ impl App for StorybookApp {
                     WorkspaceEvent::WeightsChanged(weights) => {
                         // Update pane weights
                         for (id, weight) in weights {
-                            if let Some(pane) = model.workspace_panes.iter_mut().find(|p| p.id == id) {
+                            if let Some(pane) =
+                                model.workspace_panes.iter_mut().find(|p| p.id == id)
+                            {
                                 pane.weight = weight;
                             }
                         }
@@ -192,50 +200,50 @@ impl App for StorybookApp {
             Msg::SetLayoutMode(tile) => {
                 model.workspace_tile_mode = tile;
             }
-            Msg::LayerEvent(event) => {
-                match event {
-                    LayerEvent::ToggleVisible(idx) => {
-                        if let Some(l) = model.layers.get_mut(idx) {
-                            l.visible = !l.visible;
-                        }
+            Msg::LayerEvent(event) => match event {
+                LayerEvent::ToggleVisible(idx) => {
+                    if let Some(l) = model.layers.get_mut(idx) {
+                        l.visible = !l.visible;
                     }
-                    LayerEvent::SetOpacity(idx, opacity) => {
-                        if let Some(l) = model.layers.get_mut(idx) {
-                            l.opacity = opacity;
-                        }
-                    }
-                    LayerEvent::Reorder { from, to } => {
-                        if from < model.layers.len() {
-                            let layer = model.layers.remove(from);
-                            let insert_idx = if to > from { to - 1 } else { to };
-                            model.layers.insert(insert_idx.min(model.layers.len()), layer);
-                        }
-                    }
-                    _ => {}
                 }
-            }
-            Msg::EffectEvent(event) => {
-                match event {
-                    RackEvent::Toggle(idx) => {
-                        if let Some(e) = model.effects.get_mut(idx) {
-                            e.enabled = !e.enabled;
-                        }
+                LayerEvent::SetOpacity(idx, opacity) => {
+                    if let Some(l) = model.layers.get_mut(idx) {
+                        l.opacity = opacity;
                     }
-                    RackEvent::Remove(idx) => {
-                        if idx < model.effects.len() {
-                            model.effects.remove(idx);
-                        }
-                    }
-                    RackEvent::Reorder(from, to) => {
-                        if from < model.effects.len() {
-                            let effect = model.effects.remove(from);
-                            let insert_idx = if to > from { to - 1 } else { to };
-                            model.effects.insert(insert_idx.min(model.effects.len()), effect);
-                        }
-                    }
-                    _ => {}
                 }
-            }
+                LayerEvent::Reorder { from, to } => {
+                    if from < model.layers.len() {
+                        let layer = model.layers.remove(from);
+                        let insert_idx = if to > from { to - 1 } else { to };
+                        model
+                            .layers
+                            .insert(insert_idx.min(model.layers.len()), layer);
+                    }
+                }
+                _ => {}
+            },
+            Msg::EffectEvent(event) => match event {
+                RackEvent::Toggle(idx) => {
+                    if let Some(e) = model.effects.get_mut(idx) {
+                        e.enabled = !e.enabled;
+                    }
+                }
+                RackEvent::Remove(idx) => {
+                    if idx < model.effects.len() {
+                        model.effects.remove(idx);
+                    }
+                }
+                RackEvent::Reorder(from, to) => {
+                    if from < model.effects.len() {
+                        let effect = model.effects.remove(from);
+                        let insert_idx = if to > from { to - 1 } else { to };
+                        model
+                            .effects
+                            .insert(insert_idx.min(model.effects.len()), effect);
+                    }
+                }
+                _ => {}
+            },
         }
         Cmd::none()
     }
@@ -269,14 +277,12 @@ impl App for StorybookApp {
         }
 
         // Main content
-        egui::CentralPanel::default().show(&egui_ctx, |ui| {
-            match model.current_section {
-                Section::Workspace => render_workspace_demo(model, ui, ctx),
-                Section::LayerStack => render_layer_stack_demo(model, ui, ctx),
-                Section::EffectRack => render_effect_rack_demo(model, ui, ctx),
-                Section::ClipGrid => render_clip_grid_demo(model, ui),
-                Section::Timeline => render_timeline_demo(model, ui),
-            }
+        egui::CentralPanel::default().show(&egui_ctx, |ui| match model.current_section {
+            Section::Workspace => render_workspace_demo(model, ui, ctx),
+            Section::LayerStack => render_layer_stack_demo(model, ui, ctx),
+            Section::EffectRack => render_effect_rack_demo(model, ui, ctx),
+            Section::ClipGrid => render_clip_grid_demo(model, ui),
+            Section::Timeline => render_timeline_demo(model, ui),
         });
     }
 }
@@ -289,16 +295,26 @@ fn render_workspace_demo(model: &Model, ui: &mut egui::Ui, ctx: &mut ViewCtx<Msg
     // Controls
     ui.horizontal(|ui| {
         ui.label("Mode:");
-        if ui.selectable_label(model.workspace_tile_mode, "Tile").clicked() {
+        if ui
+            .selectable_label(model.workspace_tile_mode, "Tile")
+            .clicked()
+        {
             ctx.emit(Msg::SetLayoutMode(true));
         }
-        if ui.selectable_label(!model.workspace_tile_mode, "Free").clicked() {
+        if ui
+            .selectable_label(!model.workspace_tile_mode, "Free")
+            .clicked()
+        {
             ctx.emit(Msg::SetLayoutMode(false));
         }
 
         ui.add_space(16.0);
 
-        let lock_label = if model.workspace_locked { "Unlock" } else { "Lock" };
+        let lock_label = if model.workspace_locked {
+            "Unlock"
+        } else {
+            "Lock"
+        };
         if ui.button(lock_label).clicked() {
             ctx.emit(Msg::ToggleLock);
         }
@@ -364,10 +380,7 @@ fn render_layer_stack_demo(model: &Model, ui: &mut egui::Ui, ctx: &mut ViewCtx<M
     ui.label("Drag layers to reorder. Locked layers cannot be dragged.");
     ui.add_space(8.0);
 
-    if let Some(event) = LayerStack::new(&model.layers)
-        .selected(Some(0))
-        .show(ui)
-    {
+    if let Some(event) = LayerStack::new(&model.layers).selected(Some(0)).show(ui) {
         ctx.emit(Msg::LayerEvent(event));
     }
 }

@@ -163,11 +163,7 @@ impl<'a> BpmDisplay<'a> {
 
         // Calculate dimensions based on size
         let (font_size, label_size, padding) = match self.size {
-            DisplaySize::Compact => (
-                theme.font_size_2xl,
-                theme.font_size_xs,
-                theme.spacing_sm,
-            ),
+            DisplaySize::Compact => (theme.font_size_2xl, theme.font_size_xs, theme.spacing_sm),
             DisplaySize::Medium => (
                 theme.font_size_3xl * 1.5,
                 theme.font_size_sm,
@@ -182,7 +178,12 @@ impl<'a> BpmDisplay<'a> {
 
         // Format the value
         let value_text = if self.decimals > 0 {
-            format!("{:>width$.prec$}", value, width = self.min_digits + 1 + self.decimals, prec = self.decimals)
+            format!(
+                "{:>width$.prec$}",
+                value,
+                width = self.min_digits + 1 + self.decimals,
+                prec = self.decimals
+            )
         } else {
             format!("{:>width$.0}", value, width = self.min_digits)
         };
@@ -202,10 +203,8 @@ impl<'a> BpmDisplay<'a> {
         let total_width = text_width + padding * 2.0;
         let total_height = font_size + label_height + padding * 2.0;
 
-        let (rect, response) = ui.allocate_exact_size(
-            Vec2::new(total_width, total_height),
-            Sense::click(),
-        );
+        let (rect, response) =
+            ui.allocate_exact_size(Vec2::new(total_width, total_height), Sense::click());
 
         if ui.is_rect_visible(rect) {
             let painter = ui.painter();
@@ -261,10 +260,7 @@ impl<'a> BpmDisplay<'a> {
                     25,
                 );
                 let shadow_text = "8".repeat(value_text.len());
-                let text_pos = egui::pos2(
-                    rect.center().x,
-                    rect.max.y - padding - font_size / 2.0,
-                );
+                let text_pos = egui::pos2(rect.center().x, rect.max.y - padding - font_size / 2.0);
                 painter.text(
                     text_pos,
                     egui::Align2::CENTER_CENTER,
@@ -276,7 +272,8 @@ impl<'a> BpmDisplay<'a> {
 
             // Draw label
             if let Some(label) = self.label {
-                let label_pos = egui::pos2(rect.center().x, rect.min.y + padding + label_size / 2.0);
+                let label_pos =
+                    egui::pos2(rect.center().x, rect.min.y + padding + label_size / 2.0);
                 painter.text(
                     label_pos,
                     egui::Align2::CENTER_CENTER,

@@ -157,21 +157,12 @@ impl LevelMeter {
     }
 
     /// TEA-style: Show meter with current level
-    pub fn show_with<Msg>(
-        &self,
-        ctx: &mut ViewCtx<'_, Msg>,
-        level_db: f32,
-    ) {
+    pub fn show_with<Msg>(&self, ctx: &mut ViewCtx<'_, Msg>, level_db: f32) {
         self.show_internal(ctx.ui, level_db, level_db, None);
     }
 
     /// TEA-style: Show stereo meter
-    pub fn show_stereo_with<Msg>(
-        &self,
-        ctx: &mut ViewCtx<'_, Msg>,
-        left_db: f32,
-        right_db: f32,
-    ) {
+    pub fn show_stereo_with<Msg>(&self, ctx: &mut ViewCtx<'_, Msg>, left_db: f32, right_db: f32) {
         self.show_internal(ctx.ui, left_db, right_db, None);
     }
 
@@ -215,10 +206,8 @@ impl LevelMeter {
         let scale_width = if self.show_scale { 24.0 } else { 0.0 };
         let total_width = self.width + scale_width;
 
-        let (rect, response) = ui.allocate_exact_size(
-            Vec2::new(total_width, self.height),
-            Sense::hover(),
-        );
+        let (rect, response) =
+            ui.allocate_exact_size(Vec2::new(total_width, self.height), Sense::hover());
 
         if !ui.is_rect_visible(rect) {
             return response;
@@ -238,7 +227,12 @@ impl LevelMeter {
 
         // Background
         painter.rect_filled(meter_rect, 2.0, theme.bg_tertiary);
-        painter.rect_stroke(meter_rect, 2.0, Stroke::new(1.0, theme.border), egui::StrokeKind::Outside);
+        painter.rect_stroke(
+            meter_rect,
+            2.0,
+            Stroke::new(1.0, theme.border),
+            egui::StrokeKind::Outside,
+        );
 
         // Draw scale if enabled
         if self.show_scale {
@@ -253,10 +247,8 @@ impl LevelMeter {
             let bar_width = (inner_rect.width() - 2.0) / 2.0;
 
             // Left channel
-            let left_rect = Rect::from_min_size(
-                inner_rect.min,
-                Vec2::new(bar_width, inner_rect.height()),
-            );
+            let left_rect =
+                Rect::from_min_size(inner_rect.min, Vec2::new(bar_width, inner_rect.height()));
             self.draw_meter_bar(ui, left_rect, left_db, peaks.map(|(l, _)| l), &theme);
 
             // Right channel
@@ -292,8 +284,7 @@ impl LevelMeter {
 
                 for i in 0..segments {
                     let segment_normalized = (i as f32 + 0.5) / segments as f32;
-                    let segment_db =
-                        self.min_db + segment_normalized * (self.max_db - self.min_db);
+                    let segment_db = self.min_db + segment_normalized * (self.max_db - self.min_db);
 
                     let y = rect.max.y - (i as f32 + 1.0) * segment_height;
                     let segment_rect = Rect::from_min_size(
@@ -332,8 +323,7 @@ impl LevelMeter {
 
                 for i in 0..segments {
                     let segment_normalized = (i as f32 + 0.5) / segments as f32;
-                    let segment_db =
-                        self.min_db + segment_normalized * (self.max_db - self.min_db);
+                    let segment_db = self.min_db + segment_normalized * (self.max_db - self.min_db);
 
                     let x = rect.min.x + i as f32 * segment_width;
                     let segment_rect = Rect::from_min_size(

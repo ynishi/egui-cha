@@ -248,7 +248,10 @@ impl LayoutNode {
                 "If" => {
                     let _: Ident = input.parse()?;
                     let (condition, children) = parse_condition_block(input)?;
-                    return Ok(LayoutNode::If(IfNode { condition, children }));
+                    return Ok(LayoutNode::If(IfNode {
+                        condition,
+                        children,
+                    }));
                 }
                 // Control flow: IfElse(condition) { ... } Else { ... }
                 "IfElse" => {

@@ -360,7 +360,9 @@ impl<'a> MidiKeyboard<'a> {
     }
 
     fn note_name(note: u8) -> String {
-        let names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        let names = [
+            "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
+        ];
         let octave = (note as i32 / 12) - 1;
         let name_idx = (note % 12) as usize;
         format!("{}{}", names[name_idx], octave)

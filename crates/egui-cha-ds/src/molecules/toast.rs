@@ -74,33 +74,57 @@ impl ToastVariant {
         match self {
             ToastVariant::Info => {
                 let (bg, fg) = if is_dark {
-                    (darken(theme.state_info, 0.4), lighten(theme.state_info, 0.6))
+                    (
+                        darken(theme.state_info, 0.4),
+                        lighten(theme.state_info, 0.6),
+                    )
                 } else {
-                    (lighten(theme.state_info, 0.85), darken(theme.state_info, 0.3))
+                    (
+                        lighten(theme.state_info, 0.85),
+                        darken(theme.state_info, 0.3),
+                    )
                 };
                 (bg, fg, icons::INFO)
             }
             ToastVariant::Success => {
                 let (bg, fg) = if is_dark {
-                    (darken(theme.state_success, 0.4), lighten(theme.state_success, 0.6))
+                    (
+                        darken(theme.state_success, 0.4),
+                        lighten(theme.state_success, 0.6),
+                    )
                 } else {
-                    (lighten(theme.state_success, 0.85), darken(theme.state_success, 0.3))
+                    (
+                        lighten(theme.state_success, 0.85),
+                        darken(theme.state_success, 0.3),
+                    )
                 };
                 (bg, fg, icons::CHECK)
             }
             ToastVariant::Warning => {
                 let (bg, fg) = if is_dark {
-                    (darken(theme.state_warning, 0.4), lighten(theme.state_warning, 0.6))
+                    (
+                        darken(theme.state_warning, 0.4),
+                        lighten(theme.state_warning, 0.6),
+                    )
                 } else {
-                    (lighten(theme.state_warning, 0.85), darken(theme.state_warning, 0.4))
+                    (
+                        lighten(theme.state_warning, 0.85),
+                        darken(theme.state_warning, 0.4),
+                    )
                 };
                 (bg, fg, icons::WARNING)
             }
             ToastVariant::Error => {
                 let (bg, fg) = if is_dark {
-                    (darken(theme.state_danger, 0.4), lighten(theme.state_danger, 0.6))
+                    (
+                        darken(theme.state_danger, 0.4),
+                        lighten(theme.state_danger, 0.6),
+                    )
                 } else {
-                    (lighten(theme.state_danger, 0.85), darken(theme.state_danger, 0.3))
+                    (
+                        lighten(theme.state_danger, 0.85),
+                        darken(theme.state_danger, 0.3),
+                    )
                 };
                 (bg, fg, icons::X)
             }
@@ -171,7 +195,12 @@ impl ToastContainer {
     }
 
     /// Add an info toast
-    pub fn info<Msg, F>(&mut self, message: impl Into<String>, duration: Duration, dismiss_msg: F) -> Cmd<Msg>
+    pub fn info<Msg, F>(
+        &mut self,
+        message: impl Into<String>,
+        duration: Duration,
+        dismiss_msg: F,
+    ) -> Cmd<Msg>
     where
         Msg: 'static + Send + Clone,
         F: Fn(ToastId) -> Msg + 'static + Send,
@@ -180,7 +209,12 @@ impl ToastContainer {
     }
 
     /// Add a success toast
-    pub fn success<Msg, F>(&mut self, message: impl Into<String>, duration: Duration, dismiss_msg: F) -> Cmd<Msg>
+    pub fn success<Msg, F>(
+        &mut self,
+        message: impl Into<String>,
+        duration: Duration,
+        dismiss_msg: F,
+    ) -> Cmd<Msg>
     where
         Msg: 'static + Send + Clone,
         F: Fn(ToastId) -> Msg + 'static + Send,
@@ -189,7 +223,12 @@ impl ToastContainer {
     }
 
     /// Add a warning toast
-    pub fn warning<Msg, F>(&mut self, message: impl Into<String>, duration: Duration, dismiss_msg: F) -> Cmd<Msg>
+    pub fn warning<Msg, F>(
+        &mut self,
+        message: impl Into<String>,
+        duration: Duration,
+        dismiss_msg: F,
+    ) -> Cmd<Msg>
     where
         Msg: 'static + Send + Clone,
         F: Fn(ToastId) -> Msg + 'static + Send,
@@ -198,7 +237,12 @@ impl ToastContainer {
     }
 
     /// Add an error toast
-    pub fn error<Msg, F>(&mut self, message: impl Into<String>, duration: Duration, dismiss_msg: F) -> Cmd<Msg>
+    pub fn error<Msg, F>(
+        &mut self,
+        message: impl Into<String>,
+        duration: Duration,
+        dismiss_msg: F,
+    ) -> Cmd<Msg>
     where
         Msg: 'static + Send + Clone,
         F: Fn(ToastId) -> Msg + 'static + Send,

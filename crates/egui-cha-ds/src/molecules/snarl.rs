@@ -68,8 +68,8 @@ use crate::Theme;
 use egui::{Color32, Pos2, Ui};
 
 // Re-export core types
-pub use egui_snarl::{InPin, InPinId, NodeId, OutPin, OutPinId, Snarl};
 pub use egui_snarl::ui::{PinInfo, SnarlViewer};
+pub use egui_snarl::{InPin, InPinId, NodeId, OutPin, OutPinId, Snarl};
 
 /// Events emitted by NodeGraphArea
 #[derive(Debug, Clone)]
@@ -506,8 +506,7 @@ where
         // Delete node option
         if ui.button("Delete Node").clicked() {
             let removed = snarl.remove_node(node);
-            self.events
-                .push(NodeGraphEvent::NodeRemoved(node, removed));
+            self.events.push(NodeGraphEvent::NodeRemoved(node, removed));
             ui.close();
         }
     }

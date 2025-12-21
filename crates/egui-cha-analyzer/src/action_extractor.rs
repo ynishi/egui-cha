@@ -88,14 +88,13 @@ impl<'ast> Visit<'ast> for ActionVisitor {
 /// Describe the receiver expression for documentation
 fn describe_receiver(expr: &Expr) -> String {
     match expr {
-        Expr::Path(path) => {
-            path.path
-                .segments
-                .iter()
-                .map(|s| s.ident.to_string())
-                .collect::<Vec<_>>()
-                .join("::")
-        }
+        Expr::Path(path) => path
+            .path
+            .segments
+            .iter()
+            .map(|s| s.ident.to_string())
+            .collect::<Vec<_>>()
+            .join("::"),
         Expr::MethodCall(call) => {
             let receiver = describe_receiver(&call.receiver);
             let method = call.method.to_string();

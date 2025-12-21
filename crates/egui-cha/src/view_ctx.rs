@@ -375,7 +375,12 @@ impl<'a, Msg> ViewCtx<'a, Msg> {
         col3: impl FnOnce(&mut ViewCtx<'_, Msg>),
         col4: impl FnOnce(&mut ViewCtx<'_, Msg>),
     ) {
-        self.columns_n::<4>([Box::new(col1), Box::new(col2), Box::new(col3), Box::new(col4)]);
+        self.columns_n::<4>([
+            Box::new(col1),
+            Box::new(col2),
+            Box::new(col3),
+            Box::new(col4),
+        ]);
     }
 
     /// Variable-length column layout
@@ -447,7 +452,11 @@ impl<'a, Msg> ViewCtx<'a, Msg> {
     ///     ctx.button("Logout", Msg::Logout);
     /// });
     /// ```
-    pub fn show_if<R>(&mut self, condition: bool, f: impl FnOnce(&mut ViewCtx<'_, Msg>) -> R) -> Option<R> {
+    pub fn show_if<R>(
+        &mut self,
+        condition: bool,
+        f: impl FnOnce(&mut ViewCtx<'_, Msg>) -> R,
+    ) -> Option<R> {
         if condition {
             Some(f(self))
         } else {
@@ -486,14 +495,20 @@ impl<'a, Msg> ViewCtx<'a, Msg> {
     ///     ctx.button("Submit", Msg::Submit);
     /// });
     /// ```
-    pub fn enabled_if<R>(&mut self, enabled: bool, f: impl FnOnce(&mut ViewCtx<'_, Msg>) -> R) -> R {
-        self.ui.add_enabled_ui(enabled, |ui| {
-            let mut child_msgs = Vec::new();
-            let mut ctx = ViewCtx::new(ui, &mut child_msgs);
-            let result = f(&mut ctx);
-            self.emitter.extend(child_msgs);
-            result
-        }).inner
+    pub fn enabled_if<R>(
+        &mut self,
+        enabled: bool,
+        f: impl FnOnce(&mut ViewCtx<'_, Msg>) -> R,
+    ) -> R {
+        self.ui
+            .add_enabled_ui(enabled, |ui| {
+                let mut child_msgs = Vec::new();
+                let mut ctx = ViewCtx::new(ui, &mut child_msgs);
+                let result = f(&mut ctx);
+                self.emitter.extend(child_msgs);
+                result
+            })
+            .inner
     }
 
     /// Render content with visible state (hidden but still takes space)
@@ -504,17 +519,23 @@ impl<'a, Msg> ViewCtx<'a, Msg> {
     ///     ctx.ui.label("This is a hint");
     /// });
     /// ```
-    pub fn visible_if<R>(&mut self, visible: bool, f: impl FnOnce(&mut ViewCtx<'_, Msg>) -> R) -> R {
-        self.ui.scope(|ui| {
-            if !visible {
-                ui.set_invisible();
-            }
-            let mut child_msgs = Vec::new();
-            let mut ctx = ViewCtx::new(ui, &mut child_msgs);
-            let result = f(&mut ctx);
-            self.emitter.extend(child_msgs);
-            result
-        }).inner
+    pub fn visible_if<R>(
+        &mut self,
+        visible: bool,
+        f: impl FnOnce(&mut ViewCtx<'_, Msg>) -> R,
+    ) -> R {
+        self.ui
+            .scope(|ui| {
+                if !visible {
+                    ui.set_invisible();
+                }
+                let mut child_msgs = Vec::new();
+                let mut ctx = ViewCtx::new(ui, &mut child_msgs);
+                let result = f(&mut ctx);
+                self.emitter.extend(child_msgs);
+                result
+            })
+            .inner
     }
 }
 
@@ -538,10 +559,7 @@ impl<'a, Msg> ViewCtx<'a, Msg> {
     /// ctx.on_shortcut(UNDO, Msg::Undo);
     /// ```
     pub fn on_shortcut(&mut self, shortcut: egui::KeyboardShortcut, msg: Msg) -> bool {
-        let triggered = self
-            .ui
-            .ctx()
-            .input_mut(|i| i.consume_shortcut(&shortcut));
+        let triggered = self.ui.ctx().input_mut(|i| i.consume_shortcut(&shortcut));
         if triggered {
             self.emit(msg);
         }
@@ -726,10 +744,11 @@ impl<'a, Msg> ViewCtx<'a, Msg> {
     {
         let mut child_msgs = Vec::new();
 
-        let (response, dropped_payload) = self.ui.dnd_drop_zone::<P, _>(egui::Frame::default(), |ui| {
-            let mut ctx = ViewCtx::new(ui, &mut child_msgs);
-            content(&mut ctx)
-        });
+        let (response, dropped_payload) =
+            self.ui.dnd_drop_zone::<P, _>(egui::Frame::default(), |ui| {
+                let mut ctx = ViewCtx::new(ui, &mut child_msgs);
+                content(&mut ctx)
+            });
 
         // Check if being dragged over with compatible payload
         let is_being_dragged_over = egui::DragAndDrop::has_payload_of_type::<P>(self.ui.ctx());

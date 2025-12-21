@@ -189,7 +189,10 @@ impl TransformGizmo {
         let scaled_size = self.size * transform.scale;
 
         let (rect, _response) = ui.allocate_exact_size(
-            Vec2::new(self.size.x + self.handle_size * 4.0, self.size.y + self.handle_size * 4.0 + 30.0),
+            Vec2::new(
+                self.size.x + self.handle_size * 4.0,
+                self.size.y + self.handle_size * 4.0 + 30.0,
+            ),
             Sense::hover(),
         );
 
@@ -225,8 +228,10 @@ impl TransformGizmo {
             rotate_point(Vec2::new(-half_w, 0.0)),
         ];
 
-        let can_rotate = self.show_rotation && matches!(self.mode, TransformMode::All | TransformMode::RotateOnly);
-        let can_scale = self.show_scale && matches!(self.mode, TransformMode::All | TransformMode::ScaleOnly);
+        let can_rotate = self.show_rotation
+            && matches!(self.mode, TransformMode::All | TransformMode::RotateOnly);
+        let can_scale =
+            self.show_scale && matches!(self.mode, TransformMode::All | TransformMode::ScaleOnly);
         let can_translate = matches!(self.mode, TransformMode::All | TransformMode::TranslateOnly);
 
         // First pass: collect interactions
@@ -246,7 +251,8 @@ impl TransformGizmo {
         // Rotation handle
         if can_rotate {
             let rotation_handle_pos = rotate_point(Vec2::new(0.0, -half_h - 25.0));
-            let rotation_rect = Rect::from_center_size(rotation_handle_pos, Vec2::splat(self.handle_size * 1.5));
+            let rotation_rect =
+                Rect::from_center_size(rotation_handle_pos, Vec2::splat(self.handle_size * 1.5));
             let response = ui.allocate_rect(rotation_rect, Sense::click_and_drag());
             handles.push(HandleInfo {
                 handle: GizmoHandle::Rotation,
@@ -294,7 +300,8 @@ impl TransformGizmo {
                 ];
 
                 for (pos, handle) in edge_handles {
-                    let is_horizontal = matches!(handle, GizmoHandle::ScaleTop | GizmoHandle::ScaleBottom);
+                    let is_horizontal =
+                        matches!(handle, GizmoHandle::ScaleTop | GizmoHandle::ScaleBottom);
                     let handle_size = if is_horizontal {
                         Vec2::new(self.handle_size * 2.0, self.handle_size)
                     } else {
@@ -367,7 +374,11 @@ impl TransformGizmo {
                 };
 
                 painter.circle_filled(info.pos, self.handle_size * 0.75, rotation_handle_color);
-                painter.circle_stroke(info.pos, self.handle_size * 0.75, Stroke::new(1.0, theme.bg_primary));
+                painter.circle_stroke(
+                    info.pos,
+                    self.handle_size * 0.75,
+                    Stroke::new(1.0, theme.bg_primary),
+                );
 
                 // Rotation arc
                 let arc_radius = 20.0;
@@ -375,9 +386,14 @@ impl TransformGizmo {
                 for i in 0..arc_segments {
                     let angle1 = -PI / 4.0 + (i as f32 / arc_segments as f32) * PI / 2.0;
                     let angle2 = -PI / 4.0 + ((i + 1) as f32 / arc_segments as f32) * PI / 2.0;
-                    let p1 = info.pos + Vec2::new(angle1.cos() * arc_radius, angle1.sin() * arc_radius);
-                    let p2 = info.pos + Vec2::new(angle2.cos() * arc_radius, angle2.sin() * arc_radius);
-                    painter.line_segment([p1, p2], Stroke::new(0.5, rotation_color.gamma_multiply(0.5)));
+                    let p1 =
+                        info.pos + Vec2::new(angle1.cos() * arc_radius, angle1.sin() * arc_radius);
+                    let p2 =
+                        info.pos + Vec2::new(angle2.cos() * arc_radius, angle2.sin() * arc_radius);
+                    painter.line_segment(
+                        [p1, p2],
+                        Stroke::new(0.5, rotation_color.gamma_multiply(0.5)),
+                    );
                 }
             }
         }
@@ -385,25 +401,51 @@ impl TransformGizmo {
         // Draw scale handles
         for info in handles.iter() {
             match info.handle {
-                GizmoHandle::ScaleTopLeft | GizmoHandle::ScaleTopRight |
-                GizmoHandle::ScaleBottomLeft | GizmoHandle::ScaleBottomRight => {
-                    let handle_rect = Rect::from_center_size(info.pos, Vec2::splat(self.handle_size));
-                    let fill = if info.hovered || info.dragged { primary_color } else { handle_fill };
+                GizmoHandle::ScaleTopLeft
+                | GizmoHandle::ScaleTopRight
+                | GizmoHandle::ScaleBottomLeft
+                | GizmoHandle::ScaleBottomRight => {
+                    let handle_rect =
+                        Rect::from_center_size(info.pos, Vec2::splat(self.handle_size));
+                    let fill = if info.hovered || info.dragged {
+                        primary_color
+                    } else {
+                        handle_fill
+                    };
                     painter.rect_filled(handle_rect, 1.0, fill);
-                    painter.rect_stroke(handle_rect, 1.0, Stroke::new(theme.stroke_width, primary_color), egui::StrokeKind::Outside);
+                    painter.rect_stroke(
+                        handle_rect,
+                        1.0,
+                        Stroke::new(theme.stroke_width, primary_color),
+                        egui::StrokeKind::Outside,
+                    );
                 }
-                GizmoHandle::ScaleTop | GizmoHandle::ScaleBottom |
-                GizmoHandle::ScaleLeft | GizmoHandle::ScaleRight => {
-                    let is_horizontal = matches!(info.handle, GizmoHandle::ScaleTop | GizmoHandle::ScaleBottom);
+                GizmoHandle::ScaleTop
+                | GizmoHandle::ScaleBottom
+                | GizmoHandle::ScaleLeft
+                | GizmoHandle::ScaleRight => {
+                    let is_horizontal = matches!(
+                        info.handle,
+                        GizmoHandle::ScaleTop | GizmoHandle::ScaleBottom
+                    );
                     let handle_size = if is_horizontal {
                         Vec2::new(self.handle_size * 2.0, self.handle_size)
                     } else {
                         Vec2::new(self.handle_size, self.handle_size * 2.0)
                     };
                     let handle_rect = Rect::from_center_size(info.pos, handle_size);
-                    let fill = if info.hovered || info.dragged { primary_color.gamma_multiply(0.8) } else { handle_fill };
+                    let fill = if info.hovered || info.dragged {
+                        primary_color.gamma_multiply(0.8)
+                    } else {
+                        handle_fill
+                    };
                     painter.rect_filled(handle_rect, 1.0, fill);
-                    painter.rect_stroke(handle_rect, 1.0, Stroke::new(theme.stroke_width * 0.5, primary_color), egui::StrokeKind::Outside);
+                    painter.rect_stroke(
+                        handle_rect,
+                        1.0,
+                        Stroke::new(theme.stroke_width * 0.5, primary_color),
+                        egui::StrokeKind::Outside,
+                    );
                 }
                 _ => {}
             }
@@ -411,17 +453,31 @@ impl TransformGizmo {
 
         // Draw center handle
         if let Some(info) = &center_info {
-            let center_color = if info.hovered || info.dragged { primary_color } else { secondary_color };
+            let center_color = if info.hovered || info.dragged {
+                primary_color
+            } else {
+                secondary_color
+            };
             let cross_size = self.handle_size;
             painter.line_segment(
-                [center - Vec2::new(cross_size, 0.0), center + Vec2::new(cross_size, 0.0)],
+                [
+                    center - Vec2::new(cross_size, 0.0),
+                    center + Vec2::new(cross_size, 0.0),
+                ],
                 Stroke::new(theme.stroke_width, center_color),
             );
             painter.line_segment(
-                [center - Vec2::new(0.0, cross_size), center + Vec2::new(0.0, cross_size)],
+                [
+                    center - Vec2::new(0.0, cross_size),
+                    center + Vec2::new(0.0, cross_size),
+                ],
                 Stroke::new(theme.stroke_width, center_color),
             );
-            painter.circle_stroke(center, cross_size * 0.6, Stroke::new(theme.stroke_width, center_color));
+            painter.circle_stroke(
+                center,
+                cross_size * 0.6,
+                Stroke::new(theme.stroke_width, center_color),
+            );
         }
 
         // Draw pivot point
@@ -430,11 +486,17 @@ impl TransformGizmo {
             let pivot_size = self.handle_size * 0.5;
             painter.circle_stroke(pivot_pos, pivot_size, Stroke::new(1.0, theme.state_warning));
             painter.line_segment(
-                [pivot_pos - Vec2::new(pivot_size, 0.0), pivot_pos + Vec2::new(pivot_size, 0.0)],
+                [
+                    pivot_pos - Vec2::new(pivot_size, 0.0),
+                    pivot_pos + Vec2::new(pivot_size, 0.0),
+                ],
                 Stroke::new(1.0, theme.state_warning),
             );
             painter.line_segment(
-                [pivot_pos - Vec2::new(0.0, pivot_size), pivot_pos + Vec2::new(0.0, pivot_size)],
+                [
+                    pivot_pos - Vec2::new(0.0, pivot_size),
+                    pivot_pos + Vec2::new(0.0, pivot_size),
+                ],
                 Stroke::new(1.0, theme.state_warning),
             );
         }
@@ -474,8 +536,10 @@ impl TransformGizmo {
                             events.push(TransformEvent::Rotate(delta));
                         }
                     }
-                    GizmoHandle::ScaleTopLeft | GizmoHandle::ScaleTopRight |
-                    GizmoHandle::ScaleBottomLeft | GizmoHandle::ScaleBottomRight => {
+                    GizmoHandle::ScaleTopLeft
+                    | GizmoHandle::ScaleTopRight
+                    | GizmoHandle::ScaleBottomLeft
+                    | GizmoHandle::ScaleBottomRight => {
                         if let Some(pos) = info.interact_pos {
                             let to_cursor = pos - center;
                             let unrotated = Vec2::new(
@@ -484,7 +548,8 @@ impl TransformGizmo {
                             );
                             let new_scale = if self.uniform_scale {
                                 let avg = (unrotated.x.abs() / (self.size.x / 2.0)
-                                    + unrotated.y.abs() / (self.size.y / 2.0)) / 2.0;
+                                    + unrotated.y.abs() / (self.size.y / 2.0))
+                                    / 2.0;
                                 Vec2::splat(avg.max(0.1))
                             } else {
                                 Vec2::new(

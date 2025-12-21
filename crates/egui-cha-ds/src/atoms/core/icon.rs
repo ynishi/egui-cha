@@ -123,7 +123,7 @@ pub mod icons {
     pub const LOCK: &str = "\u{e2ec}";
     pub const LOCK_OPEN: &str = "\u{e2ee}";
     pub const CORNERS_OUT: &str = "\u{e1ce}"; // maximize
-    pub const CORNERS_IN: &str = "\u{e1cc}";  // restore
+    pub const CORNERS_IN: &str = "\u{e1cc}"; // restore
 
     // Visual / Layers
     pub const STACK: &str = "\u{e45e}";

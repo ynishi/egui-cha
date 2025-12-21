@@ -113,11 +113,7 @@ impl<'a> ClipGrid<'a> {
     }
 
     /// TEA-style: Show grid, emit Msg when clip is clicked
-    pub fn show_with<Msg>(
-        self,
-        ctx: &mut ViewCtx<'_, Msg>,
-        on_click: impl Fn(usize) -> Msg,
-    ) {
+    pub fn show_with<Msg>(self, ctx: &mut ViewCtx<'_, Msg>, on_click: impl Fn(usize) -> Msg) {
         let clicked = self.show_internal(ctx.ui);
         if let Some(idx) = clicked {
             ctx.emit(on_click(idx));
@@ -135,15 +131,13 @@ impl<'a> ClipGrid<'a> {
         let mut clicked_idx: Option<usize> = None;
 
         let rows = (self.clips.len() + self.columns - 1) / self.columns;
-        let total_width = self.columns as f32 * self.cell_size.x
-            + (self.columns - 1) as f32 * self.spacing;
-        let total_height = rows as f32 * self.cell_size.y
-            + (rows.saturating_sub(1)) as f32 * self.spacing;
+        let total_width =
+            self.columns as f32 * self.cell_size.x + (self.columns - 1) as f32 * self.spacing;
+        let total_height =
+            rows as f32 * self.cell_size.y + (rows.saturating_sub(1)) as f32 * self.spacing;
 
-        let (rect, _response) = ui.allocate_exact_size(
-            Vec2::new(total_width, total_height),
-            Sense::hover(),
-        );
+        let (rect, _response) =
+            ui.allocate_exact_size(Vec2::new(total_width, total_height), Sense::hover());
 
         if !ui.is_rect_visible(rect) {
             return None;
@@ -167,10 +161,7 @@ impl<'a> ClipGrid<'a> {
 
             let cell_x = rect.min.x + col as f32 * (self.cell_size.x + self.spacing);
             let cell_y = rect.min.y + row as f32 * (self.cell_size.y + self.spacing);
-            let cell_rect = egui::Rect::from_min_size(
-                egui::pos2(cell_x, cell_y),
-                self.cell_size,
-            );
+            let cell_rect = egui::Rect::from_min_size(egui::pos2(cell_x, cell_y), self.cell_size);
 
             // Determine state (priority: current > queued > clip.state)
             let state = if self.current == Some(idx) {
@@ -224,9 +215,7 @@ impl<'a> ClipGrid<'a> {
                     );
                     (dimmed, theme.state_warning, theme.text_primary)
                 }
-                ClipState::Selected => {
-                    (cell.base_color, theme.border_focus, theme.primary_text)
-                }
+                ClipState::Selected => (cell.base_color, theme.border_focus, theme.primary_text),
                 ClipState::Idle => {
                     let idle_bg = if cell.hovered {
                         Color32::from_rgba_unmultiplied(
@@ -288,10 +277,17 @@ impl<'a> ClipGrid<'a> {
             // Draw playing indicator (triangle)
             if matches!(cell.state, ClipState::Playing) {
                 let indicator_size = 8.0;
-                let center = cell.rect.right_top() + Vec2::new(-indicator_size - 4.0, indicator_size + 4.0);
+                let center =
+                    cell.rect.right_top() + Vec2::new(-indicator_size - 4.0, indicator_size + 4.0);
                 let points = vec![
-                    egui::pos2(center.x - indicator_size / 2.0, center.y - indicator_size / 2.0),
-                    egui::pos2(center.x - indicator_size / 2.0, center.y + indicator_size / 2.0),
+                    egui::pos2(
+                        center.x - indicator_size / 2.0,
+                        center.y - indicator_size / 2.0,
+                    ),
+                    egui::pos2(
+                        center.x - indicator_size / 2.0,
+                        center.y + indicator_size / 2.0,
+                    ),
                     egui::pos2(center.x + indicator_size / 2.0, center.y),
                 ];
                 painter.add(egui::Shape::convex_polygon(

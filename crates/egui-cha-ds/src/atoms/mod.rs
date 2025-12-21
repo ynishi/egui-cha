@@ -94,9 +94,9 @@ pub use visual::*;
 #[cfg(feature = "plot")]
 mod plot;
 #[cfg(feature = "plot")]
-pub use plot::{AutomationPlot, BarPlot, EnvelopePlot, FrequencyPlot, LinePlot};
-#[cfg(feature = "plot")]
 pub use plot::raw as plot_raw;
+#[cfg(feature = "plot")]
+pub use plot::{AutomationPlot, BarPlot, EnvelopePlot, FrequencyPlot, LinePlot};
 
 // =============================================================================
 // Extras atoms (extras feature - existing)
@@ -104,6 +104,6 @@ pub use plot::raw as plot_raw;
 #[cfg(feature = "extras")]
 mod extras;
 #[cfg(feature = "extras")]
-pub use extras::{ColumnWidth, Strip, StripDirection, StripSize};
-#[cfg(feature = "extras")]
 pub use extras::raw as extras_raw;
+#[cfg(feature = "extras")]
+pub use extras::{ColumnWidth, Strip, StripDirection, StripSize};

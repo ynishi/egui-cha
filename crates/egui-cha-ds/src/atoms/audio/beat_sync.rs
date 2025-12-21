@@ -4,7 +4,7 @@
 //! Supports manual BPM entry, tap detection, and beat phase visualization.
 
 use crate::Theme;
-use egui::{Color32, Pos2, Rect, Sense, Stroke, Ui, Vec2};
+use egui::{Pos2, Rect, Sense, Stroke, Ui, Vec2};
 use egui_cha::ViewCtx;
 
 /// Beat division for sync
@@ -255,10 +255,8 @@ impl<'a> BeatSync<'a> {
 
         // Tap button
         let tap_width = 50.0;
-        let tap_rect = Rect::from_min_size(
-            inner_rect.min,
-            Vec2::new(tap_width, inner_rect.height()),
-        );
+        let tap_rect =
+            Rect::from_min_size(inner_rect.min, Vec2::new(tap_width, inner_rect.height()));
         if self.show_tap_button {
             let resp = ui.allocate_rect(tap_rect, Sense::click());
             interactions.tap_clicked = resp.clicked();
@@ -280,7 +278,10 @@ impl<'a> BeatSync<'a> {
                 Vec2::splat(btn_size),
             );
             let plus_rect = Rect::from_min_size(
-                Pos2::new(bpm_rect.max.x - btn_size, bpm_rect.center().y - btn_size / 2.0),
+                Pos2::new(
+                    bpm_rect.max.x - btn_size,
+                    bpm_rect.center().y - btn_size / 2.0,
+                ),
                 Vec2::splat(btn_size),
             );
 
@@ -292,13 +293,17 @@ impl<'a> BeatSync<'a> {
 
         // Phase indicator / nudge buttons
         let phase_rect = Rect::from_min_size(
-            Pos2::new(bpm_x, inner_rect.min.y + inner_rect.height() * 0.6 + padding),
+            Pos2::new(
+                bpm_x,
+                inner_rect.min.y + inner_rect.height() * 0.6 + padding,
+            ),
             Vec2::new(bpm_width, inner_rect.height() * 0.4 - padding),
         );
 
         if self.show_phase_indicator {
             let nudge_width = theme.spacing_md;
-            let left_nudge = Rect::from_min_size(phase_rect.min, Vec2::new(nudge_width, phase_rect.height()));
+            let left_nudge =
+                Rect::from_min_size(phase_rect.min, Vec2::new(nudge_width, phase_rect.height()));
             let right_nudge = Rect::from_min_size(
                 Pos2::new(phase_rect.max.x - nudge_width, phase_rect.min.y),
                 Vec2::new(nudge_width, phase_rect.height()),
@@ -322,7 +327,11 @@ impl<'a> BeatSync<'a> {
         if self.show_division {
             let div_y = inner_rect.max.y - theme.spacing_md - padding;
             let div_btn_width = 28.0;
-            let divisions = [BeatDivision::Eighth, BeatDivision::Quarter, BeatDivision::Half];
+            let divisions = [
+                BeatDivision::Eighth,
+                BeatDivision::Quarter,
+                BeatDivision::Half,
+            ];
             let start_x = inner_rect.max.x - tap_width;
 
             for (i, div) in divisions.iter().enumerate() {
@@ -365,11 +374,7 @@ impl<'a> BeatSync<'a> {
                 let dots_y = tap_rect.max.y - theme.spacing_xs;
                 for i in 0..tap_count.min(8) {
                     let dot_x = tap_rect.min.x + theme.spacing_xs + i as f32 * 5.0;
-                    painter.circle_filled(
-                        Pos2::new(dot_x, dots_y),
-                        2.0,
-                        theme.primary,
-                    );
+                    painter.circle_filled(Pos2::new(dot_x, dots_y), 2.0, theme.primary);
                 }
             }
         }
@@ -399,21 +404,39 @@ impl<'a> BeatSync<'a> {
                 Vec2::splat(btn_size),
             );
             let plus_rect = Rect::from_min_size(
-                Pos2::new(bpm_rect.max.x - btn_size, bpm_rect.center().y - btn_size / 2.0),
+                Pos2::new(
+                    bpm_rect.max.x - btn_size,
+                    bpm_rect.center().y - btn_size / 2.0,
+                ),
                 Vec2::splat(btn_size),
             );
 
             painter.rect_filled(minus_rect, theme.radius_sm, theme.bg_tertiary);
-            painter.text(minus_rect.center(), egui::Align2::CENTER_CENTER, "−", egui::FontId::proportional(theme.font_size_lg), theme.text_secondary);
+            painter.text(
+                minus_rect.center(),
+                egui::Align2::CENTER_CENTER,
+                "−",
+                egui::FontId::proportional(theme.font_size_lg),
+                theme.text_secondary,
+            );
 
             painter.rect_filled(plus_rect, theme.radius_sm, theme.bg_tertiary);
-            painter.text(plus_rect.center(), egui::Align2::CENTER_CENTER, "+", egui::FontId::proportional(theme.font_size_lg), theme.text_secondary);
+            painter.text(
+                plus_rect.center(),
+                egui::Align2::CENTER_CENTER,
+                "+",
+                egui::FontId::proportional(theme.font_size_lg),
+                theme.text_secondary,
+            );
         }
 
         // Phase indicator
         if self.show_phase_indicator {
             let bar_rect = Rect::from_min_size(
-                Pos2::new(phase_rect.min.x + theme.spacing_md + 2.0, phase_rect.center().y - 4.0),
+                Pos2::new(
+                    phase_rect.min.x + theme.spacing_md + 2.0,
+                    phase_rect.center().y - 4.0,
+                ),
                 Vec2::new(phase_rect.width() - theme.spacing_md * 2.0 - 4.0, 8.0),
             );
 
@@ -437,11 +460,7 @@ impl<'a> BeatSync<'a> {
             } else {
                 theme.primary
             };
-            painter.circle_filled(
-                Pos2::new(phase_x, bar_rect.center().y),
-                6.0,
-                phase_color,
-            );
+            painter.circle_filled(Pos2::new(phase_x, bar_rect.center().y), 6.0, phase_color);
 
             // Nudge arrows
             painter.text(
@@ -475,7 +494,11 @@ impl<'a> BeatSync<'a> {
         if self.show_division {
             let div_y = inner_rect.max.y - theme.spacing_md - padding;
             let div_btn_width = 28.0;
-            let divisions = [BeatDivision::Eighth, BeatDivision::Quarter, BeatDivision::Half];
+            let divisions = [
+                BeatDivision::Eighth,
+                BeatDivision::Quarter,
+                BeatDivision::Half,
+            ];
             let start_x = inner_rect.max.x - tap_width;
 
             for (i, div) in divisions.iter().enumerate() {
@@ -484,8 +507,16 @@ impl<'a> BeatSync<'a> {
                     Vec2::new(div_btn_width, theme.spacing_md),
                 );
                 let is_active = self.state.division == *div;
-                let bg = if is_active { theme.primary } else { theme.bg_tertiary };
-                let text_color = if is_active { theme.primary_text } else { theme.text_muted };
+                let bg = if is_active {
+                    theme.primary
+                } else {
+                    theme.bg_tertiary
+                };
+                let text_color = if is_active {
+                    theme.primary_text
+                } else {
+                    theme.text_muted
+                };
 
                 painter.rect_filled(div_rect, theme.radius_sm, bg);
                 painter.text(
@@ -499,7 +530,12 @@ impl<'a> BeatSync<'a> {
         }
 
         // Border
-        painter.rect_stroke(rect, theme.radius_md, Stroke::new(theme.border_width, theme.border), egui::StrokeKind::Inside);
+        painter.rect_stroke(
+            rect,
+            theme.radius_md,
+            Stroke::new(theme.border_width, theme.border),
+            egui::StrokeKind::Inside,
+        );
 
         // Process events
         if interactions.tap_clicked {
@@ -575,7 +611,12 @@ impl<'a> BeatSync<'a> {
         );
 
         // Border
-        painter.rect_stroke(rect, theme.radius_sm, Stroke::new(theme.border_width, theme.border), egui::StrokeKind::Inside);
+        painter.rect_stroke(
+            rect,
+            theme.radius_sm,
+            Stroke::new(theme.border_width, theme.border),
+            egui::StrokeKind::Inside,
+        );
 
         if tap_resp.clicked() {
             let time = ui.input(|i| i.time);

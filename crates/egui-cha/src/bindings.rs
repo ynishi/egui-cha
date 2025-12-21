@@ -429,7 +429,9 @@ impl InputBinding for ShortcutGroup {
     }
 
     fn as_keyboard_shortcut(&self) -> Option<KeyboardShortcut> {
-        self.shortcuts.first().and_then(|s| s.as_keyboard_shortcut())
+        self.shortcuts
+            .first()
+            .and_then(|s| s.as_keyboard_shortcut())
     }
 }
 
@@ -492,10 +494,7 @@ mod tests {
             DynamicShortcut::new(Modifiers::CTRL.plus(Modifiers::SHIFT), Key::S),
         );
 
-        assert_eq!(
-            old,
-            Some(DynamicShortcut::new(Modifiers::COMMAND, Key::S))
-        );
+        assert_eq!(old, Some(DynamicShortcut::new(Modifiers::COMMAND, Key::S)));
         assert_eq!(
             bindings.get(&TestAction::Save),
             Some(&DynamicShortcut::new(
@@ -580,7 +579,11 @@ mod tests {
 
         // Display format is platform-dependent, just verify it contains the separator
         let display = group.display();
-        assert!(display.contains(" / "), "Expected separator in: {}", display);
+        assert!(
+            display.contains(" / "),
+            "Expected separator in: {}",
+            display
+        );
         assert!(display.contains("Z"), "Expected key Z in: {}", display);
     }
 }

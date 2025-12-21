@@ -197,20 +197,24 @@ impl<'a> MediaBrowser<'a> {
         let theme = Theme::current(ui.ctx());
         let mut event: Option<MediaBrowserEvent> = None;
 
-        let toolbar_height = if self.show_toolbar { theme.spacing_xl } else { 0.0 };
+        let toolbar_height = if self.show_toolbar {
+            theme.spacing_xl
+        } else {
+            0.0
+        };
         let total_height = self.size.y + toolbar_height;
 
-        let (rect, _response) = ui.allocate_exact_size(
-            Vec2::new(self.size.x, total_height),
-            Sense::hover(),
-        );
+        let (rect, _response) =
+            ui.allocate_exact_size(Vec2::new(self.size.x, total_height), Sense::hover());
 
         if !ui.is_rect_visible(rect) {
             return None;
         }
 
         // Filter items
-        let filtered_items: Vec<&MediaItem> = self.items.iter()
+        let filtered_items: Vec<&MediaItem> = self
+            .items
+            .iter()
             .filter(|item| {
                 if let Some(filter) = self.filter {
                     if item.media_type != filter {
@@ -219,8 +223,12 @@ impl<'a> MediaBrowser<'a> {
                 }
                 if !self.search.is_empty() {
                     let search_lower = self.search.to_lowercase();
-                    if !item.name.to_lowercase().contains(&search_lower) &&
-                       !item.tags.iter().any(|t| t.to_lowercase().contains(&search_lower)) {
+                    if !item.name.to_lowercase().contains(&search_lower)
+                        && !item
+                            .tags
+                            .iter()
+                            .any(|t| t.to_lowercase().contains(&search_lower))
+                    {
                         return false;
                     }
                 }
@@ -233,10 +241,16 @@ impl<'a> MediaBrowser<'a> {
         let mut view_mode_clicked: Option<BrowserViewMode> = None;
 
         if self.show_toolbar {
-            let toolbar_rect = Rect::from_min_size(rect.min, Vec2::new(self.size.x, toolbar_height));
+            let toolbar_rect =
+                Rect::from_min_size(rect.min, Vec2::new(self.size.x, toolbar_height));
 
             // Filter buttons
-            let filter_types = [None, Some(MediaType::Image), Some(MediaType::Video), Some(MediaType::Audio)];
+            let filter_types = [
+                None,
+                Some(MediaType::Image),
+                Some(MediaType::Video),
+                Some(MediaType::Audio),
+            ];
             let btn_width = 50.0;
             let mut x = toolbar_rect.min.x + theme.spacing_xs;
 
@@ -253,12 +267,20 @@ impl<'a> MediaBrowser<'a> {
             }
 
             // View mode buttons
-            let modes = [BrowserViewMode::Grid, BrowserViewMode::List, BrowserViewMode::Compact];
-            let mode_x = toolbar_rect.max.x - (30.0 * 3.0 + theme.spacing_xs * 2.0 + theme.spacing_sm);
+            let modes = [
+                BrowserViewMode::Grid,
+                BrowserViewMode::List,
+                BrowserViewMode::Compact,
+            ];
+            let mode_x =
+                toolbar_rect.max.x - (30.0 * 3.0 + theme.spacing_xs * 2.0 + theme.spacing_sm);
 
             for (i, mode) in modes.iter().enumerate() {
                 let mode_rect = Rect::from_min_size(
-                    Pos2::new(mode_x + i as f32 * (30.0 + theme.spacing_xs), toolbar_rect.min.y + theme.spacing_xs),
+                    Pos2::new(
+                        mode_x + i as f32 * (30.0 + theme.spacing_xs),
+                        toolbar_rect.min.y + theme.spacing_xs,
+                    ),
                     Vec2::new(30.0, toolbar_height - theme.spacing_sm),
                 );
                 let resp = ui.allocate_rect(mode_rect, Sense::click());
@@ -292,18 +314,33 @@ impl<'a> MediaBrowser<'a> {
 
         let (item_width, item_height, cols) = match self.view_mode {
             BrowserViewMode::Grid => {
-                let name_height = if self.show_names { theme.spacing_md } else { 0.0 };
+                let name_height = if self.show_names {
+                    theme.spacing_md
+                } else {
+                    0.0
+                };
                 let cols = self.columns.unwrap_or_else(|| {
-                    ((content_rect.width() - theme.spacing_xs) / (self.thumbnail_size + theme.spacing_xs)) as usize
-                }.max(1));
+                    {
+                        ((content_rect.width() - theme.spacing_xs)
+                            / (self.thumbnail_size + theme.spacing_xs))
+                            as usize
+                    }
+                    .max(1)
+                });
                 (self.thumbnail_size, self.thumbnail_size + name_height, cols)
             }
-            BrowserViewMode::List => {
-                (content_rect.width() - theme.spacing_sm * 2.0, theme.spacing_xl, 1)
-            }
+            BrowserViewMode::List => (
+                content_rect.width() - theme.spacing_sm * 2.0,
+                theme.spacing_xl,
+                1,
+            ),
             BrowserViewMode::Compact => {
                 let cols = self.columns.unwrap_or(4).max(1);
-                (content_rect.width() / cols as f32 - theme.spacing_xs, theme.spacing_lg, cols)
+                (
+                    content_rect.width() / cols as f32 - theme.spacing_xs,
+                    theme.spacing_lg,
+                    cols,
+                )
             }
         };
 
@@ -321,7 +358,8 @@ impl<'a> MediaBrowser<'a> {
                 break;
             }
 
-            let item_rect = Rect::from_min_size(Pos2::new(x, y), Vec2::new(item_width, item_height));
+            let item_rect =
+                Rect::from_min_size(Pos2::new(x, y), Vec2::new(item_width, item_height));
             let resp = ui.allocate_rect(item_rect, Sense::click());
 
             item_infos.push(ItemInfo {
@@ -342,7 +380,8 @@ impl<'a> MediaBrowser<'a> {
 
         // Toolbar
         if self.show_toolbar {
-            let toolbar_rect = Rect::from_min_size(rect.min, Vec2::new(self.size.x, toolbar_height));
+            let toolbar_rect =
+                Rect::from_min_size(rect.min, Vec2::new(self.size.x, toolbar_height));
             painter.rect_filled(toolbar_rect, 0.0, theme.bg_tertiary);
 
             let filter_types: [(Option<MediaType>, &str); 4] = [
@@ -360,8 +399,16 @@ impl<'a> MediaBrowser<'a> {
                     Vec2::new(btn_width, toolbar_height - theme.spacing_sm),
                 );
                 let is_active = self.filter == *filter_opt;
-                let bg = if is_active { theme.primary } else { theme.bg_secondary };
-                let text_color = if is_active { theme.primary_text } else { theme.text_secondary };
+                let bg = if is_active {
+                    theme.primary
+                } else {
+                    theme.bg_secondary
+                };
+                let text_color = if is_active {
+                    theme.primary_text
+                } else {
+                    theme.text_secondary
+                };
 
                 painter.rect_filled(btn_rect, theme.radius_sm, bg);
                 painter.text(
@@ -380,16 +427,28 @@ impl<'a> MediaBrowser<'a> {
                 (BrowserViewMode::List, "☰"),
                 (BrowserViewMode::Compact, "⊟"),
             ];
-            let mode_x = toolbar_rect.max.x - (30.0 * 3.0 + theme.spacing_xs * 2.0 + theme.spacing_sm);
+            let mode_x =
+                toolbar_rect.max.x - (30.0 * 3.0 + theme.spacing_xs * 2.0 + theme.spacing_sm);
 
             for (i, (mode, icon)) in modes.iter().enumerate() {
                 let mode_rect = Rect::from_min_size(
-                    Pos2::new(mode_x + i as f32 * (30.0 + theme.spacing_xs), toolbar_rect.min.y + theme.spacing_xs),
+                    Pos2::new(
+                        mode_x + i as f32 * (30.0 + theme.spacing_xs),
+                        toolbar_rect.min.y + theme.spacing_xs,
+                    ),
                     Vec2::new(30.0, toolbar_height - theme.spacing_sm),
                 );
                 let is_active = self.view_mode == *mode;
-                let bg = if is_active { theme.primary } else { theme.bg_secondary };
-                let text_color = if is_active { theme.primary_text } else { theme.text_secondary };
+                let bg = if is_active {
+                    theme.primary
+                } else {
+                    theme.bg_secondary
+                };
+                let text_color = if is_active {
+                    theme.primary_text
+                } else {
+                    theme.text_secondary
+                };
 
                 painter.rect_filled(mode_rect, theme.radius_sm, bg);
                 painter.text(
@@ -432,10 +491,8 @@ impl<'a> MediaBrowser<'a> {
 
             match self.view_mode {
                 BrowserViewMode::Grid => {
-                    let thumb_rect = Rect::from_min_size(
-                        info.rect.min,
-                        Vec2::splat(self.thumbnail_size),
-                    );
+                    let thumb_rect =
+                        Rect::from_min_size(info.rect.min, Vec2::splat(self.thumbnail_size));
 
                     // Thumbnail or placeholder
                     if let Some(tex) = item.thumbnail {
@@ -489,7 +546,10 @@ impl<'a> MediaBrowser<'a> {
                 BrowserViewMode::List => {
                     // Icon
                     let icon_rect = Rect::from_min_size(
-                        Pos2::new(info.rect.min.x + theme.spacing_xs, info.rect.min.y + theme.spacing_xs),
+                        Pos2::new(
+                            info.rect.min.x + theme.spacing_xs,
+                            info.rect.min.y + theme.spacing_xs,
+                        ),
                         Vec2::splat(info.rect.height() - theme.spacing_sm),
                     );
                     painter.text(

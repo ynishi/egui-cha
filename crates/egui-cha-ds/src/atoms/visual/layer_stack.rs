@@ -223,11 +223,7 @@ impl<'a> LayerStack<'a> {
     }
 
     /// TEA-style: Show layer stack, emit events
-    pub fn show_with<Msg>(
-        self,
-        ctx: &mut ViewCtx<'_, Msg>,
-        on_event: impl Fn(LayerEvent) -> Msg,
-    ) {
+    pub fn show_with<Msg>(self, ctx: &mut ViewCtx<'_, Msg>, on_event: impl Fn(LayerEvent) -> Msg) {
         let event = self.show_internal(ctx.ui);
         if let Some(e) = event {
             ctx.emit(on_event(e));
@@ -251,7 +247,11 @@ impl<'a> LayerStack<'a> {
 
         // Calculate widths
         let available_width = ui.available_width();
-        let thumbnail_width = if self.show_thumbnails { row_height } else { 0.0 };
+        let _thumbnail_width = if self.show_thumbnails {
+            row_height
+        } else {
+            0.0
+        };
         let visibility_width = theme.spacing_lg;
         let lock_width = theme.spacing_lg;
         let opacity_width = if self.compact { 40.0 } else { 60.0 };
@@ -266,12 +266,14 @@ impl<'a> LayerStack<'a> {
         // Header with controls
         if self.show_controls {
             ui.horizontal(|ui| {
-                ui.label(egui::RichText::new("Layers").size(theme.font_size_sm).color(theme.text_secondary));
+                ui.label(
+                    egui::RichText::new("Layers")
+                        .size(theme.font_size_sm)
+                        .color(theme.text_secondary),
+                );
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    let add_btn = ui.add(
-                        egui::Button::new("+")
-                            .min_size(Vec2::splat(theme.spacing_lg))
-                    );
+                    let add_btn =
+                        ui.add(egui::Button::new("+").min_size(Vec2::splat(theme.spacing_lg)));
                     if add_btn.clicked() {
                         event = Some(LayerEvent::AddLayer);
                     }
@@ -332,16 +334,15 @@ impl<'a> LayerStack<'a> {
                 Vec2::new(lock_width, row_height),
             );
             let lock_response = ui.allocate_rect(lock_rect, Sense::click());
-            x_offset += lock_width;
-
-            if self.show_thumbnails {
-                x_offset += thumbnail_width;
-            }
+            // x_offset no longer needed after this point
 
             // Blend mode rect
             let blend_rect = if self.show_blend_modes {
                 Some(Rect::from_min_size(
-                    Pos2::new(rect.max.x - opacity_width - blend_width - theme.spacing_xs, rect.min.y),
+                    Pos2::new(
+                        rect.max.x - opacity_width - blend_width - theme.spacing_xs,
+                        rect.min.y,
+                    ),
                     Vec2::new(blend_width, row_height),
                 ))
             } else {
@@ -351,7 +352,10 @@ impl<'a> LayerStack<'a> {
 
             // Opacity rect
             let opacity_rect = Rect::from_min_size(
-                Pos2::new(rect.max.x - opacity_width - theme.spacing_xs, rect.min.y + row_height * 0.3),
+                Pos2::new(
+                    rect.max.x - opacity_width - theme.spacing_xs,
+                    rect.min.y + row_height * 0.3,
+                ),
                 Vec2::new(opacity_width, row_height * 0.4),
             );
             let opacity_response = ui.allocate_rect(opacity_rect, Sense::click_and_drag());
@@ -444,7 +448,11 @@ impl<'a> LayerStack<'a> {
 
             // Visibility icon
             let vis_color = if layer.visible {
-                if info.vis_hovered { theme.primary } else { theme.text_primary }
+                if info.vis_hovered {
+                    theme.primary
+                } else {
+                    theme.text_primary
+                }
             } else {
                 theme.text_muted
             };
@@ -475,7 +483,10 @@ impl<'a> LayerStack<'a> {
             // Thumbnail
             if self.show_thumbnails {
                 let thumb_rect = Rect::from_min_size(
-                    Pos2::new(info.lock_rect.max.x + theme.spacing_xs, info.rect.min.y + theme.spacing_xs),
+                    Pos2::new(
+                        info.lock_rect.max.x + theme.spacing_xs,
+                        info.rect.min.y + theme.spacing_xs,
+                    ),
                     Vec2::splat(row_height - theme.spacing_sm),
                 );
                 let thumb_color = layer.color.unwrap_or(theme.primary).gamma_multiply(0.5);
@@ -496,7 +507,11 @@ impl<'a> LayerStack<'a> {
             };
 
             let name_color = if layer.visible {
-                if is_selected { theme.text_primary } else { theme.text_secondary }
+                if is_selected {
+                    theme.text_primary
+                } else {
+                    theme.text_secondary
+                }
             } else {
                 theme.text_muted
             };
@@ -511,7 +526,11 @@ impl<'a> LayerStack<'a> {
                 Pos2::new(name_x, info.rect.center().y),
                 egui::Align2::LEFT_CENTER,
                 &name_text,
-                egui::FontId::proportional(if self.compact { theme.font_size_xs } else { theme.font_size_sm }),
+                egui::FontId::proportional(if self.compact {
+                    theme.font_size_xs
+                } else {
+                    theme.font_size_sm
+                }),
                 name_color,
             );
 
@@ -618,12 +637,17 @@ impl<'a> LayerStack<'a> {
                     event = Some(LayerEvent::ToggleLock(info.idx));
                 } else if info.blend_clicked {
                     let modes = BlendMode::all();
-                    let current_idx = modes.iter().position(|&m| m == layer.blend_mode).unwrap_or(0);
+                    let current_idx = modes
+                        .iter()
+                        .position(|&m| m == layer.blend_mode)
+                        .unwrap_or(0);
                     let next_idx = (current_idx + 1) % modes.len();
                     event = Some(LayerEvent::SetBlendMode(info.idx, modes[next_idx]));
                 } else if info.opacity_dragged {
                     if let Some(pos) = info.opacity_drag_pos {
-                        let new_opacity = ((pos.x - info.opacity_rect.min.x) / info.opacity_rect.width()).clamp(0.0, 1.0);
+                        let new_opacity = ((pos.x - info.opacity_rect.min.x)
+                            / info.opacity_rect.width())
+                        .clamp(0.0, 1.0);
                         event = Some(LayerEvent::SetOpacity(info.idx, new_opacity));
                     }
                 }

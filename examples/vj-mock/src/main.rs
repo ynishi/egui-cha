@@ -280,7 +280,9 @@ impl Default for Model {
                     clips: vec![
                         ClipCell::new("Intro").with_color(Color32::from_rgb(120, 180, 255)),
                         ClipCell::new("Build").with_color(Color32::from_rgb(180, 255, 120)),
-                        ClipCell::new("Drop").with_color(Color32::from_rgb(255, 100, 100)).with_state(ClipState::Playing),
+                        ClipCell::new("Drop")
+                            .with_color(Color32::from_rgb(255, 100, 100))
+                            .with_state(ClipState::Playing),
                         ClipCell::new("Break").with_color(Color32::from_rgb(255, 180, 100)),
                         ClipCell::new("Outro").with_color(Color32::from_rgb(200, 150, 255)),
                     ],
@@ -310,8 +312,14 @@ impl Default for Model {
             midi_messages: vec![],
 
             patches: vec![
-                Patch { name: "patch-1".into(), author: "Unknown".into() },
-                Patch { name: "patch-1-copy".into(), author: "Unknown".into() },
+                Patch {
+                    name: "patch-1".into(),
+                    author: "Unknown".into(),
+                },
+                Patch {
+                    name: "patch-1-copy".into(),
+                    author: "Unknown".into(),
+                },
             ],
             current_patch: 0,
             lab_view_mode: LabViewMode::Basic,
@@ -341,9 +349,13 @@ impl Default for Model {
             selected_media: Some("1".into()),
 
             layers: vec![
-                Layer::new("Main Output").with_opacity(1.0).with_visible(true),
+                Layer::new("Main Output")
+                    .with_opacity(1.0)
+                    .with_visible(true),
                 Layer::new("Overlay").with_opacity(0.8).with_visible(true),
-                Layer::new("Background").with_opacity(0.5).with_visible(false),
+                Layer::new("Background")
+                    .with_opacity(0.5)
+                    .with_visible(false),
             ],
 
             tint_color: Color32::from_rgb(0, 200, 220),
@@ -354,8 +366,12 @@ impl Default for Model {
                 RouteSource::new("layer1", "Layer 1").with_type(SourceType::Layer),
             ],
             route_outputs: vec![
-                RouteOutput::new("proj", "Projector").with_type(OutputType::Display).with_resolution(1920, 1080),
-                RouteOutput::new("led", "LED Wall").with_type(OutputType::Display).with_resolution(1280, 720),
+                RouteOutput::new("proj", "Projector")
+                    .with_type(OutputType::Display)
+                    .with_resolution(1920, 1080),
+                RouteOutput::new("led", "LED Wall")
+                    .with_type(OutputType::Display)
+                    .with_resolution(1280, 720),
                 RouteOutput::new("ndi", "NDI Out").with_type(OutputType::NDI),
                 RouteOutput::new("rec", "Record").with_type(OutputType::Record),
             ],
@@ -489,7 +505,10 @@ impl App for VjApp {
             }
             Msg::NewPatch => {
                 let name = format!("patch-{}", model.patches.len() + 1);
-                model.patches.push(Patch { name, author: "Unknown".into() });
+                model.patches.push(Patch {
+                    name,
+                    author: "Unknown".into(),
+                });
                 model.current_patch = model.patches.len() - 1;
             }
             Msg::DuplicatePatch => {
@@ -521,63 +540,65 @@ impl App for VjApp {
             Msg::SetLabViewMode(mode) => {
                 model.lab_view_mode = mode;
             }
-            Msg::EffectEvent(event) => {
-                match event {
-                    RackEvent::Toggle(idx) => {
-                        if let Some(e) = model.effects.get_mut(idx) {
-                            e.enabled = !e.enabled;
-                        }
+            Msg::EffectEvent(event) => match event {
+                RackEvent::Toggle(idx) => {
+                    if let Some(e) = model.effects.get_mut(idx) {
+                        e.enabled = !e.enabled;
                     }
-                    RackEvent::Remove(idx) => {
-                        if idx < model.effects.len() {
-                            model.effects.remove(idx);
-                        }
-                    }
-                    _ => {}
                 }
-            }
-            Msg::MediaEvent(event) => {
-                match event {
-                    MediaBrowserEvent::Select(id) => {
-                        model.selected_media = Some(id);
+                RackEvent::Remove(idx) => {
+                    if idx < model.effects.len() {
+                        model.effects.remove(idx);
                     }
-                    _ => {}
                 }
-            }
-            Msg::LayerEvent(event) => {
-                match event {
-                    LayerEvent::ToggleVisible(idx) => {
-                        if let Some(l) = model.layers.get_mut(idx) {
-                            l.visible = !l.visible;
-                        }
-                    }
-                    LayerEvent::SetOpacity(idx, opacity) => {
-                        if let Some(l) = model.layers.get_mut(idx) {
-                            l.opacity = opacity;
-                        }
-                    }
-                    _ => {}
+                _ => {}
+            },
+            Msg::MediaEvent(event) => match event {
+                MediaBrowserEvent::Select(id) => {
+                    model.selected_media = Some(id);
                 }
-            }
+                _ => {}
+            },
+            Msg::LayerEvent(event) => match event {
+                LayerEvent::ToggleVisible(idx) => {
+                    if let Some(l) = model.layers.get_mut(idx) {
+                        l.visible = !l.visible;
+                    }
+                }
+                LayerEvent::SetOpacity(idx, opacity) => {
+                    if let Some(l) = model.layers.get_mut(idx) {
+                        l.opacity = opacity;
+                    }
+                }
+                _ => {}
+            },
             Msg::ColorChange(color) => {
                 model.tint_color = color;
             }
-            Msg::RouterEvent(event) => {
-                match event {
-                    RouterEvent::Connect { source_id, output_id } => {
-                        model.route_connections.push(RouteConnection::new(source_id, output_id));
-                    }
-                    RouterEvent::Disconnect { source_id, output_id } => {
-                        model.route_connections.retain(|c| !(c.source_id == source_id && c.output_id == output_id));
-                    }
-                    RouterEvent::ToggleOutput(id) => {
-                        if let Some(o) = model.route_outputs.iter_mut().find(|o| o.id == id) {
-                            o.enabled = !o.enabled;
-                        }
-                    }
-                    _ => {}
+            Msg::RouterEvent(event) => match event {
+                RouterEvent::Connect {
+                    source_id,
+                    output_id,
+                } => {
+                    model
+                        .route_connections
+                        .push(RouteConnection::new(source_id, output_id));
                 }
-            }
+                RouterEvent::Disconnect {
+                    source_id,
+                    output_id,
+                } => {
+                    model
+                        .route_connections
+                        .retain(|c| !(c.source_id == source_id && c.output_id == output_id));
+                }
+                RouterEvent::ToggleOutput(id) => {
+                    if let Some(o) = model.route_outputs.iter_mut().find(|o| o.id == id) {
+                        o.enabled = !o.enabled;
+                    }
+                }
+                _ => {}
+            },
         }
         Cmd::none()
     }
@@ -618,7 +639,9 @@ impl App for VjApp {
 
 fn render_live_area_ui(model: &Model, ui: &mut egui::Ui, msgs: &mut Vec<Msg>) {
     // Title
-    Text::h1("Live").color(Color32::from_rgb(100, 180, 255)).show(ui);
+    Text::h1("Live")
+        .color(Color32::from_rgb(100, 180, 255))
+        .show(ui);
     ui.separator();
 
     // Transport Row
@@ -647,7 +670,11 @@ fn render_live_area_ui(model: &Model, ui: &mut egui::Ui, msgs: &mut Vec<Msg>) {
         }
 
         // Record button
-        let rec_color = if model.recording { Color32::RED } else { Color32::GRAY };
+        let rec_color = if model.recording {
+            Color32::RED
+        } else {
+            Color32::GRAY
+        };
         Icon::record().size(16.0).color(rec_color).show(ui);
         if Button::ghost("Rec").show(ui) {
             msgs.push(Msg::ToggleRecord);
@@ -710,7 +737,8 @@ fn render_live_area_ui(model: &Model, ui: &mut egui::Ui, msgs: &mut Vec<Msg>) {
     Card::new().show(ui, |ui| {
         ui.horizontal(|ui| {
             ui.label("Playing:");
-            let playing_name = model.current_clip
+            let playing_name = model
+                .current_clip
                 .and_then(|i| model.setups.get(model.current_setup)?.clips.get(i))
                 .map(|c| c.name.as_str())
                 .unwrap_or("--");
@@ -723,7 +751,11 @@ fn render_live_area_ui(model: &Model, ui: &mut egui::Ui, msgs: &mut Vec<Msg>) {
                 Text::caption("(none)").show(ui);
             } else {
                 for &idx in &model.queued_clips {
-                    if let Some(clip) = model.setups.get(model.current_setup).and_then(|s| s.clips.get(idx)) {
+                    if let Some(clip) = model
+                        .setups
+                        .get(model.current_setup)
+                        .and_then(|s| s.clips.get(idx))
+                    {
                         Badge::warning(&clip.name).show(ui);
                     }
                 }
@@ -734,18 +766,33 @@ fn render_live_area_ui(model: &Model, ui: &mut egui::Ui, msgs: &mut Vec<Msg>) {
 
         ui.horizontal(|ui| {
             ui.label("Switch:");
-            if ui.selectable_label(model.switch_mode == SwitchMode::Auto, "Auto").clicked() {
+            if ui
+                .selectable_label(model.switch_mode == SwitchMode::Auto, "Auto")
+                .clicked()
+            {
                 // emit via return
             }
-            if ui.selectable_label(model.switch_mode == SwitchMode::Manual, "Manual").clicked() {
+            if ui
+                .selectable_label(model.switch_mode == SwitchMode::Manual, "Manual")
+                .clicked()
+            {
                 // emit via return
             }
 
             ui.add_space(16.0);
 
             ui.label("Quantize:");
-            for q in [Quantize::Immediate, Quantize::Beat, Quantize::Bar, Quantize::TwoBars, Quantize::FourBars] {
-                if ui.selectable_label(model.quantize == q, q.label()).clicked() {
+            for q in [
+                Quantize::Immediate,
+                Quantize::Beat,
+                Quantize::Bar,
+                Quantize::TwoBars,
+                Quantize::FourBars,
+            ] {
+                if ui
+                    .selectable_label(model.quantize == q, q.label())
+                    .clicked()
+                {
                     // emit via return
                 }
             }
@@ -784,7 +831,11 @@ fn render_live_area_ui(model: &Model, ui: &mut egui::Ui, msgs: &mut Vec<Msg>) {
     ui.add_space(16.0);
 
     // Audio Reactivity Section (Collapsible)
-    let audio_header = if model.audio_section_open { "▼ Audio Reactivity" } else { "▶ Audio Reactivity" };
+    let audio_header = if model.audio_section_open {
+        "▼ Audio Reactivity"
+    } else {
+        "▶ Audio Reactivity"
+    };
     if ui.selectable_label(false, audio_header).clicked() {
         msgs.push(Msg::ToggleAudioSection);
     }
@@ -792,7 +843,10 @@ fn render_live_area_ui(model: &Model, ui: &mut egui::Ui, msgs: &mut Vec<Msg>) {
     if model.audio_section_open {
         ui.indent("audio_section", |ui| {
             ui.label("Waveform");
-            Waveform::new(&model.audio_samples).height(50.0).filled().show(ui);
+            Waveform::new(&model.audio_samples)
+                .height(50.0)
+                .filled()
+                .show(ui);
 
             ui.add_space(8.0);
 
@@ -815,7 +869,11 @@ fn render_live_area_ui(model: &Model, ui: &mut egui::Ui, msgs: &mut Vec<Msg>) {
     ui.add_space(8.0);
 
     // MIDI Section (Collapsible)
-    let midi_header = if model.midi_section_open { "▼ MIDI Status" } else { "▶ MIDI Status" };
+    let midi_header = if model.midi_section_open {
+        "▼ MIDI Status"
+    } else {
+        "▶ MIDI Status"
+    };
     if ui.selectable_label(false, midi_header).clicked() {
         msgs.push(Msg::ToggleMidiSection);
     }
@@ -839,7 +897,9 @@ fn render_live_area_ui(model: &Model, ui: &mut egui::Ui, msgs: &mut Vec<Msg>) {
 
 fn render_lab_area(model: &Model, ui: &mut egui::Ui, msgs: &mut Vec<Msg>) {
     // Title
-    Text::h1("Lab").color(Color32::from_rgb(100, 200, 255)).show(ui);
+    Text::h1("Lab")
+        .color(Color32::from_rgb(100, 200, 255))
+        .show(ui);
     ui.separator();
 
     // Patch Tab Bar
@@ -867,7 +927,11 @@ fn render_lab_area(model: &Model, ui: &mut egui::Ui, msgs: &mut Vec<Msg>) {
 
     ui.horizontal(|ui| {
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            for (mode, label) in [(LabViewMode::Pack, "Pack"), (LabViewMode::Basic, "Basic"), (LabViewMode::Yaml, "YAML")] {
+            for (mode, label) in [
+                (LabViewMode::Pack, "Pack"),
+                (LabViewMode::Basic, "Basic"),
+                (LabViewMode::Yaml, "YAML"),
+            ] {
                 if model.lab_view_mode == mode {
                     Button::primary(label).show(ui);
                 } else if Button::outline(label).show(ui) {
@@ -883,23 +947,26 @@ fn render_lab_area(model: &Model, ui: &mut egui::Ui, msgs: &mut Vec<Msg>) {
     // Patch Edit Card
     if let Some(patch) = model.patches.get(model.current_patch) {
         Card::titled(&format!("Edit: {}", patch.name)).show(ui, |ui| {
-            egui::Grid::new("patch_grid").num_columns(2).spacing([8.0, 4.0]).show(ui, |ui| {
-                Text::body("Name:").show(ui);
-                let mut name = patch.name.clone();
-                Input::new().show(ui, &mut name);
-                if name != patch.name {
-                    msgs.push(Msg::SetPatchName(name));
-                }
-                ui.end_row();
+            egui::Grid::new("patch_grid")
+                .num_columns(2)
+                .spacing([8.0, 4.0])
+                .show(ui, |ui| {
+                    Text::body("Name:").show(ui);
+                    let mut name = patch.name.clone();
+                    Input::new().show(ui, &mut name);
+                    if name != patch.name {
+                        msgs.push(Msg::SetPatchName(name));
+                    }
+                    ui.end_row();
 
-                Text::body("Author:").show(ui);
-                let mut author = patch.author.clone();
-                Input::new().show(ui, &mut author);
-                if author != patch.author {
-                    msgs.push(Msg::SetPatchAuthor(author));
-                }
-                ui.end_row();
-            });
+                    Text::body("Author:").show(ui);
+                    let mut author = patch.author.clone();
+                    Input::new().show(ui, &mut author);
+                    if author != patch.author {
+                        msgs.push(Msg::SetPatchAuthor(author));
+                    }
+                    ui.end_row();
+                });
 
             ui.add_space(8.0);
             ui.horizontal(|ui| {
@@ -953,10 +1020,7 @@ fn render_lab_area(model: &Model, ui: &mut egui::Ui, msgs: &mut Vec<Msg>) {
     Text::h3("Layers").show(ui);
     ui.add_space(4.0);
 
-    if let Some(event) = LayerStack::new(&model.layers)
-        .selected(Some(0))
-        .show(ui)
-    {
+    if let Some(event) = LayerStack::new(&model.layers).selected(Some(0)).show(ui) {
         msgs.push(Msg::LayerEvent(event));
     }
 
@@ -967,11 +1031,7 @@ fn render_lab_area(model: &Model, ui: &mut egui::Ui, msgs: &mut Vec<Msg>) {
     ui.add_space(4.0);
 
     let mut tint = model.tint_color;
-    if ColorWheel::new()
-        .size(120.0)
-        .show(ui, &mut tint)
-        .changed()
-    {
+    if ColorWheel::new().size(120.0).show(ui, &mut tint).changed() {
         msgs.push(Msg::ColorChange(tint));
     }
 
@@ -981,9 +1041,13 @@ fn render_lab_area(model: &Model, ui: &mut egui::Ui, msgs: &mut Vec<Msg>) {
     Text::h3("Output Router").show(ui);
     ui.add_space(8.0);
 
-    if let Some(event) = OutputRouter::new(&model.route_sources, &model.route_outputs, &model.route_connections)
-        .size(380.0, 200.0)
-        .show(ui)
+    if let Some(event) = OutputRouter::new(
+        &model.route_sources,
+        &model.route_outputs,
+        &model.route_connections,
+    )
+    .size(380.0, 200.0)
+    .show(ui)
     {
         msgs.push(Msg::RouterEvent(event));
     }

@@ -178,16 +178,18 @@ impl<'a> ChannelStrip<'a> {
         let meter_width = if self.show_meter { 8.0 } else { 0.0 };
         let spacing = theme.spacing_xs;
 
-        let total_height = label_height + spacing
-            + button_height * 2.0 + spacing * 2.0
-            + pan_height + spacing
-            + fader_height + spacing
+        let total_height = label_height
+            + spacing
+            + button_height * 2.0
+            + spacing * 2.0
+            + pan_height
+            + spacing
+            + fader_height
+            + spacing
             + label_height; // bottom label
 
-        let (rect, response) = ui.allocate_exact_size(
-            Vec2::new(self.width, total_height),
-            Sense::click(),
-        );
+        let (rect, response) =
+            ui.allocate_exact_size(Vec2::new(self.width, total_height), Sense::click());
 
         if !ui.is_rect_visible(rect) {
             return None;
@@ -242,10 +244,8 @@ impl<'a> ChannelStrip<'a> {
         };
 
         let fader_width = fader_area_rect.width() - meter_total_width - 4.0;
-        let fader_rect = Rect::from_min_size(
-            fader_area_rect.min,
-            Vec2::new(fader_width, fader_height),
-        );
+        let fader_rect =
+            Rect::from_min_size(fader_area_rect.min, Vec2::new(fader_width, fader_height));
 
         y += fader_height + spacing;
         let vol_label_y = y;
@@ -298,10 +298,7 @@ impl<'a> ChannelStrip<'a> {
         painter.rect_filled(rect, theme.radius_sm, bg_color);
 
         // Top label with color indicator
-        let color_bar = Rect::from_min_size(
-            label_rect.min,
-            Vec2::new(self.width, 3.0),
-        );
+        let color_bar = Rect::from_min_size(label_rect.min, Vec2::new(self.width, 3.0));
         painter.rect_filled(color_bar, theme.radius_sm, channel_color);
 
         painter.text(
@@ -326,7 +323,11 @@ impl<'a> ChannelStrip<'a> {
             egui::Align2::CENTER_CENTER,
             "M",
             egui::FontId::proportional(theme.font_size_xs),
-            if self.muted { Color32::WHITE } else { theme.text_secondary },
+            if self.muted {
+                Color32::WHITE
+            } else {
+                theme.text_secondary
+            },
         );
 
         // Solo button
@@ -343,7 +344,11 @@ impl<'a> ChannelStrip<'a> {
             egui::Align2::CENTER_CENTER,
             "S",
             egui::FontId::proportional(theme.font_size_xs),
-            if self.soloed { Color32::BLACK } else { theme.text_secondary },
+            if self.soloed {
+                Color32::BLACK
+            } else {
+                theme.text_secondary
+            },
         );
 
         // Pan control
@@ -366,11 +371,7 @@ impl<'a> ChannelStrip<'a> {
             );
 
             // Pan position indicator
-            painter.circle_filled(
-                egui::pos2(pan_x, pan_rect.center().y),
-                6.0,
-                channel_color,
-            );
+            painter.circle_filled(egui::pos2(pan_x, pan_rect.center().y), 6.0, channel_color);
 
             // L/R labels
             painter.text(
@@ -481,7 +482,14 @@ impl<'a> ChannelStrip<'a> {
         painter.rect_stroke(
             rect,
             theme.radius_sm,
-            Stroke::new(if self.selected { 2.0 } else { theme.border_width }, border_color),
+            Stroke::new(
+                if self.selected {
+                    2.0
+                } else {
+                    theme.border_width
+                },
+                border_color,
+            ),
             egui::StrokeKind::Inside,
         );
 
@@ -494,10 +502,8 @@ impl<'a> ChannelStrip<'a> {
 
         // Level fill with gradient colors
         let fill_height = rect.height() * level;
-        let fill_rect = Rect::from_min_max(
-            egui::pos2(rect.min.x, rect.max.y - fill_height),
-            rect.max,
-        );
+        let fill_rect =
+            Rect::from_min_max(egui::pos2(rect.min.x, rect.max.y - fill_height), rect.max);
 
         // Color based on level
         let color = if level > 0.95 {

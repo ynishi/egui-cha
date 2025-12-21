@@ -6,23 +6,19 @@ use egui_cha::prelude::*;
 use egui_cha_ds::prelude::*;
 #[cfg(feature = "dock")]
 use egui_cha_ds::{dock_layout, DockArea, DockEvent, DockTree};
+use egui_cha_ds::{ConfirmResult, ToastContainer, ToastId};
 #[cfg(feature = "snarl")]
 use egui_cha_ds::{
-    NodeGraph, NodeGraphArea, NodeGraphEvent,
-    NodeId, InPin, OutPin, PinInfo, Snarl, SnarlViewer,
-    NodeLayout, NodeLayoutArea, LayoutPane,
+    InPin, LayoutPane, NodeGraph, NodeGraphArea, NodeGraphEvent, NodeId, NodeLayout,
+    NodeLayoutArea, OutPin, PinInfo, Snarl, SnarlViewer,
 };
-use egui_cha_ds::{ConfirmResult, ToastContainer, ToastId};
 use std::cell::RefCell;
 use std::time::Duration;
 
 fn main() -> eframe::Result<()> {
     tracing_subscriber::fmt::init();
 
-    egui_cha::run::<StorybookApp>(
-        RunConfig::new("DS Storybook")
-            .with_size(1200.0, 800.0),
-    )
+    egui_cha::run::<StorybookApp>(RunConfig::new("DS Storybook").with_size(1200.0, 800.0))
 }
 
 struct StorybookApp;
@@ -68,7 +64,7 @@ struct Model {
 
     // Theme
     theme: Theme,
-    theme_index: usize,  // 0: Light, 1: Dark, 2: Pastel, 3: Pastel Dark
+    theme_index: usize, // 0: Light, 1: Dark, 2: Pastel, 3: Pastel Dark
 
     // Theme scale settings
     spacing_scale: f32,
@@ -493,15 +489,15 @@ enum Msg {
 }
 
 const CATEGORIES: &[&str] = &[
-    "Core",       // 0: Basic UI atoms
-    "Audio",      // 1: Audio visualization
-    "MIDI",       // 2: MIDI components
-    "Mixer",      // 3: Mixing & effects
-    "Visual",     // 4: Visual editing
-    "Semantics",  // 5
-    "Molecules",  // 6
-    "Framework",  // 7
-    "Theme",      // 8
+    "Core",      // 0: Basic UI atoms
+    "Audio",     // 1: Audio visualization
+    "MIDI",      // 2: MIDI components
+    "Mixer",     // 3: Mixing & effects
+    "Visual",    // 4: Visual editing
+    "Semantics", // 5
+    "Molecules", // 6
+    "Framework", // 7
+    "Theme",     // 8
 ];
 
 // Core atoms - Basic UI components (always available)
@@ -541,12 +537,7 @@ const AUDIO_ATOMS: &[&str] = &[
 ];
 
 // MIDI atoms - MIDI input & editing
-const MIDI_ATOMS: &[&str] = &[
-    "MidiKeyboard",
-    "MidiMonitor",
-    "MidiMapper",
-    "PianoRoll",
-];
+const MIDI_ATOMS: &[&str] = &["MidiKeyboard", "MidiMonitor", "MidiMapper", "PianoRoll"];
 
 // Mixer atoms - Audio mixing & effects
 const MIXER_ATOMS: &[&str] = &[
@@ -615,11 +606,7 @@ const FRAMEWORK: &[&str] = &[
     "RepaintMode",
 ];
 
-const THEME_ITEMS: &[&str] = &[
-    "Scale Controls",
-    "Shadow & Overlay",
-    "Preview",
-];
+const THEME_ITEMS: &[&str] = &["Scale Controls", "Shadow & Overlay", "Preview"];
 
 /// Rebuild theme from model settings
 fn rebuild_theme(model: &mut Model) {
@@ -654,9 +641,18 @@ impl App for StorybookApp {
     fn init() -> (Model, Cmd<Msg>) {
         // Set up default bindings for the demo
         let bindings = ActionBindings::new()
-            .with_default(DemoAction::Increment, DynamicShortcut::new(Modifiers::NONE, Key::ArrowUp))
-            .with_default(DemoAction::Decrement, DynamicShortcut::new(Modifiers::NONE, Key::ArrowDown))
-            .with_default(DemoAction::Reset, DynamicShortcut::new(Modifiers::NONE, Key::Escape))
+            .with_default(
+                DemoAction::Increment,
+                DynamicShortcut::new(Modifiers::NONE, Key::ArrowUp),
+            )
+            .with_default(
+                DemoAction::Decrement,
+                DynamicShortcut::new(Modifiers::NONE, Key::ArrowDown),
+            )
+            .with_default(
+                DemoAction::Reset,
+                DynamicShortcut::new(Modifiers::NONE, Key::Escape),
+            )
             .with_default(DemoAction::Save, shortcuts::SAVE);
 
         (
@@ -697,17 +693,37 @@ impl App for StorybookApp {
                 #[cfg(feature = "snarl")]
                 node_graph: RefCell::new({
                     let mut graph = NodeGraph::new();
-                    let source = graph.insert(egui::pos2(50.0, 100.0), DemoNode::Source { name: "Audio".into() });
-                    let effect = graph.insert(egui::pos2(250.0, 100.0), DemoNode::Effect { intensity: 0.5 });
+                    let source = graph.insert(
+                        egui::pos2(50.0, 100.0),
+                        DemoNode::Source {
+                            name: "Audio".into(),
+                        },
+                    );
+                    let effect = graph.insert(
+                        egui::pos2(250.0, 100.0),
+                        DemoNode::Effect { intensity: 0.5 },
+                    );
                     let output = graph.insert(egui::pos2(450.0, 100.0), DemoNode::Output);
                     // Connect source -> effect -> output
                     graph.connect(
-                        egui_cha_ds::OutPinId { node: source, output: 0 },
-                        egui_cha_ds::InPinId { node: effect, input: 0 },
+                        egui_cha_ds::OutPinId {
+                            node: source,
+                            output: 0,
+                        },
+                        egui_cha_ds::InPinId {
+                            node: effect,
+                            input: 0,
+                        },
                     );
                     graph.connect(
-                        egui_cha_ds::OutPinId { node: effect, output: 0 },
-                        egui_cha_ds::InPinId { node: output, input: 0 },
+                        egui_cha_ds::OutPinId {
+                            node: effect,
+                            output: 0,
+                        },
+                        egui_cha_ds::InPinId {
+                            node: output,
+                            input: 0,
+                        },
                     );
                     graph
                 }),
@@ -976,7 +992,9 @@ impl App for StorybookApp {
             // Debouncer
             Msg::DebounceInput(text) => {
                 model.debounce_input = text;
-                return model.debouncer.trigger(Duration::from_millis(500), Msg::DebounceSearch);
+                return model
+                    .debouncer
+                    .trigger(Duration::from_millis(500), Msg::DebounceSearch);
             }
             Msg::DebounceSearch => {
                 if model.debouncer.should_fire() {
@@ -987,9 +1005,9 @@ impl App for StorybookApp {
             // Throttler
             Msg::ThrottleClick => {
                 model.throttle_click_count += 1;
-                return model.throttler.run(Duration::from_millis(500), || {
-                    Cmd::msg(Msg::ThrottleActual)
-                });
+                return model
+                    .throttler
+                    .run(Duration::from_millis(500), || Cmd::msg(Msg::ThrottleActual));
             }
             Msg::ThrottleActual => {
                 model.throttle_actual_count += 1;
@@ -1013,16 +1031,32 @@ impl App for StorybookApp {
 
             // Toast demo
             Msg::ShowToastInfo => {
-                return model.toasts.info("This is an info message", Duration::from_secs(3), Msg::DismissToast);
+                return model.toasts.info(
+                    "This is an info message",
+                    Duration::from_secs(3),
+                    Msg::DismissToast,
+                );
             }
             Msg::ShowToastSuccess => {
-                return model.toasts.success("Operation completed successfully!", Duration::from_secs(3), Msg::DismissToast);
+                return model.toasts.success(
+                    "Operation completed successfully!",
+                    Duration::from_secs(3),
+                    Msg::DismissToast,
+                );
             }
             Msg::ShowToastWarning => {
-                return model.toasts.warning("Please check your input", Duration::from_secs(3), Msg::DismissToast);
+                return model.toasts.warning(
+                    "Please check your input",
+                    Duration::from_secs(3),
+                    Msg::DismissToast,
+                );
             }
             Msg::ShowToastError => {
-                return model.toasts.error("Something went wrong", Duration::from_secs(5), Msg::DismissToast);
+                return model.toasts.error(
+                    "Something went wrong",
+                    Duration::from_secs(5),
+                    Msg::DismissToast,
+                );
             }
             Msg::DismissToast(id) => {
                 model.toasts.dismiss(id);
@@ -1031,7 +1065,11 @@ impl App for StorybookApp {
             // Form demo
             Msg::FormSubmit => {
                 model.form_submitted = true;
-                return model.toasts.success("Form submitted!", Duration::from_secs(3), Msg::DismissToast);
+                return model.toasts.success(
+                    "Form submitted!",
+                    Duration::from_secs(3),
+                    Msg::DismissToast,
+                );
             }
 
             // Drag & Drop
@@ -1064,25 +1102,23 @@ impl App for StorybookApp {
             }
 
             // Dynamic bindings
-            Msg::BindingsAction(action) => {
-                match action {
-                    DemoAction::Increment => {
-                        model.bindings_counter += 1;
-                        model.bindings_last_action = Some("Increment");
-                    }
-                    DemoAction::Decrement => {
-                        model.bindings_counter -= 1;
-                        model.bindings_last_action = Some("Decrement");
-                    }
-                    DemoAction::Reset => {
-                        model.bindings_counter = 0;
-                        model.bindings_last_action = Some("Reset");
-                    }
-                    DemoAction::Save => {
-                        model.bindings_last_action = Some("Save");
-                    }
+            Msg::BindingsAction(action) => match action {
+                DemoAction::Increment => {
+                    model.bindings_counter += 1;
+                    model.bindings_last_action = Some("Increment");
                 }
-            }
+                DemoAction::Decrement => {
+                    model.bindings_counter -= 1;
+                    model.bindings_last_action = Some("Decrement");
+                }
+                DemoAction::Reset => {
+                    model.bindings_counter = 0;
+                    model.bindings_last_action = Some("Reset");
+                }
+                DemoAction::Save => {
+                    model.bindings_last_action = Some("Save");
+                }
+            },
             Msg::BindingsRebind(action, shortcut) => {
                 model.bindings.rebind(&action, shortcut);
             }
@@ -1129,7 +1165,10 @@ impl App for StorybookApp {
                     DockEvent::TabClosed(_tab) => {
                         // Tab was closed - could add it back or handle
                     }
-                    DockEvent::AddClicked { surface: _, node: _ } => {
+                    DockEvent::AddClicked {
+                        surface: _,
+                        node: _,
+                    } => {
                         // Add button clicked - could add a new tab
                         model.dock.borrow_mut().push(DemoPane::Console);
                     }
@@ -1157,7 +1196,6 @@ impl App for StorybookApp {
             }
 
             // === VJ/DAW Demo Messages ===
-
             Msg::KeyboardNoteOn(note, velocity) => {
                 model.keyboard_notes.push(ActiveNote::new(note, velocity));
             }
@@ -1251,7 +1289,11 @@ impl App for StorybookApp {
                 ctx.ui.add_space(4.0);
 
                 // Category selection
-                Menu::new(CATEGORIES).compact().show_with(ctx, model.active_category, Msg::SetCategory);
+                Menu::new(CATEGORIES).compact().show_with(
+                    ctx,
+                    model.active_category,
+                    Msg::SetCategory,
+                );
 
                 ctx.ui.add_space(8.0);
                 ctx.ui.separator();
@@ -1270,43 +1312,45 @@ impl App for StorybookApp {
                     7 => FRAMEWORK,
                     _ => THEME_ITEMS,
                 };
-                Menu::new(components).compact().show_with(ctx, model.active_component, Msg::SetComponent);
+                Menu::new(components).compact().show_with(
+                    ctx,
+                    model.active_component,
+                    Msg::SetComponent,
+                );
             },
             // Main: Component preview
             |ctx| {
                 ctx.ui.heading("Preview");
                 ctx.ui.separator();
 
-                Card::new().show_ctx(ctx, |ctx| {
-                    match model.active_category {
-                        0 => render_core_atom(model, ctx),
-                        1 => render_audio_atom(model, ctx),
-                        2 => render_midi_atom(model, ctx),
-                        3 => render_mixer_atom(model, ctx),
-                        4 => render_visual_atom(model, ctx),
-                        5 => render_semantics(model, ctx),
-                        6 => render_molecule(model, ctx),
-                        7 => render_framework(model, ctx),
-                        _ => render_theme(model, ctx),
-                    }
+                Card::new().show_ctx(ctx, |ctx| match model.active_category {
+                    0 => render_core_atom(model, ctx),
+                    1 => render_audio_atom(model, ctx),
+                    2 => render_midi_atom(model, ctx),
+                    3 => render_mixer_atom(model, ctx),
+                    4 => render_visual_atom(model, ctx),
+                    5 => render_semantics(model, ctx),
+                    6 => render_molecule(model, ctx),
+                    7 => render_framework(model, ctx),
+                    _ => render_theme(model, ctx),
                 });
 
                 // Modals (inside main panel)
                 if model.show_modal {
-                    let close = Modal::titled("Demo Modal")
-                        .show(ctx.ui, true, |ui| {
-                            ui.label("This is a modal dialog.");
-                            ui.label("You can put any content here.");
-                            ui.label("Click the X button or backdrop to close.");
-                        });
+                    let close = Modal::titled("Demo Modal").show(ctx.ui, true, |ui| {
+                        ui.label("This is a modal dialog.");
+                        ui.label("You can put any content here.");
+                        ui.label("Click the X button or backdrop to close.");
+                    });
                     if close {
                         ctx.emit(Msg::CloseModal);
                     }
                 }
 
                 if model.show_confirm {
-                    let result = ConfirmDialog::new("Confirm Action", "Are you sure you want to proceed?")
-                        .show(ctx.ui, true);
+                    let result =
+                        ConfirmDialog::new("Confirm Action", "Are you sure you want to proceed?")
+                            .show(ctx.ui, true);
                     match result {
                         ConfirmResult::Confirmed => ctx.emit(Msg::ConfirmResult(true)),
                         ConfirmResult::Cancelled => ctx.emit(Msg::ConfirmResult(false)),
@@ -1336,7 +1380,8 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             });
 
             ctx.ui.add_space(8.0);
-            ctx.ui.label(format!("Clicked: {} times", model.button_clicks));
+            ctx.ui
+                .label(format!("Clicked: {} times", model.button_clicks));
         }
 
         "Badge" => {
@@ -1386,9 +1431,11 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.label("Text input field");
             ctx.ui.add_space(8.0);
 
-            Input::new()
-                .placeholder("Type something...")
-                .show_with(ctx, &model.input_value, Msg::InputChanged);
+            Input::new().placeholder("Type something...").show_with(
+                ctx,
+                &model.input_value,
+                Msg::InputChanged,
+            );
 
             ctx.ui.add_space(8.0);
             ctx.ui.label(format!("Value: {}", model.input_value));
@@ -1455,8 +1502,7 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.label("Numeric range input");
             ctx.ui.add_space(8.0);
 
-            Slider::new(0.0_f64..=100.0_f64)
-                .show_with(ctx, model.slider_value, Msg::SliderChanged);
+            Slider::new(0.0_f64..=100.0_f64).show_with(ctx, model.slider_value, Msg::SliderChanged);
 
             ctx.ui.add_space(8.0);
             ctx.ui.label(format!("Value: {:.1}", model.slider_value));
@@ -1470,18 +1516,21 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             // Row of knobs with different sizes
             ctx.horizontal(|ctx| {
                 ctx.vertical(|ctx| {
-                    Knob::new(0.0..=100.0)
-                        .compact()
-                        .label("Compact")
-                        .show_with(ctx, model.knob_value, Msg::KnobChanged);
+                    Knob::new(0.0..=100.0).compact().label("Compact").show_with(
+                        ctx,
+                        model.knob_value,
+                        Msg::KnobChanged,
+                    );
                 });
 
                 ctx.ui.add_space(16.0);
 
                 ctx.vertical(|ctx| {
-                    Knob::new(0.0..=1.0)
-                        .label("Medium")
-                        .show_with(ctx, model.knob_value2, Msg::Knob2Changed);
+                    Knob::new(0.0..=1.0).label("Medium").show_with(
+                        ctx,
+                        model.knob_value2,
+                        Msg::Knob2Changed,
+                    );
                 });
 
                 ctx.ui.add_space(16.0);
@@ -1500,9 +1549,12 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
             // Usage example
             ctx.ui.label("Usage:");
-            Code::new(r#"Knob::new(0.0..=100.0)
+            Code::new(
+                r#"Knob::new(0.0..=100.0)
     .label("Volume")
-    .show_with(ctx, model.volume, Msg::SetVolume);"#).show(ctx.ui);
+    .show_with(ctx, model.volume, Msg::SetVolume);"#,
+            )
+            .show(ctx.ui);
 
             ctx.ui.add_space(8.0);
             ctx.ui.label("Features:");
@@ -1519,27 +1571,31 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             // Row of faders (mixer style)
             ctx.horizontal(|ctx| {
                 ctx.vertical(|ctx| {
-                    Fader::new(0.0..=1.0)
-                        .compact()
-                        .label("CH1")
-                        .show_with(ctx, model.fader_value, Msg::FaderChanged);
+                    Fader::new(0.0..=1.0).compact().label("CH1").show_with(
+                        ctx,
+                        model.fader_value,
+                        Msg::FaderChanged,
+                    );
                 });
 
                 ctx.ui.add_space(8.0);
 
                 ctx.vertical(|ctx| {
-                    Fader::new(0.0..=1.0)
-                        .compact()
-                        .label("CH2")
-                        .show_with(ctx, model.fader_value2, Msg::Fader2Changed);
+                    Fader::new(0.0..=1.0).compact().label("CH2").show_with(
+                        ctx,
+                        model.fader_value2,
+                        Msg::Fader2Changed,
+                    );
                 });
 
                 ctx.ui.add_space(8.0);
 
                 ctx.vertical(|ctx| {
-                    Fader::new(0.0..=1.0)
-                        .label("CH3")
-                        .show_with(ctx, model.fader_value3, Msg::Fader3Changed);
+                    Fader::new(0.0..=1.0).label("CH3").show_with(
+                        ctx,
+                        model.fader_value3,
+                        Msg::Fader3Changed,
+                    );
                 });
 
                 ctx.ui.add_space(16.0);
@@ -1558,10 +1614,13 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.add_space(8.0);
 
             ctx.ui.label("Usage:");
-            Code::new(r#"Fader::new(-60.0..=6.0)
+            Code::new(
+                r#"Fader::new(-60.0..=6.0)
     .label("Master")
     .db_scale(true)
-    .show_with(ctx, model.master, Msg::SetMaster);"#).show(ctx.ui);
+    .show_with(ctx, model.master, Msg::SetMaster);"#,
+            )
+            .show(ctx.ui);
 
             ctx.ui.add_space(8.0);
             ctx.ui.label("Features:");
@@ -1572,16 +1631,19 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
         "XYPad" => {
             ctx.ui.heading("XYPad");
-            ctx.ui.label("2D touch pad for X/Y parameter control (Kaoss Pad style)");
+            ctx.ui
+                .label("2D touch pad for X/Y parameter control (Kaoss Pad style)");
             ctx.ui.add_space(16.0);
 
             ctx.horizontal(|ctx| {
                 // Basic XY pad
                 ctx.vertical(|ctx| {
                     ctx.ui.label("Basic:");
-                    XYPad::new()
-                        .size(150.0, 150.0)
-                        .show_with(ctx, model.xypad_value, Msg::XYPadChanged);
+                    XYPad::new().size(150.0, 150.0).show_with(
+                        ctx,
+                        model.xypad_value,
+                        Msg::XYPadChanged,
+                    );
                 });
 
                 ctx.ui.add_space(24.0);
@@ -1603,11 +1665,14 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.add_space(8.0);
 
             ctx.ui.label("Usage:");
-            Code::new(r#"XYPad::new()
+            Code::new(
+                r#"XYPad::new()
     .grid(true)
     .label_x("Cutoff")
     .label_y("Resonance")
-    .show_with(ctx, model.filter, Msg::SetFilter);"#).show(ctx.ui);
+    .show_with(ctx, model.filter, Msg::SetFilter);"#,
+            )
+            .show(ctx.ui);
 
             ctx.ui.add_space(8.0);
             ctx.ui.label("Features:");
@@ -1622,16 +1687,27 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.label("Dropdown select component");
             ctx.ui.add_space(16.0);
 
-            let options = [(0, "Option A"), (1, "Option B"), (2, "Option C"), (3, "Option D")];
-            Select::new(&options).show_with(ctx, Some(&model.select_value), |idx| Msg::SelectChanged(idx));
+            let options = [
+                (0, "Option A"),
+                (1, "Option B"),
+                (2, "Option C"),
+                (3, "Option D"),
+            ];
+            Select::new(&options).show_with(ctx, Some(&model.select_value), |idx| {
+                Msg::SelectChanged(idx)
+            });
 
             ctx.ui.add_space(8.0);
-            ctx.ui.label(format!("Selected: Option {}", ["A", "B", "C", "D"][model.select_value]));
+            ctx.ui.label(format!(
+                "Selected: Option {}",
+                ["A", "B", "C", "D"][model.select_value]
+            ));
         }
 
         "ArcSlider" => {
             ctx.ui.heading("ArcSlider");
-            ctx.ui.label("Modern arc-shaped slider for synthesizer-style controls");
+            ctx.ui
+                .label("Modern arc-shaped slider for synthesizer-style controls");
             ctx.ui.add_space(16.0);
 
             ctx.horizontal(|ctx| {
@@ -1649,10 +1725,11 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
                 // Small size
                 ctx.vertical(|ctx| {
                     ctx.ui.label("Small:");
-                    ArcSlider::new(0.0..=1.0)
-                        .small()
-                        .label("Pan")
-                        .show_with(ctx, model.arc_value2, Msg::Arc2Changed);
+                    ArcSlider::new(0.0..=1.0).small().label("Pan").show_with(
+                        ctx,
+                        model.arc_value2,
+                        Msg::Arc2Changed,
+                    );
                 });
 
                 ctx.ui.add_space(24.0);
@@ -1674,10 +1751,13 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.add_space(8.0);
 
             ctx.ui.label("Usage:");
-            Code::new(r#"ArcSlider::new(0.0..=100.0)
+            Code::new(
+                r#"ArcSlider::new(0.0..=100.0)
     .label("Mix")
     .suffix("%")
-    .show_with(ctx, model.mix, Msg::SetMix);"#).show(ctx.ui);
+    .show_with(ctx, model.mix, Msg::SetMix);"#,
+            )
+            .show(ctx.ui);
 
             ctx.ui.add_space(8.0);
             ctx.ui.label("Features:");
@@ -1690,22 +1770,29 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
         "ButtonGroup" => {
             ctx.ui.heading("ButtonGroup");
-            ctx.ui.label("Radio-style button group with normalized 0.0-1.0 output");
+            ctx.ui
+                .label("Radio-style button group with normalized 0.0-1.0 output");
             ctx.ui.add_space(16.0);
 
             // Wave type selector
-            ctx.ui.label("Wave type (4 options → 0.0, 0.33, 0.67, 1.0):");
-            ButtonGroup::new(&["Sin", "Saw", "Sqr", "Tri"])
-                .show_with(ctx, model.group_value, Msg::GroupChanged);
+            ctx.ui
+                .label("Wave type (4 options → 0.0, 0.33, 0.67, 1.0):");
+            ButtonGroup::new(&["Sin", "Saw", "Sqr", "Tri"]).show_with(
+                ctx,
+                model.group_value,
+                Msg::GroupChanged,
+            );
             ctx.ui.label(format!("Value: {:.2}", model.group_value));
 
             ctx.ui.add_space(12.0);
 
             // Pan mode (3 options)
             ctx.ui.label("Pan mode (3 options → 0.0, 0.5, 1.0):");
-            ButtonGroup::new(&["L", "C", "R"])
-                .compact()
-                .show_with(ctx, model.group_value2, Msg::Group2Changed);
+            ButtonGroup::new(&["L", "C", "R"]).compact().show_with(
+                ctx,
+                model.group_value2,
+                Msg::Group2Changed,
+            );
             ctx.ui.label(format!("Value: {:.2}", model.group_value2));
 
             ctx.ui.add_space(12.0);
@@ -1732,13 +1819,16 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.add_space(8.0);
 
             ctx.ui.label("Usage:");
-            Code::new(r#"ButtonGroup::new(&["Sin", "Saw", "Sqr", "Tri"])
+            Code::new(
+                r#"ButtonGroup::new(&["Sin", "Saw", "Sqr", "Tri"])
     .show_with(ctx, model.wave_type, Msg::SetWaveType);
 
 // Value mapping:
 // 4 buttons → 0.0, 0.33, 0.67, 1.0
 // 3 buttons → 0.0, 0.5, 1.0
-// 2 buttons → 0.0, 1.0"#).show(ctx.ui);
+// 2 buttons → 0.0, 1.0"#,
+            )
+            .show(ctx.ui);
 
             ctx.ui.add_space(8.0);
             ctx.ui.label("Features:");
@@ -1814,8 +1904,12 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             let theme = Theme::current(ctx.ui.ctx());
             ctx.horizontal(|ctx| {
                 Text::body("Primary").color(theme.primary).show(ctx.ui);
-                Text::body("Success").color(theme.state_success).show(ctx.ui);
-                Text::body("Warning").color(theme.state_warning).show(ctx.ui);
+                Text::body("Success")
+                    .color(theme.state_success)
+                    .show(ctx.ui);
+                Text::body("Warning")
+                    .color(theme.state_warning)
+                    .show(ctx.ui);
                 Text::body("Danger").color(theme.state_danger).show(ctx.ui);
             });
 
@@ -1825,13 +1919,20 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
             ctx.ui.strong("Typography Tokens (from Theme):");
             ctx.ui.add_space(4.0);
-            ctx.ui.label(format!("font_size_xs: {}px", theme.font_size_xs));
-            ctx.ui.label(format!("font_size_sm: {}px", theme.font_size_sm));
-            ctx.ui.label(format!("font_size_md: {}px", theme.font_size_md));
-            ctx.ui.label(format!("font_size_lg: {}px", theme.font_size_lg));
-            ctx.ui.label(format!("font_size_xl: {}px", theme.font_size_xl));
-            ctx.ui.label(format!("font_size_2xl: {}px", theme.font_size_2xl));
-            ctx.ui.label(format!("font_size_3xl: {}px", theme.font_size_3xl));
+            ctx.ui
+                .label(format!("font_size_xs: {}px", theme.font_size_xs));
+            ctx.ui
+                .label(format!("font_size_sm: {}px", theme.font_size_sm));
+            ctx.ui
+                .label(format!("font_size_md: {}px", theme.font_size_md));
+            ctx.ui
+                .label(format!("font_size_lg: {}px", theme.font_size_lg));
+            ctx.ui
+                .label(format!("font_size_xl: {}px", theme.font_size_xl));
+            ctx.ui
+                .label(format!("font_size_2xl: {}px", theme.font_size_2xl));
+            ctx.ui
+                .label(format!("font_size_3xl: {}px", theme.font_size_3xl));
         }
 
         "Tooltip" => {
@@ -1851,9 +1952,15 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.add_space(8.0);
 
             ctx.horizontal(|ctx| {
-                ctx.ui.add(Button::primary("Save")).with_tooltip("Save current document");
-                ctx.ui.add(Button::secondary("Edit")).with_tooltip("Edit selected item");
-                ctx.ui.add(Button::danger("Delete")).with_tooltip("Delete permanently");
+                ctx.ui
+                    .add(Button::primary("Save"))
+                    .with_tooltip("Save current document");
+                ctx.ui
+                    .add(Button::secondary("Edit"))
+                    .with_tooltip("Edit selected item");
+                ctx.ui
+                    .add(Button::danger("Delete"))
+                    .with_tooltip("Delete permanently");
             });
 
             ctx.ui.add_space(16.0);
@@ -1862,10 +1969,22 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.add_space(8.0);
 
             ctx.horizontal(|ctx| {
-                Icon::house().size(24.0).show(ctx.ui).with_tooltip("Go to Home");
-                Icon::gear().size(24.0).show(ctx.ui).with_tooltip("Open Settings");
-                Icon::user().size(24.0).show(ctx.ui).with_tooltip("View Profile");
-                Icon::info().size(24.0).show(ctx.ui).with_tooltip("More Information");
+                Icon::house()
+                    .size(24.0)
+                    .show(ctx.ui)
+                    .with_tooltip("Go to Home");
+                Icon::gear()
+                    .size(24.0)
+                    .show(ctx.ui)
+                    .with_tooltip("Open Settings");
+                Icon::user()
+                    .size(24.0)
+                    .show(ctx.ui)
+                    .with_tooltip("View Profile");
+                Icon::info()
+                    .size(24.0)
+                    .show(ctx.ui)
+                    .with_tooltip("More Information");
             });
 
             ctx.ui.add_space(16.0);
@@ -1874,8 +1993,12 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.add_space(8.0);
 
             ctx.horizontal(|ctx| {
-                ctx.ui.button("Native Button").with_tooltip("This works too!");
-                ctx.ui.label("Hover label").with_tooltip("Labels can have tooltips");
+                ctx.ui
+                    .button("Native Button")
+                    .with_tooltip("This works too!");
+                ctx.ui
+                    .label("Hover label")
+                    .with_tooltip("Labels can have tooltips");
             });
         }
 
@@ -1896,13 +2019,17 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.add_space(8.0);
 
             ctx.horizontal(|ctx| {
-                ctx.ui.add(Button::primary("Right click me"))
-                    .with_context_menu(ctx, [
-                        ContextMenuItem::new("Edit", Msg::ContextMenuEdit),
-                        ContextMenuItem::new("Copy", Msg::ContextMenuCopy),
-                        ContextMenuItem::separator(),
-                        ContextMenuItem::danger("Delete", Msg::ContextMenuDelete),
-                    ]);
+                ctx.ui
+                    .add(Button::primary("Right click me"))
+                    .with_context_menu(
+                        ctx,
+                        [
+                            ContextMenuItem::new("Edit", Msg::ContextMenuEdit),
+                            ContextMenuItem::new("Copy", Msg::ContextMenuCopy),
+                            ContextMenuItem::separator(),
+                            ContextMenuItem::danger("Delete", Msg::ContextMenuDelete),
+                        ],
+                    );
             });
 
             ctx.ui.add_space(16.0);
@@ -1910,10 +2037,10 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.strong("With Label:");
             ctx.ui.add_space(8.0);
 
-            ctx.ui.label("Right click this text")
-                .with_context_menu(ctx, [
-                    ContextMenuItem::new("Copy text", Msg::ContextMenuCopy),
-                ]);
+            ctx.ui.label("Right click this text").with_context_menu(
+                ctx,
+                [ContextMenuItem::new("Copy text", Msg::ContextMenuCopy)],
+            );
 
             ctx.ui.add_space(16.0);
 
@@ -1921,12 +2048,14 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.add_space(8.0);
 
             ctx.horizontal(|ctx| {
-                Icon::gear().size(32.0).show(ctx.ui)
-                    .with_context_menu(ctx, [
+                Icon::gear().size(32.0).show(ctx.ui).with_context_menu(
+                    ctx,
+                    [
                         ContextMenuItem::new("Settings", Msg::ContextMenuEdit),
                         ContextMenuItem::separator(),
                         ContextMenuItem::danger("Reset", Msg::ContextMenuDelete),
-                    ]);
+                    ],
+                );
             });
 
             if let Some(action) = model.context_menu_last_action {
@@ -1938,7 +2067,8 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
         "ListItem" => {
             ctx.ui.heading("ListItem");
-            ctx.ui.label("Selectable list item with optional icon and badge");
+            ctx.ui
+                .label("Selectable list item with optional icon and badge");
             ctx.ui.add_space(8.0);
 
             Code::new(
@@ -1963,9 +2093,15 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.strong("With Icons:");
             ctx.ui.add_space(8.0);
 
-            ListItem::new("Home").icon(icons::HOUSE).on_click(ctx, Msg::ButtonClicked);
-            ListItem::new("Settings").icon(icons::GEAR).on_click(ctx, Msg::ButtonClicked);
-            ListItem::new("User").icon(icons::USER).on_click(ctx, Msg::ButtonClicked);
+            ListItem::new("Home")
+                .icon(icons::HOUSE)
+                .on_click(ctx, Msg::ButtonClicked);
+            ListItem::new("Settings")
+                .icon(icons::GEAR)
+                .on_click(ctx, Msg::ButtonClicked);
+            ListItem::new("User")
+                .icon(icons::USER)
+                .on_click(ctx, Msg::ButtonClicked);
 
             ctx.ui.add_space(16.0);
             ctx.ui.separator();
@@ -1974,9 +2110,18 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.strong("Selection State:");
             ctx.ui.add_space(8.0);
 
-            ListItem::new("Selected item").icon(icons::CHECK).selected(true).on_click(ctx, Msg::ButtonClicked);
-            ListItem::new("Normal item").icon(icons::HASH).selected(false).on_click(ctx, Msg::ButtonClicked);
-            ListItem::new("Disabled item").icon(icons::X).disabled(true).on_click(ctx, Msg::ButtonClicked);
+            ListItem::new("Selected item")
+                .icon(icons::CHECK)
+                .selected(true)
+                .on_click(ctx, Msg::ButtonClicked);
+            ListItem::new("Normal item")
+                .icon(icons::HASH)
+                .selected(false)
+                .on_click(ctx, Msg::ButtonClicked);
+            ListItem::new("Disabled item")
+                .icon(icons::X)
+                .disabled(true)
+                .on_click(ctx, Msg::ButtonClicked);
 
             ctx.ui.add_space(16.0);
             ctx.ui.separator();
@@ -1985,9 +2130,18 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.strong("With Badges:");
             ctx.ui.add_space(8.0);
 
-            ListItem::new("Inbox").icon(icons::HASH).badge("12").on_click(ctx, Msg::ButtonClicked);
-            ListItem::new("Notifications").icon(icons::INFO).badge("3").on_click(ctx, Msg::ButtonClicked);
-            ListItem::new("Updates").icon(icons::ARROW_RIGHT).badge("New").on_click(ctx, Msg::ButtonClicked);
+            ListItem::new("Inbox")
+                .icon(icons::HASH)
+                .badge("12")
+                .on_click(ctx, Msg::ButtonClicked);
+            ListItem::new("Notifications")
+                .icon(icons::INFO)
+                .badge("3")
+                .on_click(ctx, Msg::ButtonClicked);
+            ListItem::new("Updates")
+                .icon(icons::ARROW_RIGHT)
+                .badge("New")
+                .on_click(ctx, Msg::ButtonClicked);
         }
 
         _ => {
@@ -2000,7 +2154,8 @@ fn render_audio_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
     match AUDIO_ATOMS[model.active_component] {
         "Waveform" => {
             ctx.ui.heading("Waveform");
-            ctx.ui.label("Audio waveform visualization for EDM/VJ applications");
+            ctx.ui
+                .label("Audio waveform visualization for EDM/VJ applications");
             ctx.ui.add_space(16.0);
 
             let time = ctx.ui.input(|i| i.time) as f32;
@@ -2052,7 +2207,9 @@ fn render_audio_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.horizontal(|ctx| {
                 LevelMeter::new().size(20.0, 120.0).show(ctx.ui, level_db);
                 ctx.ui.add_space(8.0);
-                LevelMeter::new().size(20.0, 120.0).show(ctx.ui, level_db - 6.0);
+                LevelMeter::new()
+                    .size(20.0, 120.0)
+                    .show(ctx.ui, level_db - 6.0);
             });
 
             ctx.ui.ctx().request_repaint();
@@ -2122,7 +2279,8 @@ fn render_midi_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
     match MIDI_ATOMS[model.active_component] {
         "MidiKeyboard" => {
             ctx.ui.heading("MidiKeyboard");
-            ctx.ui.label("Interactive MIDI keyboard with note visualization");
+            ctx.ui
+                .label("Interactive MIDI keyboard with note visualization");
             ctx.ui.add_space(8.0);
 
             Code::new(
@@ -2162,7 +2320,14 @@ fn render_midi_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
             if !model.keyboard_notes.is_empty() {
                 ctx.ui.add_space(12.0);
-                ctx.ui.label(format!("Active notes: {:?}", model.keyboard_notes.iter().map(|n| n.note).collect::<Vec<_>>()));
+                ctx.ui.label(format!(
+                    "Active notes: {:?}",
+                    model
+                        .keyboard_notes
+                        .iter()
+                        .map(|n| n.note)
+                        .collect::<Vec<_>>()
+                ));
             }
         }
 
@@ -2234,7 +2399,8 @@ fn render_midi_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
         "MidiMapper" => {
             ctx.ui.heading("MidiMapper");
-            ctx.ui.label("MIDI CC/note parameter mapping with learn mode");
+            ctx.ui
+                .label("MIDI CC/note parameter mapping with learn mode");
             ctx.ui.add_space(8.0);
 
             Code::new(
@@ -2247,10 +2413,18 @@ fn render_midi_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
             // Create demo params
             let params = vec![
-                MappableParam::new("volume", "Master Volume").with_group("Output").with_value(0.75),
-                MappableParam::new("pan", "Pan").with_group("Output").with_value(0.5),
-                MappableParam::new("cutoff", "Filter Cutoff").with_group("Filter").with_value(0.6),
-                MappableParam::new("resonance", "Resonance").with_group("Filter").with_value(0.3),
+                MappableParam::new("volume", "Master Volume")
+                    .with_group("Output")
+                    .with_value(0.75),
+                MappableParam::new("pan", "Pan")
+                    .with_group("Output")
+                    .with_value(0.5),
+                MappableParam::new("cutoff", "Filter Cutoff")
+                    .with_group("Filter")
+                    .with_value(0.6),
+                MappableParam::new("resonance", "Resonance")
+                    .with_group("Filter")
+                    .with_value(0.3),
             ];
 
             // Demo mappings
@@ -2270,7 +2444,8 @@ fn render_midi_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
         "PianoRoll" => {
             ctx.ui.heading("PianoRoll");
-            ctx.ui.label("MIDI note editor with keyboard, grid, and playhead");
+            ctx.ui
+                .label("MIDI note editor with keyboard, grid, and playhead");
             ctx.ui.add_space(8.0);
 
             Code::new(
@@ -2335,7 +2510,8 @@ fn render_mixer_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
     match MIXER_ATOMS[model.active_component] {
         "ChannelStrip" => {
             ctx.ui.heading("ChannelStrip");
-            ctx.ui.label("Mixer channel strip with fader, pan, mute/solo, and level meter");
+            ctx.ui
+                .label("Mixer channel strip with fader, pan, mute/solo, and level meter");
             ctx.ui.add_space(8.0);
 
             Code::new(
@@ -2439,7 +2615,8 @@ fn render_mixer_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
                 .show_with(ctx, Msg::CrossfaderChange);
 
             ctx.ui.add_space(8.0);
-            ctx.ui.label(format!("Position: {:.2}", model.crossfader_value));
+            ctx.ui
+                .label(format!("Position: {:.2}", model.crossfader_value));
         }
 
         "EffectRack" => {
@@ -2461,16 +2638,14 @@ fn render_mixer_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
                     .enabled(true)
                     .with_param(EffectParam::new("Threshold", 0.6).with_range(-60.0, 0.0))
                     .with_param(EffectParam::new("Ratio", 0.4).with_range(1.0, 20.0)),
-                Effect::new("EQ Eight", EffectCategory::EQ)
-                    .enabled(true),
+                Effect::new("EQ Eight", EffectCategory::EQ).enabled(true),
                 Effect::new("Reverb", EffectCategory::Time)
                     .enabled(false)
                     .with_param(EffectParam::new("Size", 0.5))
                     .with_param(EffectParam::new("Decay", 0.7)),
             ];
 
-            EffectRack::new(&effects)
-                .show(ctx.ui);
+            EffectRack::new(&effects).show(ctx.ui);
 
             ctx.ui.add_space(8.0);
             ctx.ui.label("• Click effect to select");
@@ -2604,10 +2779,14 @@ fn render_visual_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             let clips = vec![
                 ClipCell::new("Intro").with_color(egui::Color32::from_rgb(120, 180, 255)),
                 ClipCell::new("Verse 1").with_color(egui::Color32::from_rgb(180, 255, 120)),
-                ClipCell::new("Chorus").with_color(egui::Color32::from_rgb(255, 180, 120)).with_state(ClipState::Playing),
+                ClipCell::new("Chorus")
+                    .with_color(egui::Color32::from_rgb(255, 180, 120))
+                    .with_state(ClipState::Playing),
                 ClipCell::new("Break").with_color(egui::Color32::from_rgb(255, 120, 180)),
                 ClipCell::new("Verse 2").with_color(egui::Color32::from_rgb(180, 255, 120)),
-                ClipCell::new("Chorus 2").with_color(egui::Color32::from_rgb(255, 180, 120)).with_state(ClipState::Queued),
+                ClipCell::new("Chorus 2")
+                    .with_color(egui::Color32::from_rgb(255, 180, 120))
+                    .with_state(ClipState::Queued),
                 ClipCell::new("Outro").with_color(egui::Color32::from_rgb(200, 200, 200)),
                 ClipCell::new("Alt End").with_color(egui::Color32::from_rgb(150, 150, 200)),
             ];
@@ -2629,7 +2808,8 @@ fn render_visual_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
         "Timeline" => {
             ctx.ui.heading("Timeline");
-            ctx.ui.label("Seek bar with markers, regions, and time display");
+            ctx.ui
+                .label("Seek bar with markers, regions, and time display");
             ctx.ui.add_space(8.0);
 
             Code::new(
@@ -2646,14 +2826,25 @@ fn render_visual_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
             let markers = vec![
                 TimelineMarker::new(0.0, "Start"),
-                TimelineMarker::new(0.25, "Verse").with_color(egui::Color32::from_rgb(100, 200, 100)),
-                TimelineMarker::new(0.5, "Chorus").with_color(egui::Color32::from_rgb(200, 100, 200)),
-                TimelineMarker::new(0.75, "Bridge").with_color(egui::Color32::from_rgb(200, 200, 100)),
+                TimelineMarker::new(0.25, "Verse")
+                    .with_color(egui::Color32::from_rgb(100, 200, 100)),
+                TimelineMarker::new(0.5, "Chorus")
+                    .with_color(egui::Color32::from_rgb(200, 100, 200)),
+                TimelineMarker::new(0.75, "Bridge")
+                    .with_color(egui::Color32::from_rgb(200, 200, 100)),
             ];
 
             let regions = vec![
-                TimelineRegion::new(0.25, 0.5, egui::Color32::from_rgba_unmultiplied(100, 200, 100, 40)),
-                TimelineRegion::new(0.5, 0.75, egui::Color32::from_rgba_unmultiplied(200, 100, 200, 40)),
+                TimelineRegion::new(
+                    0.25,
+                    0.5,
+                    egui::Color32::from_rgba_unmultiplied(100, 200, 100, 40),
+                ),
+                TimelineRegion::new(
+                    0.5,
+                    0.75,
+                    egui::Color32::from_rgba_unmultiplied(200, 100, 200, 40),
+                ),
             ];
 
             ctx.ui.strong("Basic timeline (2 min duration):");
@@ -2759,7 +2950,8 @@ fn render_visual_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
         "LayerStack" => {
             ctx.ui.heading("LayerStack");
-            ctx.ui.label("Layer management with blend modes and reordering");
+            ctx.ui
+                .label("Layer management with blend modes and reordering");
             ctx.ui.add_space(8.0);
 
             Code::new(
@@ -2772,17 +2964,20 @@ fn render_visual_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
             let layers = vec![
                 Layer::new("Background").with_color(egui::Color32::from_rgb(100, 150, 200)),
-                Layer::new("Video 1").with_opacity(0.8).with_blend_mode(BlendMode::Normal)
+                Layer::new("Video 1")
+                    .with_opacity(0.8)
+                    .with_blend_mode(BlendMode::Normal)
                     .with_color(egui::Color32::from_rgb(200, 150, 100)),
-                Layer::new("Overlay").with_opacity(0.6).with_blend_mode(BlendMode::Add)
+                Layer::new("Overlay")
+                    .with_opacity(0.6)
+                    .with_blend_mode(BlendMode::Add)
                     .with_color(egui::Color32::from_rgb(150, 200, 100)),
-                Layer::new("Text").with_blend_mode(BlendMode::Screen)
+                Layer::new("Text")
+                    .with_blend_mode(BlendMode::Screen)
                     .with_color(egui::Color32::from_rgb(200, 100, 150)),
             ];
 
-            LayerStack::new(&layers)
-                .selected(Some(1))
-                .show(ctx.ui);
+            LayerStack::new(&layers).selected(Some(1)).show(ctx.ui);
 
             ctx.ui.add_space(8.0);
             ctx.ui.label("• Drag to reorder layers");
@@ -2811,7 +3006,9 @@ fn render_visual_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
                 ColorWheel::new()
                     .style(WheelStyle::Triangle)
                     .size(160.0)
-                    .show_with(ctx, current_color, |c| Msg::ColorWheelChange(Hsva::from_color32(c)));
+                    .show_with(ctx, current_color, |c| {
+                        Msg::ColorWheelChange(Hsva::from_color32(c))
+                    });
 
                 ctx.ui.add_space(24.0);
 
@@ -2821,7 +3018,9 @@ fn render_visual_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
                 ColorWheel::new()
                     .style(WheelStyle::Square)
                     .size(160.0)
-                    .show_with(ctx, current_color, |c| Msg::ColorWheelChange(Hsva::from_color32(c)));
+                    .show_with(ctx, current_color, |c| {
+                        Msg::ColorWheelChange(Hsva::from_color32(c))
+                    });
             });
 
             ctx.ui.add_space(16.0);
@@ -2831,7 +3030,9 @@ fn render_visual_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
                 model.wheel_color.h * 360.0,
                 model.wheel_color.s * 100.0,
                 model.wheel_color.v * 100.0,
-                current_color.r(), current_color.g(), current_color.b()
+                current_color.r(),
+                current_color.g(),
+                current_color.b()
             ));
         }
 
@@ -2874,9 +3075,7 @@ fn render_visual_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.strong("Sunset gradient:");
             ctx.ui.add_space(8.0);
 
-            GradientEditor::new(&gradient2)
-                .width(300.0)
-                .show(ctx.ui);
+            GradientEditor::new(&gradient2).width(300.0).show(ctx.ui);
 
             ctx.ui.add_space(8.0);
             ctx.ui.label("• Drag stops to reposition");
@@ -2907,9 +3106,7 @@ fn render_visual_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.strong("Polygon mask:");
             ctx.ui.add_space(8.0);
 
-            MaskEditor::new(&mask)
-                .size(200.0, 200.0)
-                .show(ctx.ui);
+            MaskEditor::new(&mask).size(200.0, 200.0).show(ctx.ui);
 
             ctx.ui.add_space(8.0);
             ctx.ui.label("• Drag points to reshape");
@@ -3017,9 +3214,9 @@ fn render_visual_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ];
 
             let connections = vec![
-                RouteConnection::new("main", "proj1"),  // Main Mix -> Projector 1
+                RouteConnection::new("main", "proj1"), // Main Mix -> Projector 1
                 RouteConnection::new("main", "stream"), // Main Mix -> Stream
-                RouteConnection::new("cam1", "led"),    // Camera 1 -> LED Wall
+                RouteConnection::new("cam1", "led"),   // Camera 1 -> LED Wall
             ];
 
             OutputRouter::new(&sources, &outputs, &connections)
@@ -3041,7 +3238,8 @@ fn render_semantics(model: &Model, ctx: &mut ViewCtx<Msg>) {
         "Overview" => {
             ctx.ui.heading("Semantic Buttons");
             ctx.ui.add_space(4.0);
-            ctx.ui.label("Buttons with fixed labels and icons for UI consistency.");
+            ctx.ui
+                .label("Buttons with fixed labels and icons for UI consistency.");
             ctx.ui.add_space(8.0);
 
             Code::new(
@@ -3050,9 +3248,12 @@ fn render_semantics(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
             ctx.ui.add_space(16.0);
             ctx.ui.strong("Why Semantics?");
-            ctx.ui.label("• Prevents label inconsistency (Save vs 保存 vs SAVE)");
-            ctx.ui.label("• Icon + color automatically matched to action");
-            ctx.ui.label("• Only display style (Icon/Text/Both) is configurable");
+            ctx.ui
+                .label("• Prevents label inconsistency (Save vs 保存 vs SAVE)");
+            ctx.ui
+                .label("• Icon + color automatically matched to action");
+            ctx.ui
+                .label("• Only display style (Icon/Text/Both) is configurable");
 
             ctx.ui.add_space(16.0);
             ctx.ui.separator();
@@ -3291,7 +3492,8 @@ fn render_semantics(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
             ctx.ui.add_space(12.0);
             ctx.ui.strong("ButtonStyle::Text");
-            ctx.ui.label("Text-only. Good for menus or when icons aren't needed.");
+            ctx.ui
+                .label("Text-only. Good for menus or when icons aren't needed.");
             ctx.horizontal(|ctx| {
                 semantics::save(ButtonStyle::Text).on_click(ctx, Msg::ButtonClicked);
                 semantics::edit(ButtonStyle::Text).on_click(ctx, Msg::ButtonClicked);
@@ -3301,7 +3503,8 @@ fn render_semantics(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
             ctx.ui.add_space(12.0);
             ctx.ui.strong("ButtonStyle::Both");
-            ctx.ui.label("Icon + Text. Most explicit, good for primary actions.");
+            ctx.ui
+                .label("Icon + Text. Most explicit, good for primary actions.");
             ctx.horizontal(|ctx| {
                 semantics::save(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
                 semantics::edit(ButtonStyle::Both).on_click(ctx, Msg::ButtonClicked);
@@ -3312,7 +3515,8 @@ fn render_semantics(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
         "SeverityLog" => {
             ctx.ui.heading("SeverityLog");
-            ctx.ui.label("Severity-based log display using Theme's log_* colors");
+            ctx.ui
+                .label("Severity-based log display using Theme's log_* colors");
             ctx.ui.add_space(8.0);
 
             Code::new(
@@ -3343,15 +3547,25 @@ fn render_semantics(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.strong("With Labels:");
             ctx.ui.add_space(8.0);
 
-            SeverityLog::debug("Debug message").with_label(true).show(ctx.ui);
+            SeverityLog::debug("Debug message")
+                .with_label(true)
+                .show(ctx.ui);
             ctx.ui.add_space(4.0);
-            SeverityLog::info("Info message").with_label(true).show(ctx.ui);
+            SeverityLog::info("Info message")
+                .with_label(true)
+                .show(ctx.ui);
             ctx.ui.add_space(4.0);
-            SeverityLog::warn("Warning message").with_label(true).show(ctx.ui);
+            SeverityLog::warn("Warning message")
+                .with_label(true)
+                .show(ctx.ui);
             ctx.ui.add_space(4.0);
-            SeverityLog::error("Error message").with_label(true).show(ctx.ui);
+            SeverityLog::error("Error message")
+                .with_label(true)
+                .show(ctx.ui);
             ctx.ui.add_space(4.0);
-            SeverityLog::critical("Critical message").with_label(true).show(ctx.ui);
+            SeverityLog::critical("Critical message")
+                .with_label(true)
+                .show(ctx.ui);
 
             ctx.ui.add_space(16.0);
             ctx.ui.separator();
@@ -3416,8 +3630,11 @@ fn render_molecule(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.label("Tabbed navigation");
             ctx.ui.add_space(8.0);
 
-            Tabs::new(&["First", "Second", "Third"])
-                .show_with(ctx, model.tabs_index, Msg::TabChanged);
+            Tabs::new(&["First", "Second", "Third"]).show_with(
+                ctx,
+                model.tabs_index,
+                Msg::TabChanged,
+            );
 
             ctx.ui.add_space(8.0);
 
@@ -3436,7 +3653,8 @@ fn render_molecule(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
         "Menu" => {
             ctx.ui.heading("Menu");
-            ctx.ui.label("Vertical tabs / navigation menu (like Tabs but vertical)");
+            ctx.ui
+                .label("Vertical tabs / navigation menu (like Tabs but vertical)");
             ctx.ui.add_space(8.0);
 
             Code::new(
@@ -3453,15 +3671,21 @@ fn render_molecule(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.horizontal(|ctx| {
                 // Left: Menu
                 ctx.vertical(|ctx| {
-                    Menu::new(&["Overview", "Components", "Settings", "Help"])
-                        .show_with(ctx, model.menu_index, Msg::MenuChanged);
+                    Menu::new(&["Overview", "Components", "Settings", "Help"]).show_with(
+                        ctx,
+                        model.menu_index,
+                        Msg::MenuChanged,
+                    );
                 });
 
                 ctx.ui.add_space(16.0);
 
                 // Right: Content
                 ctx.vertical(|ctx| {
-                    ctx.ui.label(format!("Selected: {}", ["Overview", "Components", "Settings", "Help"][model.menu_index]));
+                    ctx.ui.label(format!(
+                        "Selected: {}",
+                        ["Overview", "Components", "Settings", "Help"][model.menu_index]
+                    ));
                     ctx.ui.add_space(8.0);
                     match model.menu_index {
                         0 => ctx.ui.label("Welcome to the overview page."),
@@ -3484,7 +3708,8 @@ fn render_molecule(model: &Model, ctx: &mut ViewCtx<Msg>) {
                 ("Settings", icons::GEAR),
                 ("User", icons::USER),
                 ("Info", icons::INFO),
-            ]).show_with(ctx, model.menu_index, Msg::MenuChanged);
+            ])
+            .show_with(ctx, model.menu_index, Msg::MenuChanged);
         }
 
         "Modal" => {
@@ -3499,24 +3724,31 @@ fn render_molecule(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
             if let Some(result) = model.confirm_result {
                 ctx.ui.add_space(8.0);
-                ctx.ui.label(format!("Confirm result: {}", if result { "Yes" } else { "No" }));
+                ctx.ui.label(format!(
+                    "Confirm result: {}",
+                    if result { "Yes" } else { "No" }
+                ));
             }
         }
 
         "Table" => {
             ctx.ui.heading("Table");
-            ctx.ui.label("Data table components (simple Table + typed DataTable)");
+            ctx.ui
+                .label("Data table components (simple Table + typed DataTable)");
             ctx.ui.add_space(16.0);
 
             // Simple Table
             ctx.ui.label("Simple Table:");
-            let rows: Vec<Vec<String>> = model.table_data
+            let rows: Vec<Vec<String>> = model
+                .table_data
                 .iter()
-                .map(|(name, age, active)| vec![
-                    name.clone(),
-                    age.to_string(),
-                    if *active { "Yes" } else { "No" }.to_string(),
-                ])
+                .map(|(name, age, active)| {
+                    vec![
+                        name.clone(),
+                        age.to_string(),
+                        if *active { "Yes" } else { "No" }.to_string(),
+                    ]
+                })
                 .collect();
 
             Table::new(&["Name", "Age", "Active"])
@@ -3531,7 +3763,11 @@ fn render_molecule(model: &Model, ctx: &mut ViewCtx<Msg>) {
                 .column("Name", |(name, _, _)| name.clone())
                 .column("Age", |(_, age, _)| age.to_string())
                 .column("Status", |(_, _, active)| {
-                    if *active { "Active".to_string() } else { "Inactive".to_string() }
+                    if *active {
+                        "Active".to_string()
+                    } else {
+                        "Inactive".to_string()
+                    }
                 })
                 .striped(true)
                 .resizable(true)
@@ -3545,13 +3781,17 @@ fn render_molecule(model: &Model, ctx: &mut ViewCtx<Msg>) {
                 .exact(80.0)
                 .remainder()
                 .exact(60.0)
-                .show(ctx.ui, |i, ui| {
-                    match i {
-                        0 => { ui.label("Fixed 80px"); }
-                        1 => { ui.label("Remainder (flex)"); }
-                        2 => { ui.label("Fixed 60px"); }
-                        _ => {}
+                .show(ctx.ui, |i, ui| match i {
+                    0 => {
+                        ui.label("Fixed 80px");
                     }
+                    1 => {
+                        ui.label("Remainder (flex)");
+                    }
+                    2 => {
+                        ui.label("Fixed 60px");
+                    }
+                    _ => {}
                 });
 
             ctx.ui.add_space(16.0);
@@ -3559,7 +3799,8 @@ fn render_molecule(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.add_space(8.0);
 
             ctx.ui.label("Usage:");
-            Code::new(r#"// Simple table
+            Code::new(
+                r#"// Simple table
 Table::new(&["Col1", "Col2"])
     .rows(vec![vec!["a", "b"]])
     .show(ui);
@@ -3574,19 +3815,24 @@ DataTable::new(&items)
 Strip::horizontal()
     .exact(100.0)
     .remainder()
-    .show(ui, |i, ui| { ... });"#).show(ctx.ui);
+    .show(ui, |i, ui| { ... });"#,
+            )
+            .show(ctx.ui);
         }
 
         "Navbar" => {
             ctx.ui.heading("Navbar");
-            ctx.ui.label("Navigation bar (see counter example for full demo)");
+            ctx.ui
+                .label("Navigation bar (see counter example for full demo)");
             ctx.ui.add_space(8.0);
-            ctx.ui.label("The navbar component is used at the top of the counter example.");
+            ctx.ui
+                .label("The navbar component is used at the top of the counter example.");
         }
 
         "ErrorConsole" => {
             ctx.ui.heading("ErrorConsole");
-            ctx.ui.label("Dismissible error/warning/info message display with 5 severity levels");
+            ctx.ui
+                .label("Dismissible error/warning/info message display with 5 severity levels");
             ctx.ui.add_space(8.0);
 
             Code::new(
@@ -3600,9 +3846,11 @@ Strip::horizontal()
             ctx.horizontal(|ctx| {
                 Button::secondary("Debug").on_click(ctx, Msg::ErrorConsolePush(ErrorLevel::Debug));
                 Button::info("Info").on_click(ctx, Msg::ErrorConsolePush(ErrorLevel::Info));
-                Button::warning("Warning").on_click(ctx, Msg::ErrorConsolePush(ErrorLevel::Warning));
+                Button::warning("Warning")
+                    .on_click(ctx, Msg::ErrorConsolePush(ErrorLevel::Warning));
                 Button::danger("Error").on_click(ctx, Msg::ErrorConsolePush(ErrorLevel::Error));
-                Button::danger("Critical").on_click(ctx, Msg::ErrorConsolePush(ErrorLevel::Critical));
+                Button::danger("Critical")
+                    .on_click(ctx, Msg::ErrorConsolePush(ErrorLevel::Critical));
             });
 
             ctx.ui.add_space(16.0);
@@ -3641,7 +3889,8 @@ Strip::horizontal()
             });
 
             ctx.ui.add_space(16.0);
-            ctx.ui.label("Click buttons to show toasts (top-right corner)");
+            ctx.ui
+                .label("Click buttons to show toasts (top-right corner)");
             ctx.ui.label("Toasts auto-dismiss after 3-5 seconds");
 
             ctx.ui.add_space(16.0);
@@ -3652,13 +3901,15 @@ Strip::horizontal()
             ctx.ui.label("- 4 variants: Info, Success, Warning, Error");
             ctx.ui.label("- Auto-dismiss with configurable duration");
             ctx.ui.label("- Manual dismiss via close button");
-            ctx.ui.label("- Position: TopRight (default), BottomRight, etc.");
+            ctx.ui
+                .label("- Position: TopRight (default), BottomRight, etc.");
             ctx.ui.label("- Multiple toasts stack vertically");
         }
 
         "Form" => {
             ctx.ui.heading("Form");
-            ctx.ui.label("Combines ValidatedInput atoms into structured forms (TEA-style)");
+            ctx.ui
+                .label("Combines ValidatedInput atoms into structured forms (TEA-style)");
             ctx.ui.add_space(8.0);
 
             Code::new(
@@ -3673,11 +3924,22 @@ Strip::horizontal()
             ctx.ui.add_space(8.0);
 
             // Check if form is valid for submit
-            let can_submit = model.email_validation.is_valid() && model.password_validation.is_valid();
+            let can_submit =
+                model.email_validation.is_valid() && model.password_validation.is_valid();
 
             Form::new()
-                .field("Email", &model.email_value, &model.email_validation, Msg::EmailChanged)
-                .password_field("Password", &model.password_value, &model.password_validation, Msg::PasswordChanged)
+                .field(
+                    "Email",
+                    &model.email_value,
+                    &model.email_validation,
+                    Msg::EmailChanged,
+                )
+                .password_field(
+                    "Password",
+                    &model.password_value,
+                    &model.password_validation,
+                    Msg::PasswordChanged,
+                )
                 .submit_button("Sign Up")
                 .submit_if(can_submit)
                 .on_submit(Msg::FormSubmit)
@@ -3685,7 +3947,8 @@ Strip::horizontal()
 
             ctx.ui.add_space(8.0);
             if !can_submit {
-                ctx.ui.label("Fill in valid email and password (8+ chars) to enable submit");
+                ctx.ui
+                    .label("Fill in valid email and password (8+ chars) to enable submit");
             }
 
             if model.form_submitted {
@@ -3696,7 +3959,8 @@ Strip::horizontal()
 
         "Columns" => {
             ctx.ui.heading("Column Layouts");
-            ctx.ui.label("Multi-column layouts with full emit() capability");
+            ctx.ui
+                .label("Multi-column layouts with full emit() capability");
             ctx.ui.add_space(8.0);
 
             Code::new(
@@ -3756,10 +4020,18 @@ Strip::horizontal()
             ctx.ui.add_space(4.0);
 
             ctx.four_columns(
-                |ctx| { Button::primary("1").on_click(ctx, Msg::ColClick(0)); },
-                |ctx| { Button::secondary("2").on_click(ctx, Msg::ColClick(1)); },
-                |ctx| { Button::danger("3").on_click(ctx, Msg::ColClick(2)); },
-                |ctx| { Button::ghost("4").on_click(ctx, Msg::ColClick(3)); },
+                |ctx| {
+                    Button::primary("1").on_click(ctx, Msg::ColClick(0));
+                },
+                |ctx| {
+                    Button::secondary("2").on_click(ctx, Msg::ColClick(1));
+                },
+                |ctx| {
+                    Button::danger("3").on_click(ctx, Msg::ColClick(2));
+                },
+                |ctx| {
+                    Button::ghost("4").on_click(ctx, Msg::ColClick(3));
+                },
             );
 
             ctx.ui.add_space(16.0);
@@ -3771,12 +4043,24 @@ Strip::horizontal()
             ctx.ui.add_space(4.0);
 
             ctx.columns(vec![
-                Box::new(|ctx| { ctx.ui.label("A"); }),
-                Box::new(|ctx| { ctx.ui.label("B"); }),
-                Box::new(|ctx| { ctx.ui.label("C"); }),
-                Box::new(|ctx| { ctx.ui.label("D"); }),
-                Box::new(|ctx| { ctx.ui.label("E"); }),
-                Box::new(|ctx| { ctx.ui.label("F"); }),
+                Box::new(|ctx| {
+                    ctx.ui.label("A");
+                }),
+                Box::new(|ctx| {
+                    ctx.ui.label("B");
+                }),
+                Box::new(|ctx| {
+                    ctx.ui.label("C");
+                }),
+                Box::new(|ctx| {
+                    ctx.ui.label("D");
+                }),
+                Box::new(|ctx| {
+                    ctx.ui.label("E");
+                }),
+                Box::new(|ctx| {
+                    ctx.ui.label("F");
+                }),
             ]);
         }
 
@@ -3792,7 +4076,8 @@ Strip::horizontal()
             ctx.ui.add_space(8.0);
 
             ctx.horizontal(|ctx| {
-                ctx.ui.checkbox(&mut model.cond_show.clone(), "Show content");
+                ctx.ui
+                    .checkbox(&mut model.cond_show.clone(), "Show content");
                 if ctx.ui.checkbox(&mut model.cond_show.clone(), "").changed() {
                     ctx.emit(Msg::ToggleCondShow);
                 }
@@ -3816,7 +4101,11 @@ Strip::horizontal()
             ctx.ui.add_space(8.0);
 
             ctx.horizontal(|ctx| {
-                if ctx.ui.checkbox(&mut model.cond_enabled.clone(), "Enable button").changed() {
+                if ctx
+                    .ui
+                    .checkbox(&mut model.cond_enabled.clone(), "Enable button")
+                    .changed()
+                {
                     ctx.emit(Msg::ToggleCondEnabled);
                 }
             });
@@ -3836,7 +4125,11 @@ Strip::horizontal()
             ctx.ui.add_space(8.0);
 
             ctx.horizontal(|ctx| {
-                if ctx.ui.checkbox(&mut model.cond_visible.clone(), "Show hint").changed() {
+                if ctx
+                    .ui
+                    .checkbox(&mut model.cond_visible.clone(), "Show hint")
+                    .changed()
+                {
                     ctx.emit(Msg::ToggleCondVisible);
                 }
             });
@@ -3852,10 +4145,12 @@ Strip::horizontal()
 
         "Dock" => {
             ctx.ui.heading("Dock");
-            ctx.ui.label("Dockable panel layout with tabs (wraps egui_dock)");
+            ctx.ui
+                .label("Dockable panel layout with tabs (wraps egui_dock)");
             ctx.ui.add_space(8.0);
 
-            Code::new(r#"// Create dock layout
+            Code::new(
+                r#"// Create dock layout
 let dock = dock_layout::three_column(
     Pane::Browser,
     Pane::Editor,
@@ -3873,14 +4168,17 @@ DockArea::new(&mut model.dock)
             Pane::Editor => ui.label("Editor"),
             _ => ui.label("Other"),
         }
-    });"#).show(ctx.ui);
+    });"#,
+            )
+            .show(ctx.ui);
 
             ctx.ui.add_space(16.0);
             ctx.ui.separator();
             ctx.ui.add_space(8.0);
 
             ctx.ui.strong("Interactive Demo:");
-            ctx.ui.label("Try dragging tabs, closing them, or clicking + to add new tabs.");
+            ctx.ui
+                .label("Try dragging tabs, closing them, or clicking + to add new tabs.");
             ctx.ui.add_space(8.0);
 
             // Use fixed-size area for dock
@@ -3888,7 +4186,10 @@ DockArea::new(&mut model.dock)
             let dock_height = 350.0_f32.min(available.y - 50.0).max(200.0);
 
             egui::Frame::default()
-                .stroke(egui::Stroke::new(1.0, ctx.ui.visuals().widgets.noninteractive.bg_stroke.color))
+                .stroke(egui::Stroke::new(
+                    1.0,
+                    ctx.ui.visuals().widgets.noninteractive.bg_stroke.color,
+                ))
                 .inner_margin(4.0)
                 .show(ctx.ui, |ui| {
                     ui.set_min_size(egui::vec2(available.x - 20.0, dock_height));
@@ -3897,39 +4198,37 @@ DockArea::new(&mut model.dock)
                         .show_close_buttons(true)
                         .show_add_buttons(true)
                         .tabs_are_draggable(true)
-                        .show(ui, |ui, pane| {
-                            match pane {
-                                DemoPane::Browser => {
-                                    ui.heading("Browser");
-                                    ui.label("File browser pane");
-                                    ui.separator();
-                                    ui.label("📁 src/");
-                                    ui.label("  📄 main.rs");
-                                    ui.label("  📄 lib.rs");
-                                    ui.label("📁 tests/");
-                                }
-                                DemoPane::Editor => {
-                                    ui.heading("Editor");
-                                    ui.label("Code editor pane");
-                                    ui.separator();
-                                    ui.code("fn main() {\n    println!(\"Hello!\");\n}");
-                                }
-                                DemoPane::Console => {
-                                    ui.heading("Console");
-                                    ui.label("Terminal/console pane");
-                                    ui.separator();
-                                    ui.label("> cargo run");
-                                    ui.label("   Compiling...");
-                                    ui.label("   Finished");
-                                }
-                                DemoPane::Inspector => {
-                                    ui.heading("Inspector");
-                                    ui.label("Property inspector pane");
-                                    ui.separator();
-                                    ui.label("Name: main.rs");
-                                    ui.label("Size: 256 bytes");
-                                    ui.label("Modified: Today");
-                                }
+                        .show(ui, |ui, pane| match pane {
+                            DemoPane::Browser => {
+                                ui.heading("Browser");
+                                ui.label("File browser pane");
+                                ui.separator();
+                                ui.label("📁 src/");
+                                ui.label("  📄 main.rs");
+                                ui.label("  📄 lib.rs");
+                                ui.label("📁 tests/");
+                            }
+                            DemoPane::Editor => {
+                                ui.heading("Editor");
+                                ui.label("Code editor pane");
+                                ui.separator();
+                                ui.code("fn main() {\n    println!(\"Hello!\");\n}");
+                            }
+                            DemoPane::Console => {
+                                ui.heading("Console");
+                                ui.label("Terminal/console pane");
+                                ui.separator();
+                                ui.label("> cargo run");
+                                ui.label("   Compiling...");
+                                ui.label("   Finished");
+                            }
+                            DemoPane::Inspector => {
+                                ui.heading("Inspector");
+                                ui.label("Property inspector pane");
+                                ui.separator();
+                                ui.label("Name: main.rs");
+                                ui.label("Size: 256 bytes");
+                                ui.label("Modified: Today");
                             }
                         });
                 });
@@ -3937,12 +4236,15 @@ DockArea::new(&mut model.dock)
             ctx.ui.add_space(16.0);
 
             ctx.ui.strong("Layout Helpers:");
-            Code::new(r#"// Preset layouts
+            Code::new(
+                r#"// Preset layouts
 dock_layout::left_right(left, right, 0.3);
 dock_layout::top_bottom(top, bottom, 0.7);
 dock_layout::three_column(l, c, r, 0.2, 0.2);
 dock_layout::daw(browser, main, inspector, timeline);
-dock_layout::vscode(sidebar, editors, terminals);"#).show(ctx.ui);
+dock_layout::vscode(sidebar, editors, terminals);"#,
+            )
+            .show(ctx.ui);
         }
 
         #[cfg(feature = "snarl")]
@@ -3951,7 +4253,8 @@ dock_layout::vscode(sidebar, editors, terminals);"#).show(ctx.ui);
             ctx.ui.label("Visual node-based editor (wraps egui-snarl)");
             ctx.ui.add_space(8.0);
 
-            Code::new(r#"// Define node type
+            Code::new(
+                r#"// Define node type
 enum MyNode {
     Source { name: String },
     Effect { intensity: f32 },
@@ -3970,14 +4273,18 @@ impl SnarlViewer<MyNode> for MyViewer {
 // Show the node graph
 NodeGraphArea::new(&mut model.graph)
     .graph_action(MenuAction::new("add", "Add Node"))
-    .show(ui, &mut MyViewer);"#).show(ctx.ui);
+    .show(ui, &mut MyViewer);"#,
+            )
+            .show(ctx.ui);
 
             ctx.ui.add_space(16.0);
             ctx.ui.separator();
             ctx.ui.add_space(8.0);
 
             ctx.ui.strong("Interactive Demo:");
-            ctx.ui.label("Drag nodes to move, connect pins by dragging, right-click for context menu.");
+            ctx.ui.label(
+                "Drag nodes to move, connect pins by dragging, right-click for context menu.",
+            );
             ctx.ui.add_space(8.0);
 
             // Show last event
@@ -3991,7 +4298,10 @@ NodeGraphArea::new(&mut model.graph)
             let graph_height = 350.0_f32.min(available.y - 50.0).max(200.0);
 
             egui::Frame::default()
-                .stroke(egui::Stroke::new(1.0, ctx.ui.visuals().widgets.noninteractive.bg_stroke.color))
+                .stroke(egui::Stroke::new(
+                    1.0,
+                    ctx.ui.visuals().widgets.noninteractive.bg_stroke.color,
+                ))
                 .inner_margin(4.0)
                 .show(ctx.ui, |ui| {
                     ui.set_min_size(egui::vec2(available.x - 20.0, graph_height));
@@ -4006,7 +4316,8 @@ NodeGraphArea::new(&mut model.graph)
             ctx.ui.label("• Theme-aware styling via NodeGraphStyle");
             ctx.ui.label("• Custom context menu actions via MenuAction");
             ctx.ui.label("• TEA-style events via NodeGraphEvent");
-            ctx.ui.label("• Preset pin types for VJ/DAW (Audio, Video, MIDI, etc.)");
+            ctx.ui
+                .label("• Preset pin types for VJ/DAW (Audio, Video, MIDI, etc.)");
         }
 
         #[cfg(not(feature = "snarl"))]
@@ -4022,7 +4333,8 @@ NodeGraphArea::new(&mut model.graph)
             ctx.ui.label("Infinite canvas pane layout with pan/zoom");
             ctx.ui.add_space(8.0);
 
-            Code::new(r#"// Create layout with panes
+            Code::new(
+                r#"// Create layout with panes
 let mut layout = NodeLayout::new();
 layout.add_pane(
     LayoutPane::new("preview", "Preview")
@@ -4036,21 +4348,29 @@ NodeLayoutArea::new(&mut layout, |ui, pane| {
         "preview" => ui.label("Preview content"),
         _ => {}
     }
-}).show(ui);"#).show(ctx.ui);
+}).show(ui);"#,
+            )
+            .show(ctx.ui);
 
             ctx.ui.add_space(16.0);
             ctx.ui.separator();
             ctx.ui.add_space(8.0);
 
             ctx.ui.strong("Interactive Demo:");
-            ctx.ui.label("Drag panes to move them on the infinite canvas. Pan/zoom supported.");
+            ctx.ui
+                .label("Drag panes to move them on the infinite canvas. Pan/zoom supported.");
             ctx.ui.add_space(8.0);
 
             // Menu bar toggle
             ctx.horizontal(|ctx| {
-                let menu_label = if model.node_layout_show_menu_bar { "☑ Show Menu Bar" } else { "☐ Show Menu Bar" };
+                let menu_label = if model.node_layout_show_menu_bar {
+                    "☑ Show Menu Bar"
+                } else {
+                    "☐ Show Menu Bar"
+                };
                 Button::new(menu_label).on_click(ctx, Msg::ToggleNodeLayoutMenuBar);
-                ctx.ui.label("(Lock and Arrange controls are in the menu bar)");
+                ctx.ui
+                    .label("(Lock and Arrange controls are in the menu bar)");
             });
             ctx.ui.add_space(8.0);
 
@@ -4059,10 +4379,14 @@ NodeLayoutArea::new(&mut layout, |ui, pane| {
             let layout_height = 350.0_f32.min(available.y - 50.0).max(200.0);
 
             // Capture lock change events from menu bar
-            let lock_event: std::cell::Cell<Option<egui_cha_ds::LockLevel>> = std::cell::Cell::new(None);
+            let lock_event: std::cell::Cell<Option<egui_cha_ds::LockLevel>> =
+                std::cell::Cell::new(None);
 
             egui::Frame::default()
-                .stroke(egui::Stroke::new(1.0, ctx.ui.visuals().widgets.noninteractive.bg_stroke.color))
+                .stroke(egui::Stroke::new(
+                    1.0,
+                    ctx.ui.visuals().widgets.noninteractive.bg_stroke.color,
+                ))
                 .inner_margin(4.0)
                 .show(ctx.ui, |ui| {
                     ui.set_min_size(egui::vec2(available.x - 20.0, layout_height));
@@ -4080,11 +4404,8 @@ NodeLayoutArea::new(&mut layout, |ui, pane| {
                                     egui::vec2(260.0, 120.0),
                                     egui::Sense::hover(),
                                 );
-                                ui.painter().rect_filled(
-                                    rect,
-                                    4.0,
-                                    egui::Color32::from_gray(40),
-                                );
+                                ui.painter()
+                                    .rect_filled(rect, 4.0, egui::Color32::from_gray(40));
                                 ui.painter().text(
                                     rect.center(),
                                     egui::Align2::CENTER_CENTER,
@@ -4127,10 +4448,13 @@ NodeLayoutArea::new(&mut layout, |ui, pane| {
                                     ui.horizontal(|ui| {
                                         ui.checkbox(&mut true, "");
                                         ui.label(format!("Layer {}", i));
-                                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                            ui.small_button("🗑");
-                                            ui.small_button("👁");
-                                        });
+                                        ui.with_layout(
+                                            egui::Layout::right_to_left(egui::Align::Center),
+                                            |ui| {
+                                                ui.small_button("🗑");
+                                                ui.small_button("👁");
+                                            },
+                                        );
                                     });
                                 }
                                 ui.add_space(4.0);
@@ -4161,7 +4485,8 @@ NodeLayoutArea::new(&mut layout, |ui, pane| {
             ctx.ui.add_space(16.0);
 
             ctx.ui.strong("Features:");
-            ctx.ui.label("• Infinite canvas with pan/zoom (via egui Scene)");
+            ctx.ui
+                .label("• Infinite canvas with pan/zoom (via egui Scene)");
             ctx.ui.label("• Free-form pane positioning");
             ctx.ui.label("• Lock mode to prevent changes");
             ctx.ui.label("• Custom content via closure");
@@ -4192,7 +4517,8 @@ fn render_framework(model: &Model, ctx: &mut ViewCtx<Msg>) {
             }
 
             ctx.ui.add_space(8.0);
-            ctx.ui.label(format!("Completed: {} times", model.delay_count));
+            ctx.ui
+                .label(format!("Completed: {} times", model.delay_count));
         }
 
         "Cmd::timeout" => {
@@ -4245,12 +4571,21 @@ fn render_framework(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
             ctx.ui.add_space(12.0);
 
-            let label = if model.interval_enabled { "Stop Interval" } else { "Start Interval (1s)" };
-            let variant = if model.interval_enabled { Button::danger(label) } else { Button::primary(label) };
+            let label = if model.interval_enabled {
+                "Stop Interval"
+            } else {
+                "Start Interval (1s)"
+            };
+            let variant = if model.interval_enabled {
+                Button::danger(label)
+            } else {
+                Button::primary(label)
+            };
             variant.on_click(ctx, Msg::ToggleInterval);
 
             ctx.ui.add_space(8.0);
-            ctx.ui.label(format!("Tick count: {}", model.interval_count));
+            ctx.ui
+                .label(format!("Tick count: {}", model.interval_count));
 
             if model.interval_enabled {
                 Badge::success("Running").show(ctx.ui);
@@ -4270,14 +4605,21 @@ fn render_framework(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
             ctx.ui.add_space(12.0);
 
-            ctx.ui.label("Type quickly - search only fires after you stop:");
-            Input::new()
-                .placeholder("Type to search...")
-                .show_with(ctx, &model.debounce_input, Msg::DebounceInput);
+            ctx.ui
+                .label("Type quickly - search only fires after you stop:");
+            Input::new().placeholder("Type to search...").show_with(
+                ctx,
+                &model.debounce_input,
+                Msg::DebounceInput,
+            );
 
             ctx.ui.add_space(8.0);
-            ctx.ui.label(format!("Search executed: {} times", model.debounce_search_count));
-            ctx.ui.label("(Try typing fast - notice search doesn't fire on every keystroke)");
+            ctx.ui.label(format!(
+                "Search executed: {} times",
+                model.debounce_search_count
+            ));
+            ctx.ui
+                .label("(Try typing fast - notice search doesn't fire on every keystroke)");
         }
 
         "Throttler" => {
@@ -4291,12 +4633,15 @@ fn render_framework(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
             ctx.ui.add_space(12.0);
 
-            ctx.ui.label("Click rapidly - action only fires once per 500ms:");
+            ctx.ui
+                .label("Click rapidly - action only fires once per 500ms:");
             Button::primary("Click me rapidly!").on_click(ctx, Msg::ThrottleClick);
 
             ctx.ui.add_space(8.0);
-            ctx.ui.label(format!("Button clicks: {}", model.throttle_click_count));
-            ctx.ui.label(format!("Actual actions: {}", model.throttle_actual_count));
+            ctx.ui
+                .label(format!("Button clicks: {}", model.throttle_click_count));
+            ctx.ui
+                .label(format!("Actual actions: {}", model.throttle_actual_count));
             ctx.ui.label("(Notice actual actions are throttled)");
         }
 
@@ -4323,18 +4668,14 @@ fn render_framework(model: &Model, ctx: &mut ViewCtx<Msg>) {
                     ctx.ui.add_space(4.0);
 
                     for item in &model.dnd_items {
-                        ctx.drag_source(
-                            egui::Id::new(item),
-                            item.clone(),
-                            |ctx| {
-                                ctx.ui.group(|ui| {
-                                    ui.horizontal(|ui| {
-                                        Icon::hash().size(16.0).show(ui);
-                                        ui.label(item);
-                                    });
+                        ctx.drag_source(egui::Id::new(item), item.clone(), |ctx| {
+                            ctx.ui.group(|ui| {
+                                ui.horizontal(|ui| {
+                                    Icon::hash().size(16.0).show(ui);
+                                    ui.label(item);
                                 });
-                            },
-                        );
+                            });
+                        });
                     }
 
                     if model.dnd_items.is_empty() {
@@ -4437,7 +4778,8 @@ fn render_framework(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
         "Dynamic Bindings" => {
             ctx.ui.heading("Dynamic Key Bindings");
-            ctx.ui.label("Runtime-rebindable keyboard shortcuts (Phase 2)");
+            ctx.ui
+                .label("Runtime-rebindable keyboard shortcuts (Phase 2)");
             ctx.ui.add_space(8.0);
 
             Code::new(
@@ -4453,14 +4795,32 @@ fn render_framework(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.add_space(8.0);
 
             // Register action bindings
-            ctx.on_action(&model.bindings, &DemoAction::Increment, Msg::BindingsAction(DemoAction::Increment));
-            ctx.on_action(&model.bindings, &DemoAction::Decrement, Msg::BindingsAction(DemoAction::Decrement));
-            ctx.on_action(&model.bindings, &DemoAction::Reset, Msg::BindingsAction(DemoAction::Reset));
-            ctx.on_action(&model.bindings, &DemoAction::Save, Msg::BindingsAction(DemoAction::Save));
+            ctx.on_action(
+                &model.bindings,
+                &DemoAction::Increment,
+                Msg::BindingsAction(DemoAction::Increment),
+            );
+            ctx.on_action(
+                &model.bindings,
+                &DemoAction::Decrement,
+                Msg::BindingsAction(DemoAction::Decrement),
+            );
+            ctx.on_action(
+                &model.bindings,
+                &DemoAction::Reset,
+                Msg::BindingsAction(DemoAction::Reset),
+            );
+            ctx.on_action(
+                &model.bindings,
+                &DemoAction::Save,
+                Msg::BindingsAction(DemoAction::Save),
+            );
 
             // Current bindings table
             ctx.ui.strong("Current Bindings:");
-            ctx.ui.label("Press the shortcut key to trigger the action. Use buttons below to rebind.");
+            ctx.ui.label(
+                "Press the shortcut key to trigger the action. Use buttons below to rebind.",
+            );
             ctx.ui.add_space(4.0);
 
             egui::Grid::new("bindings_grid")
@@ -4472,7 +4832,12 @@ fn render_framework(model: &Model, ctx: &mut ViewCtx<Msg>) {
                     ui.strong("Modified");
                     ui.end_row();
 
-                    for action in [DemoAction::Increment, DemoAction::Decrement, DemoAction::Reset, DemoAction::Save] {
+                    for action in [
+                        DemoAction::Increment,
+                        DemoAction::Decrement,
+                        DemoAction::Reset,
+                        DemoAction::Save,
+                    ] {
                         let label = match &action {
                             DemoAction::Increment => "Increment (counter +1)",
                             DemoAction::Decrement => "Decrement (counter -1)",
@@ -4545,7 +4910,8 @@ fn render_framework(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
         "ScrollArea" => {
             ctx.ui.heading("ScrollArea");
-            ctx.ui.label("Scrollable container with configurable options (Core)");
+            ctx.ui
+                .label("Scrollable container with configurable options (Core)");
             ctx.ui.add_space(8.0);
 
             Code::new(
@@ -4593,7 +4959,11 @@ fn render_framework(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.add_space(4.0);
 
             ctx.scroll_area_with(
-                |area| area.id_salt("framework_demo_3").max_height(100.0).auto_shrink([false, false]),
+                |area| {
+                    area.id_salt("framework_demo_3")
+                        .max_height(100.0)
+                        .auto_shrink([false, false])
+                },
                 |ctx| {
                     for i in 0..15 {
                         ctx.ui.label(format!("Closure item {} (no shrink)", i));
@@ -4621,7 +4991,11 @@ fn render_framework(model: &Model, ctx: &mut ViewCtx<Msg>) {
             // Get frame stats before borrowing ui
             let egui_ctx = ctx.ui.ctx().clone();
             let frame_time = egui_ctx.input(|i| i.stable_dt);
-            let fps = if frame_time > 0.0 { 1.0 / frame_time } else { 0.0 };
+            let fps = if frame_time > 0.0 {
+                1.0 / frame_time
+            } else {
+                0.0
+            };
             let t = egui_ctx.input(|i| i.time);
             let progress = ((t * 2.0).sin() * 0.5 + 0.5) as f32;
 
@@ -4706,10 +5080,14 @@ fn render_framework(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.add_space(8.0);
 
             ctx.ui.strong("Notes:");
-            ctx.ui.label("• Reactive: Only repaints on user input or pending messages");
-            ctx.ui.label("• FixedFps: Uses request_repaint_after() for consistent timing");
-            ctx.ui.label("• VSync: Repaints every frame at monitor refresh rate");
-            ctx.ui.label("• This storybook uses Reactive mode (default)");
+            ctx.ui
+                .label("• Reactive: Only repaints on user input or pending messages");
+            ctx.ui
+                .label("• FixedFps: Uses request_repaint_after() for consistent timing");
+            ctx.ui
+                .label("• VSync: Repaints every frame at monitor refresh rate");
+            ctx.ui
+                .label("• This storybook uses Reactive mode (default)");
         }
 
         _ => {
@@ -4723,7 +5101,8 @@ fn render_theme(model: &Model, ctx: &mut ViewCtx<'_, Msg>) {
     match THEME_ITEMS[model.active_component] {
         "Scale Controls" => {
             ctx.ui.heading("Scale Controls");
-            ctx.ui.label("Adjust spacing, radius, font, and stroke scales");
+            ctx.ui
+                .label("Adjust spacing, radius, font, and stroke scales");
             ctx.ui.add_space(8.0);
 
             // Current theme display
@@ -4741,22 +5120,38 @@ fn render_theme(model: &Model, ctx: &mut ViewCtx<'_, Msg>) {
 
             // Sliders for scales
             let mut spacing = model.spacing_scale;
-            if ctx.ui.add(egui::Slider::new(&mut spacing, 0.5..=2.0).text("Spacing Scale")).changed() {
+            if ctx
+                .ui
+                .add(egui::Slider::new(&mut spacing, 0.5..=2.0).text("Spacing Scale"))
+                .changed()
+            {
                 ctx.emit(Msg::SetSpacingScale(spacing));
             }
 
             let mut radius = model.radius_scale;
-            if ctx.ui.add(egui::Slider::new(&mut radius, 0.0..=3.0).text("Radius Scale")).changed() {
+            if ctx
+                .ui
+                .add(egui::Slider::new(&mut radius, 0.0..=3.0).text("Radius Scale"))
+                .changed()
+            {
                 ctx.emit(Msg::SetRadiusScale(radius));
             }
 
             let mut font = model.font_scale;
-            if ctx.ui.add(egui::Slider::new(&mut font, 0.5..=2.0).text("Font Scale")).changed() {
+            if ctx
+                .ui
+                .add(egui::Slider::new(&mut font, 0.5..=2.0).text("Font Scale"))
+                .changed()
+            {
                 ctx.emit(Msg::SetFontScale(font));
             }
 
             let mut stroke = model.stroke_scale;
-            if ctx.ui.add(egui::Slider::new(&mut stroke, 0.5..=3.0).text("Stroke Scale")).changed() {
+            if ctx
+                .ui
+                .add(egui::Slider::new(&mut stroke, 0.5..=3.0).text("Stroke Scale"))
+                .changed()
+            {
                 ctx.emit(Msg::SetStrokeScale(stroke));
             }
 
@@ -4810,13 +5205,21 @@ fn render_theme(model: &Model, ctx: &mut ViewCtx<'_, Msg>) {
                 }
             });
 
-            let shadow_label = if model.shadow_enabled { "Disable Shadow" } else { "Enable Shadow" };
+            let shadow_label = if model.shadow_enabled {
+                "Disable Shadow"
+            } else {
+                "Enable Shadow"
+            };
             Button::outline(shadow_label).on_click(ctx, Msg::ToggleShadow);
 
             if model.shadow_enabled {
                 ctx.ui.add_space(8.0);
                 let mut blur = model.shadow_blur;
-                if ctx.ui.add(egui::Slider::new(&mut blur, 1.0..=16.0).text("Shadow Blur")).changed() {
+                if ctx
+                    .ui
+                    .add(egui::Slider::new(&mut blur, 1.0..=16.0).text("Shadow Blur"))
+                    .changed()
+                {
                     ctx.emit(Msg::SetShadowBlur(blur));
                 }
             }
@@ -4828,12 +5231,19 @@ fn render_theme(model: &Model, ctx: &mut ViewCtx<'_, Msg>) {
             // Overlay dim
             ctx.ui.strong("Modal Overlay:");
             let mut dim = model.overlay_dim;
-            if ctx.ui.add(egui::Slider::new(&mut dim, 0.0..=1.0).text("Overlay Dim")).changed() {
+            if ctx
+                .ui
+                .add(egui::Slider::new(&mut dim, 0.0..=1.0).text("Overlay Dim"))
+                .changed()
+            {
                 ctx.emit(Msg::SetOverlayDim(dim));
             }
 
             ctx.ui.add_space(8.0);
-            ctx.ui.label(format!("Current: {:.0}% black overlay", model.overlay_dim * 100.0));
+            ctx.ui.label(format!(
+                "Current: {:.0}% black overlay",
+                model.overlay_dim * 100.0
+            ));
 
             ctx.ui.add_space(16.0);
             Button::primary("Test Modal").on_click(ctx, Msg::OpenModal);
@@ -4894,7 +5304,9 @@ fn render_theme(model: &Model, ctx: &mut ViewCtx<'_, Msg>) {
                 Text::small("INFO").color(theme.log_info).show(ctx.ui);
                 Text::small("WARN").color(theme.log_warn).show(ctx.ui);
                 Text::small("ERROR").color(theme.log_error).show(ctx.ui);
-                Text::small("CRITICAL").color(theme.log_critical).show(ctx.ui);
+                Text::small("CRITICAL")
+                    .color(theme.log_critical)
+                    .show(ctx.ui);
             });
 
             ctx.ui.add_space(16.0);

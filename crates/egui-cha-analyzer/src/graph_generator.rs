@@ -8,22 +8,25 @@ pub fn generate_flow_mermaid(analysis: &FileAnalysis) -> String {
         return "flowchart TD\n    %% No flows detected".to_string();
     }
 
-    let mut lines = vec![
-        "flowchart TD".to_string(),
-        "".to_string(),
-    ];
+    let mut lines = vec!["flowchart TD".to_string(), "".to_string()];
 
     // Generate nodes and connections for each flow
     for (i, flow) in analysis.flows.iter().enumerate() {
         let flow_id = format!("F{}", i);
 
         // UI element node
-        let ui_label = flow.ui_element.label.as_deref().unwrap_or(&flow.ui_element.element_type);
+        let ui_label = flow
+            .ui_element
+            .label
+            .as_deref()
+            .unwrap_or(&flow.ui_element.element_type);
         let ui_icon = ui_icon(&flow.ui_element.element_type);
         let ui_node = format!("{}_UI", flow_id);
         lines.push(format!(
             "    {}[\"{} {}\"]",
-            ui_node, ui_icon, escape_mermaid(ui_label)
+            ui_node,
+            ui_icon,
+            escape_mermaid(ui_label)
         ));
         lines.push(format!("    style {} fill:#e1f5fe", ui_node));
 
@@ -45,7 +48,9 @@ pub fn generate_flow_mermaid(analysis: &FileAnalysis) -> String {
             let icon = mutation_icon(&mutation.mutation_type);
             lines.push(format!(
                 "    {}([\"{} {}\"])",
-                state_node, icon, escape_mermaid(&mutation.target)
+                state_node,
+                icon,
+                escape_mermaid(&mutation.target)
             ));
             lines.push(format!("    style {} fill:#c8e6c9", state_node));
 
@@ -81,7 +86,9 @@ pub fn generate_mermaid(analysis: &FileAnalysis) -> String {
         let icon = ui_icon(&ui.element_type);
         lines.push(format!(
             "    {}[\"{} {}\"]",
-            node_id, icon, escape_mermaid(label)
+            node_id,
+            icon,
+            escape_mermaid(label)
         ));
         lines.push(format!("    style {} fill:#e1f5fe", node_id));
     }
@@ -142,7 +149,10 @@ pub fn generate_summary_mermaid(result: &AnalysisResult) -> String {
 
     for (ui_type, count) in &ui_types {
         let icon = ui_icon(ui_type);
-        lines.push(format!("        {}[\"{} {} ({})\"]", ui_type, icon, ui_type, count));
+        lines.push(format!(
+            "        {}[\"{} {} ({})\"]",
+            ui_type, icon, ui_type, count
+        ));
     }
     lines.push("    end".to_string());
 
@@ -150,13 +160,17 @@ pub fn generate_summary_mermaid(result: &AnalysisResult) -> String {
     lines.push("    subgraph Actions[\"Action Layer\"]".to_string());
 
     // Group actions by type
-    let mut action_types: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    let mut action_types: std::collections::HashMap<String, usize> =
+        std::collections::HashMap::new();
     for action in result.all_actions() {
         *action_types.entry(action.action_type.clone()).or_insert(0) += 1;
     }
 
     for (action_type, count) in &action_types {
-        lines.push(format!("        {}{{\"{}() ({})\"}}", action_type, action_type, count));
+        lines.push(format!(
+            "        {}{{\"{}() ({})\"}}",
+            action_type, action_type, count
+        ));
     }
     lines.push("    end".to_string());
 
@@ -164,15 +178,24 @@ pub fn generate_summary_mermaid(result: &AnalysisResult) -> String {
     lines.push("    subgraph State[\"State Layer\"]".to_string());
 
     // Group state mutations by target (first component)
-    let mut state_targets: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    let mut state_targets: std::collections::HashMap<String, usize> =
+        std::collections::HashMap::new();
     for mutation in result.all_state_mutations() {
-        let key = mutation.target.split('.').take(2).collect::<Vec<_>>().join(".");
+        let key = mutation
+            .target
+            .split('.')
+            .take(2)
+            .collect::<Vec<_>>()
+            .join(".");
         *state_targets.entry(key).or_insert(0) += 1;
     }
 
     for (target, count) in &state_targets {
         let sanitized = target.replace('.', "_");
-        lines.push(format!("        {}([\"{} ({})\"])", sanitized, target, count));
+        lines.push(format!(
+            "        {}([\"{} ({})\"])",
+            sanitized, target, count
+        ));
     }
     lines.push("    end".to_string());
 
@@ -195,11 +218,19 @@ fn connect_by_context(lines: &mut Vec<String>, analysis: &FileAnalysis) {
     }
 
     for (i, action) in analysis.actions.iter().enumerate() {
-        by_context.entry(action.context.clone()).or_default().1.push(i);
+        by_context
+            .entry(action.context.clone())
+            .or_default()
+            .1
+            .push(i);
     }
 
     for (i, mutation) in analysis.state_mutations.iter().enumerate() {
-        by_context.entry(mutation.context.clone()).or_default().2.push(i);
+        by_context
+            .entry(mutation.context.clone())
+            .or_default()
+            .2
+            .push(i);
     }
 
     // Create connections within each context

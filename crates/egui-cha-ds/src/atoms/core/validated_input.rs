@@ -111,7 +111,7 @@ impl<'a> ValidatedInput<'a> {
         let mut edit = egui::TextEdit::singleline(value)
             .hint_text(self.placeholder)
             .text_color(theme.text_primary)
-            .frame(false);  // Disable default frame
+            .frame(false); // Disable default frame
 
         if self.password {
             edit = edit.password(true);
@@ -183,7 +183,7 @@ impl<'a> ValidatedInput<'a> {
         let mut edit = egui::TextEdit::singleline(&mut current)
             .hint_text(self.placeholder)
             .text_color(theme.text_primary)
-            .frame(false);  // Disable default frame
+            .frame(false); // Disable default frame
 
         if self.password {
             edit = edit.password(true);

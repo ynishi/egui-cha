@@ -14,13 +14,13 @@
 //! let mermaid = result.to_mermaid();
 //! ```
 
+pub mod action_extractor;
+pub mod flow_extractor;
+pub mod graph_generator;
+pub mod state_extractor;
+pub mod tea_extractor;
 pub mod types;
 pub mod ui_extractor;
-pub mod action_extractor;
-pub mod state_extractor;
-pub mod flow_extractor;
-pub mod tea_extractor;
-pub mod graph_generator;
 
 use std::path::Path;
 use types::{FileAnalysis, MsgEmission, MsgHandler, TeaFlow};
@@ -37,7 +37,10 @@ fn build_tea_flows(emissions: &[MsgEmission], handlers: &[MsgHandler]) -> Vec<Te
                 // Match by message name (e.g., "Msg::Increment" matches "Msg::Increment")
                 emission.msg == h.msg_pattern
                     || emission.msg.ends_with(&format!("::{}", h.msg_pattern))
-                    || h.msg_pattern.ends_with(&format!("::{}", emission.msg.split("::").last().unwrap_or("")))
+                    || h.msg_pattern.ends_with(&format!(
+                        "::{}",
+                        emission.msg.split("::").last().unwrap_or("")
+                    ))
             });
 
             TeaFlow {
@@ -69,8 +72,8 @@ impl Analyzer {
 
     /// Analyze source code directly
     pub fn analyze_source(&self, file_path: &str, content: &str) -> Result<FileAnalysis, String> {
-        let syntax_tree = syn::parse_file(content)
-            .map_err(|e| format!("Parse error in {}: {}", file_path, e))?;
+        let syntax_tree =
+            syn::parse_file(content).map_err(|e| format!("Parse error in {}: {}", file_path, e))?;
 
         // Extract UI elements (standard egui)
         let ui_elements = ui_extractor::extract_ui_elements(file_path, &syntax_tree);

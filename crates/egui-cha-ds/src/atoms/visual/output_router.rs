@@ -153,8 +153,14 @@ impl RouteConnection {
 /// Events emitted by OutputRouter
 #[derive(Debug, Clone)]
 pub enum RouterEvent {
-    Connect { source_id: String, output_id: String },
-    Disconnect { source_id: String, output_id: String },
+    Connect {
+        source_id: String,
+        output_id: String,
+    },
+    Disconnect {
+        source_id: String,
+        output_id: String,
+    },
     ToggleOutput(String),
     SelectSource(String),
     SelectOutput(String),
@@ -222,11 +228,7 @@ impl<'a> OutputRouter<'a> {
         self
     }
 
-    pub fn show_with<Msg>(
-        self,
-        ctx: &mut ViewCtx<'_, Msg>,
-        on_event: impl Fn(RouterEvent) -> Msg,
-    ) {
+    pub fn show_with<Msg>(self, ctx: &mut ViewCtx<'_, Msg>, on_event: impl Fn(RouterEvent) -> Msg) {
         if let Some(e) = self.show_internal(ctx.ui) {
             ctx.emit(on_event(e));
         }
@@ -359,9 +361,10 @@ impl<'a> OutputRouter<'a> {
                 let node_rect = Rect::from_center_size(pos, Vec2::splat(node_size + 4.0));
                 let resp = ui.allocate_rect(node_rect, Sense::click());
 
-                let connected = self.connections.iter().any(|c| {
-                    c.source_id == source.id && c.output_id == output.id
-                });
+                let connected = self
+                    .connections
+                    .iter()
+                    .any(|c| c.source_id == source.id && c.output_id == output.id);
 
                 matrix_infos.push(MatrixNodeInfo {
                     source_id: source.id.clone(),
@@ -388,14 +391,20 @@ impl<'a> OutputRouter<'a> {
         for (i, _) in self.sources.iter().enumerate() {
             let y = matrix_rect.min.y + node_size / 2.0 + i as f32 * source_spacing;
             painter.line_segment(
-                [Pos2::new(matrix_rect.min.x, y), Pos2::new(matrix_rect.max.x, y)],
+                [
+                    Pos2::new(matrix_rect.min.x, y),
+                    Pos2::new(matrix_rect.max.x, y),
+                ],
                 grid_stroke,
             );
         }
         for (i, _) in self.outputs.iter().enumerate() {
             let x = matrix_rect.min.x + node_size / 2.0 + i as f32 * output_spacing;
             painter.line_segment(
-                [Pos2::new(x, matrix_rect.min.y), Pos2::new(x, matrix_rect.max.y)],
+                [
+                    Pos2::new(x, matrix_rect.min.y),
+                    Pos2::new(x, matrix_rect.max.y),
+                ],
                 grid_stroke,
             );
         }
@@ -448,7 +457,10 @@ impl<'a> OutputRouter<'a> {
 
             // Source type indicator
             painter.text(
-                Pos2::new(info.rect.min.x + theme.spacing_xs, info.rect.max.y - theme.spacing_xs),
+                Pos2::new(
+                    info.rect.min.x + theme.spacing_xs,
+                    info.rect.max.y - theme.spacing_xs,
+                ),
                 egui::Align2::LEFT_BOTTOM,
                 source.source_type.label(),
                 egui::FontId::proportional(theme.font_size_xs * 0.8),
@@ -457,7 +469,11 @@ impl<'a> OutputRouter<'a> {
 
             // Connection node
             painter.circle_filled(info.node_pos, node_size / 2.0 - 2.0, color);
-            painter.circle_stroke(info.node_pos, node_size / 2.0, Stroke::new(1.0, theme.border));
+            painter.circle_stroke(
+                info.node_pos,
+                node_size / 2.0,
+                Stroke::new(1.0, theme.border),
+            );
         }
 
         // Draw outputs
@@ -465,7 +481,11 @@ impl<'a> OutputRouter<'a> {
             let is_selected = self.selected_output == Some(&output.id);
             let is_hovered = info.hovered;
 
-            let enabled_color = if output.enabled { theme.primary } else { theme.text_muted };
+            let enabled_color = if output.enabled {
+                theme.primary
+            } else {
+                theme.text_muted
+            };
             let bg = if is_selected {
                 enabled_color.gamma_multiply(0.3)
             } else if is_hovered {
@@ -482,7 +502,11 @@ impl<'a> OutputRouter<'a> {
                 egui::Align2::CENTER_CENTER,
                 output.output_type.icon(),
                 egui::FontId::proportional(theme.font_size_md),
-                if output.enabled { theme.text_primary } else { theme.text_muted },
+                if output.enabled {
+                    theme.text_primary
+                } else {
+                    theme.text_muted
+                },
             );
 
             // Output label
@@ -515,12 +539,20 @@ impl<'a> OutputRouter<'a> {
                 Pos2::new(info.node_pos.x, inner_rect.max.y - theme.spacing_sm - 8.0),
                 Vec2::splat(14.0),
             );
-            let toggle_bg = if output.enabled { theme.state_success } else { theme.bg_tertiary };
+            let toggle_bg = if output.enabled {
+                theme.state_success
+            } else {
+                theme.bg_tertiary
+            };
             painter.rect_filled(toggle_rect, 2.0, toggle_bg);
 
             // Connection node
             painter.circle_filled(info.node_pos, node_size / 2.0 - 2.0, enabled_color);
-            painter.circle_stroke(info.node_pos, node_size / 2.0, Stroke::new(1.0, theme.border));
+            painter.circle_stroke(
+                info.node_pos,
+                node_size / 2.0,
+                Stroke::new(1.0, theme.border),
+            );
         }
 
         // Draw matrix nodes
@@ -544,7 +576,12 @@ impl<'a> OutputRouter<'a> {
         }
 
         // Border
-        painter.rect_stroke(rect, theme.radius_md, Stroke::new(theme.border_width, theme.border), egui::StrokeKind::Inside);
+        painter.rect_stroke(
+            rect,
+            theme.radius_md,
+            Stroke::new(theme.border_width, theme.border),
+            egui::StrokeKind::Inside,
+        );
 
         // Process events
         for info in matrix_infos.iter() {

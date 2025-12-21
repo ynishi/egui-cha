@@ -168,7 +168,11 @@ impl<'a, Msg: Clone> Form<'a, Msg> {
                                     .color(theme.state_success)
                                     .size(14.0),
                             );
-                            ui.label(egui::RichText::new("Valid").color(theme.state_success).small());
+                            ui.label(
+                                egui::RichText::new("Valid")
+                                    .color(theme.state_success)
+                                    .small(),
+                            );
                         });
                     }
                     ValidationState::Invalid(msg) => {

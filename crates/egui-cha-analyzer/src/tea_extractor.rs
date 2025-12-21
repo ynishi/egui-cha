@@ -5,9 +5,7 @@
 //! - Msg -> State: `Msg::Increment => model.counter += 1` in update function
 
 use crate::types::{MsgEmission, MsgHandler, StateMutation};
-use syn::{
-    visit::Visit, Arm, BinOp, Expr, ExprMatch, ExprMethodCall, File, Pat,
-};
+use syn::{visit::Visit, Arm, BinOp, Expr, ExprMatch, ExprMethodCall, File, Pat};
 
 // ============================================================
 // DS Component -> Msg Extraction
@@ -57,7 +55,9 @@ impl<'ast> Visit<'ast> for EmissionVisitor {
 
         // Check for DS action methods
         if DS_ACTIONS.contains(&method_name.as_str()) {
-            if let Some(emission) = try_extract_emission(node, &self.file_path, &self.current_function) {
+            if let Some(emission) =
+                try_extract_emission(node, &self.file_path, &self.current_function)
+            {
                 self.emissions.push(emission);
             }
         }
@@ -115,14 +115,13 @@ fn extract_msg_arg(args: &syn::punctuated::Punctuated<Expr, syn::token::Comma>) 
 /// Convert an expression to a message string representation
 fn expr_to_msg_string(expr: &Expr) -> String {
     match expr {
-        Expr::Path(path) => {
-            path.path
-                .segments
-                .iter()
-                .map(|s| s.ident.to_string())
-                .collect::<Vec<_>>()
-                .join("::")
-        }
+        Expr::Path(path) => path
+            .path
+            .segments
+            .iter()
+            .map(|s| s.ident.to_string())
+            .collect::<Vec<_>>()
+            .join("::"),
         Expr::Call(call) => {
             // Msg::Variant(args)
             if let Expr::Path(path) = &*call.func {
@@ -164,7 +163,12 @@ fn extract_ds_component(expr: &Expr) -> Option<(String, String, Option<String>)>
         Expr::Call(call) => {
             // Button::new("label") style
             if let Expr::Path(path) = &*call.func {
-                let segments: Vec<_> = path.path.segments.iter().map(|s| s.ident.to_string()).collect();
+                let segments: Vec<_> = path
+                    .path
+                    .segments
+                    .iter()
+                    .map(|s| s.ident.to_string())
+                    .collect();
                 if segments.len() >= 2 {
                     let component = &segments[segments.len() - 2];
                     let variant = &segments[segments.len() - 1];
@@ -180,7 +184,9 @@ fn extract_ds_component(expr: &Expr) -> Option<(String, String, Option<String>)>
     }
 }
 
-fn extract_first_string_arg(args: &syn::punctuated::Punctuated<Expr, syn::token::Comma>) -> Option<String> {
+fn extract_first_string_arg(
+    args: &syn::punctuated::Punctuated<Expr, syn::token::Comma>,
+) -> Option<String> {
     for arg in args {
         if let Expr::Lit(expr_lit) = arg {
             if let syn::Lit::Str(lit_str) = &expr_lit.lit {
@@ -249,9 +255,13 @@ impl<'ast> Visit<'ast> for HandlerVisitor {
 
 fn expr_to_string(expr: &Expr) -> String {
     match expr {
-        Expr::Path(path) => {
-            path.path.segments.iter().map(|s| s.ident.to_string()).collect::<Vec<_>>().join("::")
-        }
+        Expr::Path(path) => path
+            .path
+            .segments
+            .iter()
+            .map(|s| s.ident.to_string())
+            .collect::<Vec<_>>()
+            .join("::"),
         _ => "<expr>".to_string(),
     }
 }
@@ -275,15 +285,27 @@ fn extract_handler_from_arm(arm: &Arm, file_path: &str) -> Option<MsgHandler> {
 
 fn pattern_to_string(pat: &Pat) -> String {
     match pat {
-        Pat::Path(path) => {
-            path.path.segments.iter().map(|s| s.ident.to_string()).collect::<Vec<_>>().join("::")
-        }
-        Pat::TupleStruct(ts) => {
-            ts.path.segments.iter().map(|s| s.ident.to_string()).collect::<Vec<_>>().join("::")
-        }
-        Pat::Struct(s) => {
-            s.path.segments.iter().map(|s| s.ident.to_string()).collect::<Vec<_>>().join("::")
-        }
+        Pat::Path(path) => path
+            .path
+            .segments
+            .iter()
+            .map(|s| s.ident.to_string())
+            .collect::<Vec<_>>()
+            .join("::"),
+        Pat::TupleStruct(ts) => ts
+            .path
+            .segments
+            .iter()
+            .map(|s| s.ident.to_string())
+            .collect::<Vec<_>>()
+            .join("::"),
+        Pat::Struct(s) => s
+            .path
+            .segments
+            .iter()
+            .map(|s| s.ident.to_string())
+            .collect::<Vec<_>>()
+            .join("::"),
         Pat::Ident(ident) => ident.ident.to_string(),
         _ => "<pattern>".to_string(),
     }
@@ -367,9 +389,13 @@ impl<'ast, 'a> Visit<'ast> for MutationExprVisitor<'a> {
 
 fn expr_to_target(expr: &Expr) -> String {
     match expr {
-        Expr::Path(path) => {
-            path.path.segments.iter().map(|s| s.ident.to_string()).collect::<Vec<_>>().join("::")
-        }
+        Expr::Path(path) => path
+            .path
+            .segments
+            .iter()
+            .map(|s| s.ident.to_string())
+            .collect::<Vec<_>>()
+            .join("::"),
         Expr::Field(field) => {
             let base = expr_to_target(&field.base);
             match &field.member {

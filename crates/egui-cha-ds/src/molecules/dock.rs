@@ -45,7 +45,10 @@ pub enum DockEvent<Tab> {
     /// Tab was closed (returns the closed tab)
     TabClosed(Tab),
     /// Add button clicked on surface
-    AddClicked { surface: SurfaceIndex, node: NodeIndex },
+    AddClicked {
+        surface: SurfaceIndex,
+        node: NodeIndex,
+    },
     /// Tab focus changed
     FocusChanged,
 }
@@ -119,9 +122,7 @@ impl<Tab> DockTree<Tab> {
 
     /// Get the number of tabs across all surfaces
     pub fn tab_count(&self) -> usize {
-        self.inner
-            .iter_all_tabs()
-            .count()
+        self.inner.iter_all_tabs().count()
     }
 }
 
@@ -264,11 +265,17 @@ impl<'a, Tab> DockArea<'a, Tab> {
 }
 
 /// Build egui_dock::Style from Theme
-fn build_dock_style(theme: &Theme, style: &DockStyle, egui_style: &egui::Style) -> egui_dock::Style {
+fn build_dock_style(
+    theme: &Theme,
+    style: &DockStyle,
+    egui_style: &egui::Style,
+) -> egui_dock::Style {
     let mut dock_style = egui_dock::Style::from_egui(egui_style);
 
     // Tab bar styling
-    dock_style.tab_bar.height = style.tab_bar_height.unwrap_or(theme.spacing_lg + theme.spacing_sm);
+    dock_style.tab_bar.height = style
+        .tab_bar_height
+        .unwrap_or(theme.spacing_lg + theme.spacing_sm);
     dock_style.tab_bar.fill_tab_bar = true;
     dock_style.tab_bar.bg_fill = theme.bg_primary;
 
@@ -378,11 +385,8 @@ pub mod layout {
         let surface = state.main_surface_mut();
 
         // Split the root node horizontally
-        let [_left_node, _right_node] = surface.split_right(
-            NodeIndex::root(),
-            1.0 - left_fraction,
-            vec![right],
-        );
+        let [_left_node, _right_node] =
+            surface.split_right(NodeIndex::root(), 1.0 - left_fraction, vec![right]);
 
         DockTree::from_state(state)
     }
@@ -393,11 +397,8 @@ pub mod layout {
         let surface = state.main_surface_mut();
 
         // Split the root node vertically
-        let [_top_node, _bottom_node] = surface.split_below(
-            NodeIndex::root(),
-            1.0 - top_fraction,
-            vec![bottom],
-        );
+        let [_top_node, _bottom_node] =
+            surface.split_below(NodeIndex::root(), 1.0 - top_fraction, vec![bottom]);
 
         DockTree::from_state(state)
     }
@@ -414,18 +415,12 @@ pub mod layout {
         let surface = state.main_surface_mut();
 
         // Add left panel
-        let [_left_node, center_node] = surface.split_left(
-            NodeIndex::root(),
-            left_frac,
-            vec![left],
-        );
+        let [_left_node, center_node] =
+            surface.split_left(NodeIndex::root(), left_frac, vec![left]);
 
         // Add right panel
-        let [_center_node, _right_node] = surface.split_right(
-            center_node,
-            right_frac / (1.0 - left_frac),
-            vec![right],
-        );
+        let [_center_node, _right_node] =
+            surface.split_right(center_node, right_frac / (1.0 - left_frac), vec![right]);
 
         DockTree::from_state(state)
     }
@@ -445,25 +440,16 @@ pub mod layout {
         let surface = state.main_surface_mut();
 
         // Add browser on left
-        let [_browser_node, center_node] = surface.split_left(
-            NodeIndex::root(),
-            0.2,
-            vec![browser],
-        );
+        let [_browser_node, center_node] =
+            surface.split_left(NodeIndex::root(), 0.2, vec![browser]);
 
         // Add inspector on right
-        let [_center_node, _inspector_node] = surface.split_right(
-            center_node,
-            0.25,
-            vec![inspector],
-        );
+        let [_center_node, _inspector_node] =
+            surface.split_right(center_node, 0.25, vec![inspector]);
 
         // Add timeline at bottom (spans full width by splitting the root)
-        let [_top_node, _timeline_node] = surface.split_below(
-            NodeIndex::root(),
-            0.25,
-            vec![timeline],
-        );
+        let [_top_node, _timeline_node] =
+            surface.split_below(NodeIndex::root(), 0.25, vec![timeline]);
 
         DockTree::from_state(state)
     }
@@ -488,19 +474,12 @@ pub mod layout {
         let surface = state.main_surface_mut();
 
         // Add sidebar on left
-        let [_sidebar_node, editor_node] = surface.split_left(
-            NodeIndex::root(),
-            0.2,
-            vec![sidebar],
-        );
+        let [_sidebar_node, editor_node] =
+            surface.split_left(NodeIndex::root(), 0.2, vec![sidebar]);
 
         // Add terminals below editors
         if !terminals.is_empty() {
-            let [_editor_node, _terminal_node] = surface.split_below(
-                editor_node,
-                0.3,
-                terminals,
-            );
+            let [_editor_node, _terminal_node] = surface.split_below(editor_node, 0.3, terminals);
         }
 
         DockTree::from_state(state)

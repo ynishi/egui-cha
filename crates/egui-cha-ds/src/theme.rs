@@ -144,10 +144,10 @@ impl Theme {
             text_muted: Color32::from_rgb(156, 163, 175),
 
             // UI State (for buttons, badges, alerts)
-            state_success: Color32::from_rgb(34, 197, 94),   // green-500
-            state_warning: Color32::from_rgb(245, 158, 11),  // amber-500
-            state_danger: Color32::from_rgb(239, 68, 68),    // red-500
-            state_info: Color32::from_rgb(14, 165, 233),     // sky-500
+            state_success: Color32::from_rgb(34, 197, 94), // green-500
+            state_warning: Color32::from_rgb(245, 158, 11), // amber-500
+            state_danger: Color32::from_rgb(239, 68, 68),  // red-500
+            state_info: Color32::from_rgb(14, 165, 233),   // sky-500
 
             // UI State text (on state background)
             state_success_text: Color32::WHITE,
@@ -156,17 +156,17 @@ impl Theme {
             state_info_text: Color32::WHITE,
 
             // UI State hover
-            state_success_hover: Color32::from_rgb(22, 163, 74),   // green-600
-            state_warning_hover: Color32::from_rgb(217, 119, 6),   // amber-600
-            state_danger_hover: Color32::from_rgb(220, 38, 38),    // red-600
-            state_info_hover: Color32::from_rgb(2, 132, 199),      // sky-600
+            state_success_hover: Color32::from_rgb(22, 163, 74), // green-600
+            state_warning_hover: Color32::from_rgb(217, 119, 6), // amber-600
+            state_danger_hover: Color32::from_rgb(220, 38, 38),  // red-600
+            state_info_hover: Color32::from_rgb(2, 132, 199),    // sky-600
 
             // Log Severity (for log viewers, console output)
-            log_debug: Color32::from_rgb(156, 163, 175),   // gray-400
-            log_info: Color32::from_rgb(59, 130, 246),     // blue-500
-            log_warn: Color32::from_rgb(245, 158, 11),     // amber-500
-            log_error: Color32::from_rgb(239, 68, 68),     // red-500
-            log_critical: Color32::from_rgb(190, 24, 93),  // pink-700
+            log_debug: Color32::from_rgb(156, 163, 175), // gray-400
+            log_info: Color32::from_rgb(59, 130, 246),   // blue-500
+            log_warn: Color32::from_rgb(245, 158, 11),   // amber-500
+            log_error: Color32::from_rgb(239, 68, 68),   // red-500
+            log_critical: Color32::from_rgb(190, 24, 93), // pink-700
 
             // Border
             border: Color32::from_rgb(229, 231, 235),
@@ -231,10 +231,10 @@ impl Theme {
             text_muted: Color32::from_rgb(156, 163, 175),
 
             // UI State (for buttons, badges, alerts)
-            state_success: Color32::from_rgb(74, 222, 128),   // green-400
-            state_warning: Color32::from_rgb(251, 191, 36),   // amber-400
-            state_danger: Color32::from_rgb(248, 113, 113),   // red-400
-            state_info: Color32::from_rgb(56, 189, 248),      // sky-400
+            state_success: Color32::from_rgb(74, 222, 128), // green-400
+            state_warning: Color32::from_rgb(251, 191, 36), // amber-400
+            state_danger: Color32::from_rgb(248, 113, 113), // red-400
+            state_info: Color32::from_rgb(56, 189, 248),    // sky-400
 
             // UI State text (on state background) - dark text for light bg
             state_success_text: Color32::from_rgb(17, 24, 39),
@@ -243,16 +243,16 @@ impl Theme {
             state_info_text: Color32::from_rgb(17, 24, 39),
 
             // UI State hover
-            state_success_hover: Color32::from_rgb(34, 197, 94),   // green-500
-            state_warning_hover: Color32::from_rgb(245, 158, 11),  // amber-500
-            state_danger_hover: Color32::from_rgb(239, 68, 68),    // red-500
-            state_info_hover: Color32::from_rgb(14, 165, 233),     // sky-500
+            state_success_hover: Color32::from_rgb(34, 197, 94), // green-500
+            state_warning_hover: Color32::from_rgb(245, 158, 11), // amber-500
+            state_danger_hover: Color32::from_rgb(239, 68, 68),  // red-500
+            state_info_hover: Color32::from_rgb(14, 165, 233),   // sky-500
 
             // Log Severity (for log viewers, console output)
-            log_debug: Color32::from_rgb(209, 213, 219),   // gray-300
-            log_info: Color32::from_rgb(96, 165, 250),     // blue-400
-            log_warn: Color32::from_rgb(251, 191, 36),     // amber-400
-            log_error: Color32::from_rgb(248, 113, 113),   // red-400
+            log_debug: Color32::from_rgb(209, 213, 219), // gray-300
+            log_info: Color32::from_rgb(96, 165, 250),   // blue-400
+            log_warn: Color32::from_rgb(251, 191, 36),   // amber-400
+            log_error: Color32::from_rgb(248, 113, 113), // red-400
             log_critical: Color32::from_rgb(244, 114, 182), // pink-400
 
             // Border
@@ -390,7 +390,11 @@ impl Theme {
             }
             Some(blur) => {
                 // Subtle fixed shadow
-                let alpha = if self.variant == ThemeVariant::Dark { 60 } else { 30 };
+                let alpha = if self.variant == ThemeVariant::Dark {
+                    60
+                } else {
+                    30
+                };
                 visuals.window_shadow = egui::Shadow {
                     offset: [0, 2],
                     blur: blur as u8,
@@ -402,26 +406,21 @@ impl Theme {
         }
 
         // Typography - Configure text styles
-        style.text_styles.insert(
-            TextStyle::Small,
-            FontId::proportional(self.font_size_sm),
-        );
-        style.text_styles.insert(
-            TextStyle::Body,
-            FontId::proportional(self.font_size_md),
-        );
-        style.text_styles.insert(
-            TextStyle::Button,
-            FontId::proportional(self.font_size_md),
-        );
-        style.text_styles.insert(
-            TextStyle::Heading,
-            FontId::proportional(self.font_size_xl),
-        );
-        style.text_styles.insert(
-            TextStyle::Monospace,
-            FontId::monospace(self.font_size_md),
-        );
+        style
+            .text_styles
+            .insert(TextStyle::Small, FontId::proportional(self.font_size_sm));
+        style
+            .text_styles
+            .insert(TextStyle::Body, FontId::proportional(self.font_size_md));
+        style
+            .text_styles
+            .insert(TextStyle::Button, FontId::proportional(self.font_size_md));
+        style
+            .text_styles
+            .insert(TextStyle::Heading, FontId::proportional(self.font_size_xl));
+        style
+            .text_styles
+            .insert(TextStyle::Monospace, FontId::monospace(self.font_size_md));
 
         // Spacing - Apply theme spacing to egui
         style.spacing.item_spacing = egui::vec2(self.spacing_sm, self.spacing_sm);
@@ -576,53 +575,53 @@ impl Theme {
             variant: ThemeVariant::Light,
 
             // Primary - Soft lavender
-            primary: Color32::from_rgb(167, 139, 250),      // violet-400
+            primary: Color32::from_rgb(167, 139, 250), // violet-400
             primary_hover: Color32::from_rgb(139, 92, 246), // violet-500
             primary_text: Color32::WHITE,
 
             // Secondary - Soft pink
-            secondary: Color32::from_rgb(244, 114, 182),     // pink-400
+            secondary: Color32::from_rgb(244, 114, 182), // pink-400
             secondary_hover: Color32::from_rgb(236, 72, 153), // pink-500
             secondary_text: Color32::WHITE,
 
             // Background - Cream/off-white
-            bg_primary: Color32::from_rgb(255, 251, 245),    // warm white
-            bg_secondary: Color32::from_rgb(254, 243, 235),  // peach-50
-            bg_tertiary: Color32::from_rgb(253, 235, 223),   // peach-100
+            bg_primary: Color32::from_rgb(255, 251, 245), // warm white
+            bg_secondary: Color32::from_rgb(254, 243, 235), // peach-50
+            bg_tertiary: Color32::from_rgb(253, 235, 223), // peach-100
 
             // Text - Soft dark
-            text_primary: Color32::from_rgb(64, 57, 72),     // muted purple-gray
+            text_primary: Color32::from_rgb(64, 57, 72), // muted purple-gray
             text_secondary: Color32::from_rgb(107, 98, 116), // lighter
-            text_muted: Color32::from_rgb(156, 148, 163),    // even lighter
+            text_muted: Color32::from_rgb(156, 148, 163), // even lighter
 
             // UI State (for buttons, badges, alerts) - Pastel versions
-            state_success: Color32::from_rgb(134, 239, 172),   // green-300
-            state_warning: Color32::from_rgb(253, 224, 71),    // yellow-300
-            state_danger: Color32::from_rgb(253, 164, 175),    // rose-300
-            state_info: Color32::from_rgb(147, 197, 253),      // blue-300
+            state_success: Color32::from_rgb(134, 239, 172), // green-300
+            state_warning: Color32::from_rgb(253, 224, 71),  // yellow-300
+            state_danger: Color32::from_rgb(253, 164, 175),  // rose-300
+            state_info: Color32::from_rgb(147, 197, 253),    // blue-300
 
             // UI State text
-            state_success_text: Color32::from_rgb(22, 101, 52),   // green-800
-            state_warning_text: Color32::from_rgb(133, 77, 14),   // amber-800
-            state_danger_text: Color32::from_rgb(159, 18, 57),    // rose-800
-            state_info_text: Color32::from_rgb(30, 64, 175),      // blue-800
+            state_success_text: Color32::from_rgb(22, 101, 52), // green-800
+            state_warning_text: Color32::from_rgb(133, 77, 14), // amber-800
+            state_danger_text: Color32::from_rgb(159, 18, 57),  // rose-800
+            state_info_text: Color32::from_rgb(30, 64, 175),    // blue-800
 
             // UI State hover
-            state_success_hover: Color32::from_rgb(74, 222, 128),  // green-400
-            state_warning_hover: Color32::from_rgb(250, 204, 21),  // yellow-400
-            state_danger_hover: Color32::from_rgb(251, 113, 133),  // rose-400
-            state_info_hover: Color32::from_rgb(96, 165, 250),     // blue-400
+            state_success_hover: Color32::from_rgb(74, 222, 128), // green-400
+            state_warning_hover: Color32::from_rgb(250, 204, 21), // yellow-400
+            state_danger_hover: Color32::from_rgb(251, 113, 133), // rose-400
+            state_info_hover: Color32::from_rgb(96, 165, 250),    // blue-400
 
             // Log Severity (for log viewers, console output)
-            log_debug: Color32::from_rgb(156, 148, 163),   // muted purple-gray
-            log_info: Color32::from_rgb(96, 165, 250),     // blue-400
-            log_warn: Color32::from_rgb(250, 204, 21),     // yellow-400
-            log_error: Color32::from_rgb(251, 113, 133),   // rose-400
+            log_debug: Color32::from_rgb(156, 148, 163), // muted purple-gray
+            log_info: Color32::from_rgb(96, 165, 250),   // blue-400
+            log_warn: Color32::from_rgb(250, 204, 21),   // yellow-400
+            log_error: Color32::from_rgb(251, 113, 133), // rose-400
             log_critical: Color32::from_rgb(236, 72, 153), // pink-500
 
             // Border - Soft
-            border: Color32::from_rgb(233, 213, 202),        // warm gray
-            border_focus: Color32::from_rgb(167, 139, 250),  // violet-400
+            border: Color32::from_rgb(233, 213, 202), // warm gray
+            border_focus: Color32::from_rgb(167, 139, 250), // violet-400
 
             // Spacing (modern, spacious)
             spacing_xs: 6.0,
@@ -663,30 +662,30 @@ impl Theme {
             variant: ThemeVariant::Dark,
 
             // Primary - Soft lavender
-            primary: Color32::from_rgb(196, 181, 253),       // violet-300
+            primary: Color32::from_rgb(196, 181, 253), // violet-300
             primary_hover: Color32::from_rgb(167, 139, 250), // violet-400
-            primary_text: Color32::from_rgb(30, 27, 38),     // dark purple
+            primary_text: Color32::from_rgb(30, 27, 38), // dark purple
 
             // Secondary - Soft pink
-            secondary: Color32::from_rgb(249, 168, 212),      // pink-300
+            secondary: Color32::from_rgb(249, 168, 212), // pink-300
             secondary_hover: Color32::from_rgb(244, 114, 182), // pink-400
             secondary_text: Color32::from_rgb(30, 27, 38),
 
             // Background - Deep purple-gray
-            bg_primary: Color32::from_rgb(24, 22, 32),       // deep purple
-            bg_secondary: Color32::from_rgb(32, 29, 43),     // slightly lighter
-            bg_tertiary: Color32::from_rgb(45, 41, 58),      // even lighter
+            bg_primary: Color32::from_rgb(24, 22, 32), // deep purple
+            bg_secondary: Color32::from_rgb(32, 29, 43), // slightly lighter
+            bg_tertiary: Color32::from_rgb(45, 41, 58), // even lighter
 
             // Text - Soft light
-            text_primary: Color32::from_rgb(243, 237, 255),  // soft white
+            text_primary: Color32::from_rgb(243, 237, 255), // soft white
             text_secondary: Color32::from_rgb(196, 189, 210),
             text_muted: Color32::from_rgb(140, 133, 156),
 
             // UI State (for buttons, badges, alerts) - Muted pastel on dark
-            state_success: Color32::from_rgb(74, 222, 128),    // green-400
-            state_warning: Color32::from_rgb(250, 204, 21),    // yellow-400
-            state_danger: Color32::from_rgb(251, 113, 133),    // rose-400
-            state_info: Color32::from_rgb(96, 165, 250),       // blue-400
+            state_success: Color32::from_rgb(74, 222, 128), // green-400
+            state_warning: Color32::from_rgb(250, 204, 21), // yellow-400
+            state_danger: Color32::from_rgb(251, 113, 133), // rose-400
+            state_info: Color32::from_rgb(96, 165, 250),    // blue-400
 
             // UI State text (dark on light bg)
             state_success_text: Color32::from_rgb(20, 30, 25),
@@ -701,10 +700,10 @@ impl Theme {
             state_info_hover: Color32::from_rgb(147, 197, 253),
 
             // Log Severity (for log viewers, console output)
-            log_debug: Color32::from_rgb(140, 133, 156),   // muted
-            log_info: Color32::from_rgb(147, 197, 253),    // blue-300
-            log_warn: Color32::from_rgb(253, 224, 71),     // yellow-300
-            log_error: Color32::from_rgb(253, 164, 175),   // rose-300
+            log_debug: Color32::from_rgb(140, 133, 156), // muted
+            log_info: Color32::from_rgb(147, 197, 253),  // blue-300
+            log_warn: Color32::from_rgb(253, 224, 71),   // yellow-300
+            log_error: Color32::from_rgb(253, 164, 175), // rose-300
             log_critical: Color32::from_rgb(249, 168, 212), // pink-300
 
             // Border

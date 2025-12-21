@@ -31,20 +31,31 @@ mod button;
 mod severity_log;
 
 pub use button::{
-    // Display style
-    ButtonStyle,
-    // File operations
-    save, close, delete, edit,
     // Common actions
-    add, remove, search, refresh, settings,
-    // Media
-    play, pause, stop,
+    add,
+    // Navigation
+    back,
+    cancel,
+    close,
+    // Confirmation
+    confirm,
     // Clipboard
     copy,
-    // Navigation
-    back, forward,
-    // Confirmation
-    confirm, cancel,
+    delete,
+    edit,
+    forward,
+    pause,
+    // Media
+    play,
+    refresh,
+    remove,
+    // File operations
+    save,
+    search,
+    settings,
+    stop,
+    // Display style
+    ButtonStyle,
 };
 
 pub use severity_log::{LogSeverity, SeverityLog};

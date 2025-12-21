@@ -175,15 +175,15 @@ impl<'a> ButtonGroup<'a> {
                 theme.font_size_sm,
                 theme.spacing_md,
             ),
-            GroupSize::Large => (
-                theme.spacing_xl,
-                theme.font_size_md,
-                theme.spacing_lg,
-            ),
+            GroupSize::Large => (theme.spacing_xl, theme.font_size_md, theme.spacing_lg),
         };
 
         // Calculate total size
-        let available_width = if self.expand { ui.available_width() } else { 0.0 };
+        let available_width = if self.expand {
+            ui.available_width()
+        } else {
+            0.0
+        };
 
         let mut total_response: Option<Response> = None;
         let mut changed = false;
@@ -265,9 +265,8 @@ impl<'a> ButtonGroup<'a> {
             }
         }
 
-        let mut response = total_response.unwrap_or_else(|| {
-            ui.allocate_response(Vec2::ZERO, Sense::hover())
-        });
+        let mut response =
+            total_response.unwrap_or_else(|| ui.allocate_response(Vec2::ZERO, Sense::hover()));
 
         if changed {
             response.mark_changed();
@@ -301,7 +300,11 @@ impl<'a> ButtonGroup<'a> {
 
         let (rect, response) = ui.allocate_exact_size(
             Vec2::new(button_width, height),
-            if self.disabled { Sense::hover() } else { Sense::click() },
+            if self.disabled {
+                Sense::hover()
+            } else {
+                Sense::click()
+            },
         );
 
         if ui.is_rect_visible(rect) {

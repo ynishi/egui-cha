@@ -148,7 +148,11 @@ impl<'a> Fader<'a> {
 
         let (rect, mut response) = ui.allocate_exact_size(
             Vec2::new(width, total_height),
-            if self.disabled { Sense::hover() } else { Sense::click_and_drag() },
+            if self.disabled {
+                Sense::hover()
+            } else {
+                Sense::click_and_drag()
+            },
         );
 
         // Track area (the draggable part)
@@ -212,7 +216,8 @@ impl<'a> Fader<'a> {
             );
 
             // Fill (from bottom to current value)
-            let normalized = (*value - *self.range.start()) / (*self.range.end() - *self.range.start());
+            let normalized =
+                (*value - *self.range.start()) / (*self.range.end() - *self.range.start());
             let fill_height = normalized as f32 * (track_inner.height() - theme.spacing_sm);
             let fill_rect = egui::Rect::from_min_max(
                 egui::Pos2::new(
@@ -227,7 +232,10 @@ impl<'a> Fader<'a> {
             if fill_height > 0.0 {
                 let fill_alpha = if self.disabled { 80 } else { 150 };
                 let fill_color_alpha = egui::Color32::from_rgba_unmultiplied(
-                    fill_color.r(), fill_color.g(), fill_color.b(), fill_alpha,
+                    fill_color.r(),
+                    fill_color.g(),
+                    fill_color.b(),
+                    fill_alpha,
                 );
                 painter.rect_filled(fill_rect, theme.radius_sm * 0.5, fill_color_alpha);
             }
@@ -242,7 +250,11 @@ impl<'a> Fader<'a> {
             painter.rect_filled(thumb_rect, theme.radius_sm * 0.5, thumb_color);
 
             // Thumb grip lines
-            let grip_color = if self.disabled { theme.bg_tertiary } else { theme.bg_primary };
+            let grip_color = if self.disabled {
+                theme.bg_tertiary
+            } else {
+                theme.bg_primary
+            };
             for i in [-1, 0, 1] {
                 let y = thumb_y + i as f32 * 2.0;
                 painter.line_segment(
@@ -274,7 +286,11 @@ impl<'a> Fader<'a> {
                     egui::Align2::CENTER_CENTER,
                     &value_text,
                     egui::FontId::proportional(theme.font_size_xs),
-                    if self.disabled { theme.text_muted } else { theme.text_primary },
+                    if self.disabled {
+                        theme.text_muted
+                    } else {
+                        theme.text_primary
+                    },
                 );
             }
 
@@ -286,7 +302,11 @@ impl<'a> Fader<'a> {
                     egui::Align2::CENTER_CENTER,
                     label,
                     egui::FontId::proportional(theme.font_size_xs),
-                    if self.disabled { theme.text_muted } else { theme.text_secondary },
+                    if self.disabled {
+                        theme.text_muted
+                    } else {
+                        theme.text_secondary
+                    },
                 );
             }
         }

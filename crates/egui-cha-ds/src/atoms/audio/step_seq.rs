@@ -184,10 +184,8 @@ impl<'a> StepSeq<'a> {
         let total_width = self.label_width + theme.spacing_sm + grid_width;
         let total_height = header_height + grid_height;
 
-        let (rect, _) = ui.allocate_exact_size(
-            Vec2::new(total_width, total_height),
-            Sense::hover(),
-        );
+        let (rect, _) =
+            ui.allocate_exact_size(Vec2::new(total_width, total_height), Sense::hover());
 
         if !ui.is_rect_visible(rect) {
             return None;
@@ -220,10 +218,7 @@ impl<'a> StepSeq<'a> {
 
             for step in 0..self.steps {
                 let step_x = grid_start_x + step as f32 * (self.step_size.x + self.spacing);
-                let step_rect = Rect::from_min_size(
-                    egui::pos2(step_x, track_y),
-                    self.step_size,
-                );
+                let step_rect = Rect::from_min_size(egui::pos2(step_x, track_y), self.step_size);
 
                 let step_value = pattern
                     .get(track)
@@ -336,9 +331,7 @@ impl<'a> StepSeq<'a> {
                     );
                     (bg, step_info.track_color)
                 }
-                StepValue::Accent => {
-                    (step_info.track_color, theme.state_warning)
-                }
+                StepValue::Accent => (step_info.track_color, theme.state_warning),
                 StepValue::Velocity(v) => {
                     let bg = Color32::from_rgba_unmultiplied(
                         step_info.track_color.r(),
@@ -374,7 +367,8 @@ impl<'a> StepSeq<'a> {
             // Accent indicator (small triangle)
             if matches!(step_info.value, StepValue::Accent) {
                 let indicator_size = 4.0;
-                let center = step_info.rect.right_top() + Vec2::new(-indicator_size - 1.0, indicator_size + 1.0);
+                let center = step_info.rect.right_top()
+                    + Vec2::new(-indicator_size - 1.0, indicator_size + 1.0);
                 let points = vec![
                     egui::pos2(center.x, center.y - indicator_size),
                     egui::pos2(center.x - indicator_size, center.y),
@@ -390,7 +384,8 @@ impl<'a> StepSeq<'a> {
 
         // Draw playhead line
         if let Some(step) = self.playhead {
-            let line_x = grid_start_x + step as f32 * (self.step_size.x + self.spacing)
+            let line_x = grid_start_x
+                + step as f32 * (self.step_size.x + self.spacing)
                 + self.step_size.x / 2.0;
             painter.line_segment(
                 [

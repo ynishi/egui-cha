@@ -38,9 +38,7 @@ impl CrossfaderCurve {
         let normalized = (value + 1.0) / 2.0; // 0.0 to 1.0
 
         match self {
-            CrossfaderCurve::Linear => {
-                (1.0 - normalized, normalized)
-            }
+            CrossfaderCurve::Linear => (1.0 - normalized, normalized),
             CrossfaderCurve::EqualPower => {
                 let angle = normalized * std::f32::consts::FRAC_PI_2;
                 (angle.cos(), angle.sin())
@@ -173,11 +171,7 @@ impl<'a> CrossFader<'a> {
     }
 
     /// TEA-style: Show crossfader and emit value changes
-    pub fn show_with<Msg>(
-        self,
-        ctx: &mut ViewCtx<'_, Msg>,
-        on_change: impl FnOnce(f32) -> Msg,
-    ) {
+    pub fn show_with<Msg>(self, ctx: &mut ViewCtx<'_, Msg>, on_change: impl FnOnce(f32) -> Msg) {
         if let Some(new_value) = self.render(ctx.ui) {
             ctx.emit(on_change(new_value));
         }
@@ -210,10 +204,8 @@ impl<'a> CrossFader<'a> {
 
         let full_height = total_height + label_height + level_height;
 
-        let (rect, response) = ui.allocate_exact_size(
-            Vec2::new(total_width, full_height),
-            Sense::click_and_drag(),
-        );
+        let (rect, response) =
+            ui.allocate_exact_size(Vec2::new(total_width, full_height), Sense::click_and_drag());
 
         if !ui.is_rect_visible(rect) {
             return None;
@@ -226,7 +218,11 @@ impl<'a> CrossFader<'a> {
             } else {
                 -response.drag_delta().y
             };
-            let range = if is_horizontal { total_width } else { total_height };
+            let range = if is_horizontal {
+                total_width
+            } else {
+                total_height
+            };
             let delta_normalized = delta / (range * 0.5);
             let new_val = (self.value + delta_normalized).clamp(-1.0, 1.0);
             new_value = Some(new_val);
@@ -291,10 +287,7 @@ impl<'a> CrossFader<'a> {
         let thumb_x = track_rect.min.x + thumb_pos * track_rect.width();
 
         // A side fill
-        let a_rect = Rect::from_min_max(
-            track_rect.min,
-            egui::pos2(center_x, track_rect.max.y),
-        );
+        let a_rect = Rect::from_min_max(track_rect.min, egui::pos2(center_x, track_rect.max.y));
         let a_fill = Color32::from_rgba_unmultiplied(
             color_a.r(),
             color_a.g(),
@@ -304,10 +297,7 @@ impl<'a> CrossFader<'a> {
         painter.rect_filled(a_rect, theme.radius_sm, a_fill);
 
         // B side fill
-        let b_rect = Rect::from_min_max(
-            egui::pos2(center_x, track_rect.min.y),
-            track_rect.max,
-        );
+        let b_rect = Rect::from_min_max(egui::pos2(center_x, track_rect.min.y), track_rect.max);
         let b_fill = Color32::from_rgba_unmultiplied(
             color_b.r(),
             color_b.g(),

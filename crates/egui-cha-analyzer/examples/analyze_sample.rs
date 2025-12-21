@@ -73,18 +73,37 @@ fn show_ui(ui: &mut egui::Ui, state: &mut AppState) {
 
             println!("\nActions ({}):", analysis.actions.len());
             for action in &analysis.actions {
-                println!("  - {}.{}() in {}()", action.source, action.action_type, action.context);
+                println!(
+                    "  - {}.{}() in {}()",
+                    action.source, action.action_type, action.context
+                );
             }
 
             println!("\nState Mutations ({}):", analysis.state_mutations.len());
             for mutation in &analysis.state_mutations {
-                println!("  - {} [{}] in {}()", mutation.target, mutation.mutation_type, mutation.context);
+                println!(
+                    "  - {} [{}] in {}()",
+                    mutation.target, mutation.mutation_type, mutation.context
+                );
             }
 
-            println!("\n=== UI Flows (Scope-Aware) ({}) ===\n", analysis.flows.len());
+            println!(
+                "\n=== UI Flows (Scope-Aware) ({}) ===\n",
+                analysis.flows.len()
+            );
             for (i, flow) in analysis.flows.iter().enumerate() {
-                let ui_label = flow.ui_element.label.as_deref().unwrap_or(&flow.ui_element.element_type);
-                println!("Flow {}: {} \"{}\" -> .{}()", i + 1, flow.ui_element.element_type, ui_label, flow.action.action_type);
+                let ui_label = flow
+                    .ui_element
+                    .label
+                    .as_deref()
+                    .unwrap_or(&flow.ui_element.element_type);
+                println!(
+                    "Flow {}: {} \"{}\" -> .{}()",
+                    i + 1,
+                    flow.ui_element.element_type,
+                    ui_label,
+                    flow.action.action_type
+                );
                 for mutation in &flow.state_mutations {
                     println!("    -> {} [{}]", mutation.target, mutation.mutation_type);
                 }

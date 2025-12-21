@@ -276,11 +276,7 @@ impl<'a> EffectRack<'a> {
     }
 
     /// TEA-style: Show rack and emit events
-    pub fn show_with<Msg>(
-        self,
-        ctx: &mut ViewCtx<'_, Msg>,
-        on_event: impl Fn(RackEvent) -> Msg,
-    ) {
+    pub fn show_with<Msg>(self, ctx: &mut ViewCtx<'_, Msg>, on_event: impl Fn(RackEvent) -> Msg) {
         if let Some(event) = self.render(ctx.ui) {
             ctx.emit(on_event(event));
         }
@@ -322,7 +318,8 @@ impl<'a> EffectRack<'a> {
             }
         };
 
-        let (rect, _) = ui.allocate_exact_size(Vec2::new(total_width, total_height), Sense::hover());
+        let (rect, _) =
+            ui.allocate_exact_size(Vec2::new(total_width, total_height), Sense::hover());
 
         if !ui.is_rect_visible(rect) {
             return None;
@@ -569,11 +566,18 @@ impl<'a> EffectRack<'a> {
             painter.rect_filled(info.effect_rect, theme.radius_sm, info.bg_color);
 
             // Category color bar
-            let bar_rect = Rect::from_min_size(info.effect_rect.min, Vec2::new(4.0, info.effect_rect.height()));
+            let bar_rect = Rect::from_min_size(
+                info.effect_rect.min,
+                Vec2::new(4.0, info.effect_rect.height()),
+            );
             painter.rect_filled(bar_rect, theme.radius_sm, info.category_color);
 
             // Draw toggle
-            painter.circle_filled(info.toggle_rect.center(), toggle_size / 2.0 - 2.0, info.toggle_color);
+            painter.circle_filled(
+                info.toggle_rect.center(),
+                toggle_size / 2.0 - 2.0,
+                info.toggle_color,
+            );
             painter.circle_stroke(
                 info.toggle_rect.center(),
                 toggle_size / 2.0 - 2.0,
@@ -582,7 +586,10 @@ impl<'a> EffectRack<'a> {
 
             // Effect name
             painter.text(
-                egui::pos2(info.content_rect.min.x + toggle_size + 4.0, info.content_rect.min.y + toggle_size / 2.0),
+                egui::pos2(
+                    info.content_rect.min.x + toggle_size + 4.0,
+                    info.content_rect.min.y + toggle_size / 2.0,
+                ),
                 egui::Align2::LEFT_CENTER,
                 &effect.name,
                 egui::FontId::proportional(if self.compact {
@@ -596,7 +603,10 @@ impl<'a> EffectRack<'a> {
             // Category label
             if !self.compact {
                 painter.text(
-                    egui::pos2(info.content_rect.max.x - 4.0, info.content_rect.min.y + toggle_size / 2.0),
+                    egui::pos2(
+                        info.content_rect.max.x - 4.0,
+                        info.content_rect.min.y + toggle_size / 2.0,
+                    ),
                     egui::Align2::RIGHT_CENTER,
                     effect.category.label(),
                     egui::FontId::proportional(theme.font_size_xs * 0.8),
@@ -623,7 +633,8 @@ impl<'a> EffectRack<'a> {
             // Parameters (if not compact and show_params)
             if self.show_params && !self.compact && !effect.params.is_empty() {
                 let params_y = info.content_rect.min.y + toggle_size + 8.0;
-                let param_width = (info.content_rect.width() - 4.0) / effect.params.len().min(3) as f32;
+                let param_width =
+                    (info.content_rect.width() - 4.0) / effect.params.len().min(3) as f32;
 
                 for (param_idx, param) in effect.params.iter().take(3).enumerate() {
                     let param_x = info.content_rect.min.x + param_idx as f32 * param_width;
@@ -714,7 +725,9 @@ impl<'a> EffectRack<'a> {
                                 Pos2::new(info.effect_rect.min.x, info.effect_rect.min.y),
                                 Pos2::new(info.effect_rect.max.x, info.effect_rect.min.y),
                             );
-                        } else if drop_idx == info.effect_idx + 1 && info.effect_idx == self.effects.len() - 1 {
+                        } else if drop_idx == info.effect_idx + 1
+                            && info.effect_idx == self.effects.len() - 1
+                        {
                             draw_line(
                                 Pos2::new(info.effect_rect.min.x, info.effect_rect.max.y),
                                 Pos2::new(info.effect_rect.max.x, info.effect_rect.max.y),
@@ -727,7 +740,9 @@ impl<'a> EffectRack<'a> {
                                 Pos2::new(info.effect_rect.min.x, info.effect_rect.min.y),
                                 Pos2::new(info.effect_rect.min.x, info.effect_rect.max.y),
                             );
-                        } else if drop_idx == info.effect_idx + 1 && info.effect_idx == self.effects.len() - 1 {
+                        } else if drop_idx == info.effect_idx + 1
+                            && info.effect_idx == self.effects.len() - 1
+                        {
                             draw_line(
                                 Pos2::new(info.effect_rect.max.x, info.effect_rect.min.y),
                                 Pos2::new(info.effect_rect.max.x, info.effect_rect.max.y),

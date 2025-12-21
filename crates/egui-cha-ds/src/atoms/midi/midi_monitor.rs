@@ -233,10 +233,7 @@ impl<'a> MidiMonitor<'a> {
         let header_height = if self.show_device_name { 24.0 } else { 0.0 };
         let content_height = self.height - header_height;
 
-        let (rect, _) = ui.allocate_exact_size(
-            Vec2::new(self.width, self.height),
-            Sense::hover(),
-        );
+        let (rect, _) = ui.allocate_exact_size(Vec2::new(self.width, self.height), Sense::hover());
 
         if !ui.is_rect_visible(rect) {
             return;
@@ -304,10 +301,8 @@ impl<'a> MidiMonitor<'a> {
             }
             MonitorMode::Split => {
                 let half_width = self.width / 2.0 - 2.0;
-                let left_rect = Rect::from_min_size(
-                    content_rect.min,
-                    Vec2::new(half_width, content_height),
-                );
+                let left_rect =
+                    Rect::from_min_size(content_rect.min, Vec2::new(half_width, content_height));
                 let right_rect = Rect::from_min_size(
                     egui::pos2(content_rect.min.x + half_width + 4.0, content_rect.min.y),
                     Vec2::new(half_width, content_height),

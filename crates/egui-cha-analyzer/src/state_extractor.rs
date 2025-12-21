@@ -99,9 +99,22 @@ impl<'ast> Visit<'ast> for StateVisitor {
         // Check for mutating method calls like .push(), .pop(), .clear(), etc.
         let method = node.method.to_string();
         let mutating_methods = [
-            "push", "pop", "insert", "remove", "clear", "append", "extend",
-            "retain", "drain", "truncate", "swap_remove", "set", "take",
-            "replace", "get_or_insert", "toggle",
+            "push",
+            "pop",
+            "insert",
+            "remove",
+            "clear",
+            "append",
+            "extend",
+            "retain",
+            "drain",
+            "truncate",
+            "swap_remove",
+            "set",
+            "take",
+            "replace",
+            "get_or_insert",
+            "toggle",
         ];
 
         if mutating_methods.contains(&method.as_str()) {
@@ -135,14 +148,13 @@ fn is_likely_state_mutation(target: &str) -> bool {
 /// Describe an expression for documentation
 fn describe_expr(expr: &Expr) -> String {
     match expr {
-        Expr::Path(path) => {
-            path.path
-                .segments
-                .iter()
-                .map(|s| s.ident.to_string())
-                .collect::<Vec<_>>()
-                .join("::")
-        }
+        Expr::Path(path) => path
+            .path
+            .segments
+            .iter()
+            .map(|s| s.ident.to_string())
+            .collect::<Vec<_>>()
+            .join("::"),
         Expr::Field(field) => {
             let base = describe_expr(&field.base);
             match &field.member {

@@ -164,8 +164,8 @@ impl<'a> ArcSlider<'a> {
 
         // Calculate dimensions based on size
         let diameter = match self.size {
-            ArcSliderSize::Small => theme.spacing_xl + theme.spacing_md,  // ~48px
-            ArcSliderSize::Medium => theme.spacing_xl * 2.0,              // ~64px
+            ArcSliderSize::Small => theme.spacing_xl + theme.spacing_md, // ~48px
+            ArcSliderSize::Medium => theme.spacing_xl * 2.0,             // ~64px
             ArcSliderSize::Large => theme.spacing_xl * 2.0 + theme.spacing_lg, // ~80px
         };
 
@@ -179,7 +179,11 @@ impl<'a> ArcSlider<'a> {
 
         let (rect, mut response) = ui.allocate_exact_size(
             Vec2::new(diameter, total_height),
-            if self.disabled { Sense::hover() } else { Sense::click_and_drag() },
+            if self.disabled {
+                Sense::hover()
+            } else {
+                Sense::click_and_drag()
+            },
         );
 
         // Handle drag
@@ -227,7 +231,8 @@ impl<'a> ArcSlider<'a> {
             );
 
             // Value arc (foreground)
-            let normalized = (*value - *self.range.start()) / (*self.range.end() - *self.range.start());
+            let normalized =
+                (*value - *self.range.start()) / (*self.range.end() - *self.range.start());
             let value_angle = arc_start + (arc_end - arc_start) * normalized as f32;
 
             if normalized > 0.001 {
@@ -243,10 +248,11 @@ impl<'a> ArcSlider<'a> {
 
             // End cap (small circle at current position)
             let cap_radius = stroke_width / 2.0 + 1.0;
-            let cap_pos = center + Vec2::new(
-                value_angle.sin() * (radius - stroke_width / 2.0),
-                -value_angle.cos() * (radius - stroke_width / 2.0),
-            );
+            let cap_pos = center
+                + Vec2::new(
+                    value_angle.sin() * (radius - stroke_width / 2.0),
+                    -value_angle.cos() * (radius - stroke_width / 2.0),
+                );
             painter.circle_filled(cap_pos, cap_radius, arc_color);
 
             // Value text (center)

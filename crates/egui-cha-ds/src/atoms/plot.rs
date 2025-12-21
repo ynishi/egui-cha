@@ -84,9 +84,7 @@ impl<'a> LinePlot<'a> {
             .map(|(i, &y)| [i as f64, y])
             .collect();
 
-        let mut line = Line::new(self.id, plot_points)
-            .color(line_color)
-            .width(1.5);
+        let mut line = Line::new(self.id, plot_points).color(line_color).width(1.5);
 
         if self.fill {
             line = line.fill(0.0);
@@ -152,11 +150,7 @@ impl<'a> EnvelopePlot<'a> {
         let theme = Theme::current(ui.ctx());
         let line_color = self.color.unwrap_or(theme.state_success);
 
-        let plot_points: PlotPoints = self
-            .points
-            .iter()
-            .map(|&(x, y)| [x, y])
-            .collect();
+        let plot_points: PlotPoints = self.points.iter().map(|&(x, y)| [x, y]).collect();
 
         let line = Line::new(self.id, plot_points)
             .color(line_color)
@@ -234,15 +228,9 @@ impl<'a> AutomationPlot<'a> {
         let theme = Theme::current(ui.ctx());
         let line_color = self.color.unwrap_or(theme.state_warning);
 
-        let plot_points: PlotPoints = self
-            .points
-            .iter()
-            .map(|&(x, y)| [x, y])
-            .collect();
+        let plot_points: PlotPoints = self.points.iter().map(|&(x, y)| [x, y]).collect();
 
-        let line = Line::new(self.id, plot_points)
-            .color(line_color)
-            .width(1.5);
+        let line = Line::new(self.id, plot_points).color(line_color).width(1.5);
 
         Plot::new(self.id)
             .height(self.size.y)
@@ -259,11 +247,7 @@ impl<'a> AutomationPlot<'a> {
                 plot_ui.line(line);
 
                 if self.show_points {
-                    let point_data: PlotPoints = self
-                        .points
-                        .iter()
-                        .map(|&(x, y)| [x, y])
-                        .collect();
+                    let point_data: PlotPoints = self.points.iter().map(|&(x, y)| [x, y]).collect();
                     let points = egui_plot::Points::new(format!("{}_points", self.id), point_data)
                         .radius(4.0)
                         .color(line_color);
@@ -333,10 +317,7 @@ impl<'a> FrequencyPlot<'a> {
                 .map(|&(freq, db)| [freq.log10(), db])
                 .collect()
         } else {
-            self.points
-                .iter()
-                .map(|&(x, y)| [x, y])
-                .collect()
+            self.points.iter().map(|&(x, y)| [x, y]).collect()
         };
 
         let line = Line::new(self.id, plot_points)
@@ -347,10 +328,7 @@ impl<'a> FrequencyPlot<'a> {
         // Draw 0dB reference line
         let zero_line = Line::new(
             format!("{}_zero", self.id),
-            PlotPoints::from_iter([
-                [1.0_f64.log10(), 0.0],
-                [20000.0_f64.log10(), 0.0],
-            ]),
+            PlotPoints::from_iter([[1.0_f64.log10(), 0.0], [20000.0_f64.log10(), 0.0]]),
         )
         .color(theme.border)
         .width(1.0);

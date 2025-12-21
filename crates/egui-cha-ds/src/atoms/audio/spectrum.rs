@@ -135,10 +135,7 @@ impl<'a> Spectrum<'a> {
         let height = self.height.unwrap_or(theme.spacing_xl * 3.0);
         let width = ui.available_width();
 
-        let (rect, response) = ui.allocate_exact_size(
-            Vec2::new(width, height),
-            Sense::hover(),
-        );
+        let (rect, response) = ui.allocate_exact_size(Vec2::new(width, height), Sense::hover());
 
         if ui.is_rect_visible(rect) {
             let painter = ui.painter();
@@ -183,7 +180,9 @@ impl<'a> Spectrum<'a> {
 
                 if self.mirrored {
                     // Right side
-                    let x_right = rect.center().x + (i as f32 * (bar_width + self.bar_gap)) + self.bar_gap / 2.0;
+                    let x_right = rect.center().x
+                        + (i as f32 * (bar_width + self.bar_gap))
+                        + self.bar_gap / 2.0;
                     let bar_rect = Rect::from_min_max(
                         Pos2::new(x_right, rect.max.y - theme.spacing_xs - bar_height),
                         Pos2::new(x_right + bar_width, rect.max.y - theme.spacing_xs),
@@ -191,7 +190,10 @@ impl<'a> Spectrum<'a> {
                     painter.rect_filled(bar_rect, theme.radius_sm * 0.5, color);
 
                     // Left side (mirror)
-                    let x_left = rect.center().x - (i as f32 * (bar_width + self.bar_gap)) - bar_width - self.bar_gap / 2.0;
+                    let x_left = rect.center().x
+                        - (i as f32 * (bar_width + self.bar_gap))
+                        - bar_width
+                        - self.bar_gap / 2.0;
                     let bar_rect_left = Rect::from_min_max(
                         Pos2::new(x_left, rect.max.y - theme.spacing_xs - bar_height),
                         Pos2::new(x_left + bar_width, rect.max.y - theme.spacing_xs),
@@ -200,19 +202,26 @@ impl<'a> Spectrum<'a> {
 
                     // Peak indicators
                     if self.peak_hold {
-                        let peak_value = self.peaks
-                            .and_then(|p| p.get(i).cloned())
-                            .unwrap_or(value);
-                        let peak_y = rect.max.y - theme.spacing_xs - peak_value.clamp(0.0, 1.0) * (height - theme.spacing_xs * 2.0);
+                        let peak_value =
+                            self.peaks.and_then(|p| p.get(i).cloned()).unwrap_or(value);
+                        let peak_y = rect.max.y
+                            - theme.spacing_xs
+                            - peak_value.clamp(0.0, 1.0) * (height - theme.spacing_xs * 2.0);
 
                         // Right peak
                         painter.line_segment(
-                            [Pos2::new(x_right, peak_y), Pos2::new(x_right + bar_width, peak_y)],
+                            [
+                                Pos2::new(x_right, peak_y),
+                                Pos2::new(x_right + bar_width, peak_y),
+                            ],
                             Stroke::new(theme.stroke_width * 2.0, theme.primary),
                         );
                         // Left peak
                         painter.line_segment(
-                            [Pos2::new(x_left, peak_y), Pos2::new(x_left + bar_width, peak_y)],
+                            [
+                                Pos2::new(x_left, peak_y),
+                                Pos2::new(x_left + bar_width, peak_y),
+                            ],
                             Stroke::new(theme.stroke_width * 2.0, theme.primary),
                         );
                     }
@@ -227,10 +236,11 @@ impl<'a> Spectrum<'a> {
 
                     // Peak indicator
                     if self.peak_hold {
-                        let peak_value = self.peaks
-                            .and_then(|p| p.get(i).cloned())
-                            .unwrap_or(value);
-                        let peak_y = rect.max.y - theme.spacing_xs - peak_value.clamp(0.0, 1.0) * (height - theme.spacing_xs * 2.0);
+                        let peak_value =
+                            self.peaks.and_then(|p| p.get(i).cloned()).unwrap_or(value);
+                        let peak_y = rect.max.y
+                            - theme.spacing_xs
+                            - peak_value.clamp(0.0, 1.0) * (height - theme.spacing_xs * 2.0);
 
                         painter.line_segment(
                             [Pos2::new(x, peak_y), Pos2::new(x + bar_width, peak_y)],

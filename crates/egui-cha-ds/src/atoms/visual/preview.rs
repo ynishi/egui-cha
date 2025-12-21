@@ -400,11 +400,7 @@ impl<'a> Preview<'a> {
                 egui::pos2(rect.min.x, rect.max.y - 20.0),
                 Vec2::new(rect.width(), 20.0),
             );
-            painter.rect_filled(
-                label_bg,
-                0.0,
-                Color32::from_rgba_unmultiplied(0, 0, 0, 150),
-            );
+            painter.rect_filled(label_bg, 0.0, Color32::from_rgba_unmultiplied(0, 0, 0, 150));
             painter.text(
                 egui::pos2(rect.min.x + 4.0, rect.max.y - 10.0),
                 egui::Align2::LEFT_CENTER,
@@ -420,11 +416,7 @@ impl<'a> Preview<'a> {
                 egui::pos2(rect.max.x - 70.0, rect.min.y),
                 Vec2::new(70.0, 18.0),
             );
-            painter.rect_filled(
-                tc_bg,
-                0.0,
-                Color32::from_rgba_unmultiplied(0, 0, 0, 150),
-            );
+            painter.rect_filled(tc_bg, 0.0, Color32::from_rgba_unmultiplied(0, 0, 0, 150));
             painter.text(
                 egui::pos2(rect.max.x - 4.0, rect.min.y + 9.0),
                 egui::Align2::RIGHT_CENTER,
@@ -459,7 +451,11 @@ impl<'a> Preview<'a> {
             } else {
                 theme.border
             };
-            let border_width = if self.selected { 2.0 } else { theme.border_width };
+            let border_width = if self.selected {
+                2.0
+            } else {
+                theme.border_width
+            };
 
             painter.rect_stroke(
                 rect,

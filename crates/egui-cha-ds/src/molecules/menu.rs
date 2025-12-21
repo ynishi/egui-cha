@@ -124,9 +124,7 @@ impl<'a> IconMenu<'a> {
             for (i, (label, icon)) in self.items.iter().enumerate() {
                 let is_active = i == active;
 
-                let mut list_item = ListItem::new(*label)
-                    .icon(*icon)
-                    .selected(is_active);
+                let mut list_item = ListItem::new(*label).icon(*icon).selected(is_active);
                 if compact {
                     list_item = list_item.compact();
                 }

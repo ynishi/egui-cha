@@ -123,10 +123,7 @@ impl Mask {
     pub fn rectangle() -> Self {
         Self {
             shape: MaskShape::Rectangle,
-            points: vec![
-                MaskPoint::new(0.2, 0.2),
-                MaskPoint::new(0.8, 0.8),
-            ],
+            points: vec![MaskPoint::new(0.2, 0.2), MaskPoint::new(0.8, 0.8)],
             feather: 0.0,
             inverted: false,
             opacity: 1.0,
@@ -267,11 +264,7 @@ impl<'a> MaskEditor<'a> {
         self
     }
 
-    pub fn show_with<Msg>(
-        self,
-        ctx: &mut ViewCtx<'_, Msg>,
-        on_event: impl Fn(MaskEvent) -> Msg,
-    ) {
+    pub fn show_with<Msg>(self, ctx: &mut ViewCtx<'_, Msg>, on_event: impl Fn(MaskEvent) -> Msg) {
         let event = self.show_internal(ctx.ui);
         if let Some(e) = event {
             ctx.emit(on_event(e));
@@ -286,23 +279,22 @@ impl<'a> MaskEditor<'a> {
         let theme = Theme::current(ui.ctx());
         let mut event: Option<MaskEvent> = None;
 
-        let controls_height = if self.show_controls { theme.spacing_xl + theme.spacing_sm } else { 0.0 };
+        let controls_height = if self.show_controls {
+            theme.spacing_xl + theme.spacing_sm
+        } else {
+            0.0
+        };
         let total_height = self.size.y + controls_height;
 
-        let (rect, _response) = ui.allocate_exact_size(
-            Vec2::new(self.size.x, total_height),
-            Sense::hover(),
-        );
+        let (rect, _response) =
+            ui.allocate_exact_size(Vec2::new(self.size.x, total_height), Sense::hover());
 
         if !ui.is_rect_visible(rect) {
             return None;
         }
 
         // Canvas area
-        let canvas_rect = Rect::from_min_size(
-            rect.min,
-            self.size,
-        );
+        let canvas_rect = Rect::from_min_size(rect.min, self.size);
 
         // First pass: collect interactions
         let canvas_response = ui.allocate_rect(canvas_rect, Sense::click());
@@ -326,7 +318,8 @@ impl<'a> MaskEditor<'a> {
         if self.editable {
             for (idx, point) in self.mask.points.iter().enumerate() {
                 let screen_pos = point.to_pos(canvas_rect);
-                let handle_rect = Rect::from_center_size(screen_pos, Vec2::splat(handle_size * 2.0));
+                let handle_rect =
+                    Rect::from_center_size(screen_pos, Vec2::splat(handle_size * 2.0));
                 let resp = ui.allocate_rect(handle_rect, Sense::click_and_drag());
 
                 point_infos.push(PointInfo {
@@ -387,7 +380,8 @@ impl<'a> MaskEditor<'a> {
                         Pos2::new(feather_rect.min.x, feather_rect.center().y - 3.0),
                         Vec2::new(feather_rect.width(), 6.0),
                     );
-                    feather_drag = Some(((pos.x - bar_rect.min.x) / bar_rect.width()).clamp(0.0, 1.0));
+                    feather_drag =
+                        Some(((pos.x - bar_rect.min.x) / bar_rect.width()).clamp(0.0, 1.0));
                 }
             }
         }
@@ -408,13 +402,19 @@ impl<'a> MaskEditor<'a> {
                 // Vertical
                 let x = canvas_rect.min.x + t * canvas_rect.width();
                 painter.line_segment(
-                    [Pos2::new(x, canvas_rect.min.y), Pos2::new(x, canvas_rect.max.y)],
+                    [
+                        Pos2::new(x, canvas_rect.min.y),
+                        Pos2::new(x, canvas_rect.max.y),
+                    ],
                     grid_stroke,
                 );
                 // Horizontal
                 let y = canvas_rect.min.y + t * canvas_rect.height();
                 painter.line_segment(
-                    [Pos2::new(canvas_rect.min.x, y), Pos2::new(canvas_rect.max.x, y)],
+                    [
+                        Pos2::new(canvas_rect.min.x, y),
+                        Pos2::new(canvas_rect.max.x, y),
+                    ],
                     grid_stroke,
                 );
             }
@@ -422,11 +422,17 @@ impl<'a> MaskEditor<'a> {
             // Center cross
             let center = canvas_rect.center();
             painter.line_segment(
-                [Pos2::new(center.x, canvas_rect.min.y), Pos2::new(center.x, canvas_rect.max.y)],
+                [
+                    Pos2::new(center.x, canvas_rect.min.y),
+                    Pos2::new(center.x, canvas_rect.max.y),
+                ],
                 Stroke::new(0.5, theme.border),
             );
             painter.line_segment(
-                [Pos2::new(canvas_rect.min.x, center.y), Pos2::new(canvas_rect.max.x, center.y)],
+                [
+                    Pos2::new(canvas_rect.min.x, center.y),
+                    Pos2::new(canvas_rect.max.x, center.y),
+                ],
                 Stroke::new(0.5, theme.border),
             );
         }
@@ -468,16 +474,27 @@ impl<'a> MaskEditor<'a> {
                             center.y + angle.sin() * radius.y,
                         ));
                     }
-                    painter.add(egui::Shape::convex_polygon(points.clone(), mask_color, Stroke::NONE));
+                    painter.add(egui::Shape::convex_polygon(
+                        points.clone(),
+                        mask_color,
+                        Stroke::NONE,
+                    ));
                     painter.add(egui::Shape::closed_line(points, mask_stroke));
                 }
             }
             MaskShape::Polygon | MaskShape::Freehand => {
                 if self.mask.points.len() >= 3 {
-                    let points: Vec<Pos2> = self.mask.points.iter()
+                    let points: Vec<Pos2> = self
+                        .mask
+                        .points
+                        .iter()
                         .map(|p| p.to_pos(canvas_rect))
                         .collect();
-                    painter.add(egui::Shape::convex_polygon(points.clone(), mask_color, Stroke::NONE));
+                    painter.add(egui::Shape::convex_polygon(
+                        points.clone(),
+                        mask_color,
+                        Stroke::NONE,
+                    ));
                     painter.add(egui::Shape::closed_line(points, mask_stroke));
                 } else if self.mask.points.len() == 2 {
                     let p1 = self.mask.points[0].to_pos(canvas_rect);
@@ -491,7 +508,10 @@ impl<'a> MaskEditor<'a> {
         if self.mask.feather > 0.01 {
             let feather_text = format!("Feather: {:.0}%", self.mask.feather * 100.0);
             painter.text(
-                Pos2::new(canvas_rect.min.x + theme.spacing_xs, canvas_rect.min.y + theme.spacing_xs),
+                Pos2::new(
+                    canvas_rect.min.x + theme.spacing_xs,
+                    canvas_rect.min.y + theme.spacing_xs,
+                ),
                 egui::Align2::LEFT_TOP,
                 &feather_text,
                 egui::FontId::proportional(theme.font_size_xs),
@@ -530,7 +550,12 @@ impl<'a> MaskEditor<'a> {
         }
 
         // Border
-        painter.rect_stroke(canvas_rect, theme.radius_sm, Stroke::new(theme.border_width, theme.border), egui::StrokeKind::Inside);
+        painter.rect_stroke(
+            canvas_rect,
+            theme.radius_sm,
+            Stroke::new(theme.border_width, theme.border),
+            egui::StrokeKind::Inside,
+        );
 
         // Draw controls
         if self.show_controls {
@@ -544,8 +569,16 @@ impl<'a> MaskEditor<'a> {
                     Vec2::new(button_width, theme.spacing_lg),
                 );
                 let is_active = self.mask.shape == *shape;
-                let bg = if is_active { theme.primary } else { theme.bg_tertiary };
-                let text_color = if is_active { theme.primary_text } else { theme.text_secondary };
+                let bg = if is_active {
+                    theme.primary
+                } else {
+                    theme.bg_tertiary
+                };
+                let text_color = if is_active {
+                    theme.primary_text
+                } else {
+                    theme.text_secondary
+                };
 
                 painter.rect_filled(btn_rect, theme.radius_sm, bg);
                 painter.text(
@@ -563,14 +596,22 @@ impl<'a> MaskEditor<'a> {
                 Pos2::new(x + theme.spacing_sm, controls_y),
                 Vec2::new(40.0, theme.spacing_lg),
             );
-            let invert_bg = if self.mask.inverted { theme.state_warning } else { theme.bg_tertiary };
+            let invert_bg = if self.mask.inverted {
+                theme.state_warning
+            } else {
+                theme.bg_tertiary
+            };
             painter.rect_filled(invert_rect, theme.radius_sm, invert_bg);
             painter.text(
                 invert_rect.center(),
                 egui::Align2::CENTER_CENTER,
                 "INV",
                 egui::FontId::proportional(theme.font_size_xs),
-                if self.mask.inverted { theme.primary_text } else { theme.text_secondary },
+                if self.mask.inverted {
+                    theme.primary_text
+                } else {
+                    theme.text_secondary
+                },
             );
 
             // Feather slider
@@ -579,7 +620,10 @@ impl<'a> MaskEditor<'a> {
                 Vec2::new(70.0, theme.spacing_lg),
             );
             painter.text(
-                Pos2::new(feather_rect.min.x - theme.spacing_xs, feather_rect.center().y),
+                Pos2::new(
+                    feather_rect.min.x - theme.spacing_xs,
+                    feather_rect.center().y,
+                ),
                 egui::Align2::RIGHT_CENTER,
                 "F",
                 egui::FontId::proportional(theme.font_size_xs),

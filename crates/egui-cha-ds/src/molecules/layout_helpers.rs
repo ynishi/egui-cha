@@ -64,7 +64,10 @@ pub fn find_overlapping_indices(rect: Rect, others: &[Rect]) -> Vec<usize> {
 /// Find all rectangles that overlap with the given rect.
 /// Returns references to overlapping rects.
 pub fn find_overlapping<'a>(rect: Rect, others: &'a [Rect]) -> Vec<&'a Rect> {
-    others.iter().filter(|other| rects_overlap(rect, **other)).collect()
+    others
+        .iter()
+        .filter(|other| rects_overlap(rect, **other))
+        .collect()
 }
 
 /// Check if a rectangle overlaps with any in a collection.
@@ -124,7 +127,9 @@ pub fn find_nearest_empty_slot(
             }
 
             let candidate = Rect::from_min_size(pos, size);
-            if !has_any_overlap_with_gap(candidate, occupied, gap) && fits_in_bounds(candidate, bounds) {
+            if !has_any_overlap_with_gap(candidate, occupied, gap)
+                && fits_in_bounds(candidate, bounds)
+            {
                 return pos;
             }
         }
@@ -152,9 +157,8 @@ pub fn find_empty_slot_grid(
     gap: f32,
     grid_size: f32,
 ) -> Pos2 {
-    let start = preferred_pos.unwrap_or_else(|| {
-        bounds.map_or(Pos2::ZERO, |b| b.min + Vec2::splat(gap))
-    });
+    let start =
+        preferred_pos.unwrap_or_else(|| bounds.map_or(Pos2::ZERO, |b| b.min + Vec2::splat(gap)));
 
     // First, try the preferred position snapped to grid
     let snapped_start = snap_to_grid(start, grid_size);
@@ -182,7 +186,9 @@ pub fn find_empty_slot_grid(
     positions.sort_by(|a, b| {
         let dist_a = (*a - start).length_sq();
         let dist_b = (*b - start).length_sq();
-        dist_a.partial_cmp(&dist_b).unwrap_or(std::cmp::Ordering::Equal)
+        dist_a
+            .partial_cmp(&dist_b)
+            .unwrap_or(std::cmp::Ordering::Equal)
     });
 
     // Find first empty slot
@@ -297,11 +303,7 @@ pub struct ResolveResult {
 ///
 /// # Returns
 /// New positions for each rectangle
-pub fn resolve_overlaps(
-    rects: &[Rect],
-    gap: f32,
-    max_iterations: usize,
-) -> ResolveResult {
+pub fn resolve_overlaps(rects: &[Rect], gap: f32, max_iterations: usize) -> ResolveResult {
     if rects.len() <= 1 {
         return ResolveResult {
             positions: rects.iter().map(|r| r.min).collect(),
@@ -629,14 +631,12 @@ pub fn arrange_grid(
     let count = rects.len();
 
     // Calculate columns
-    let cols = columns.unwrap_or_else(|| {
-        match count {
-            1 => 1,
-            2 => 2,
-            3..=4 => 2,
-            5..=6 => 3,
-            _ => ((count as f32).sqrt().ceil() as usize).max(2),
-        }
+    let cols = columns.unwrap_or_else(|| match count {
+        1 => 1,
+        2 => 2,
+        3..=4 => 2,
+        5..=6 => 3,
+        _ => ((count as f32).sqrt().ceil() as usize).max(2),
     });
 
     // Find max size for uniform grid cells
@@ -693,14 +693,12 @@ pub fn arrange_grid_proportional(
     }
 
     let count = rects.len();
-    let cols = columns.unwrap_or_else(|| {
-        match count {
-            1 => 1,
-            2 => 2,
-            3..=4 => 2,
-            5..=6 => 3,
-            _ => ((count as f32).sqrt().ceil() as usize).max(2),
-        }
+    let cols = columns.unwrap_or_else(|| match count {
+        1 => 1,
+        2 => 2,
+        3..=4 => 2,
+        5..=6 => 3,
+        _ => ((count as f32).sqrt().ceil() as usize).max(2),
     });
 
     // Sort by current position in raster order to preserve spatial layout
@@ -864,12 +862,7 @@ pub fn arrange_horizontal(
 ///
 /// Preserves spatial order: panes are sorted by their current Y position
 /// before arranging, so the top-to-bottom order is maintained.
-pub fn arrange_vertical(
-    rects: &[Rect],
-    origin: Pos2,
-    gap: f32,
-    align_left: bool,
-) -> ArrangeResult {
+pub fn arrange_vertical(rects: &[Rect], origin: Pos2, gap: f32, align_left: bool) -> ArrangeResult {
     if rects.is_empty() {
         return ArrangeResult {
             positions: Vec::new(),
@@ -915,11 +908,7 @@ pub fn arrange_vertical(
 /// Arrange rectangles to fit within bounds, using grid layout.
 ///
 /// Calculates grid size based on available space.
-pub fn arrange_fit_bounds(
-    rects: &[Rect],
-    bounds: Rect,
-    gap: f32,
-) -> ArrangeResult {
+pub fn arrange_fit_bounds(rects: &[Rect], bounds: Rect, gap: f32) -> ArrangeResult {
     if rects.is_empty() {
         return ArrangeResult {
             positions: Vec::new(),
@@ -937,12 +926,7 @@ pub fn arrange_fit_bounds(
     let cols = ((available_width + gap) / (avg_width + gap)).floor() as usize;
     let cols = cols.max(1).min(count);
 
-    arrange_grid_proportional(
-        rects,
-        Some(cols),
-        bounds.min + Vec2::splat(gap / 2.0),
-        gap,
-    )
+    arrange_grid_proportional(rects, Some(cols), bounds.min + Vec2::splat(gap / 2.0), gap)
 }
 
 /// Arrange rectangles in a tile layout filling available bounds (macOS-style).
@@ -1139,10 +1123,9 @@ fn calculate_grid_dimensions(count: usize) -> (usize, usize) {
 /// Apply minimum size constraint
 fn apply_min_size(size: Vec2, min_sizes: Option<&[Vec2]>, idx: usize) -> Vec2 {
     match min_sizes {
-        Some(mins) if idx < mins.len() => Vec2::new(
-            size.x.max(mins[idx].x),
-            size.y.max(mins[idx].y),
-        ),
+        Some(mins) if idx < mins.len() => {
+            Vec2::new(size.x.max(mins[idx].x), size.y.max(mins[idx].y))
+        }
         _ => size,
     }
 }
@@ -1185,9 +1168,9 @@ mod tests {
     fn test_find_overlapping() {
         let target = Rect::from_min_size(Pos2::new(0.0, 0.0), Vec2::new(10.0, 10.0));
         let others = vec![
-            Rect::from_min_size(Pos2::new(5.0, 5.0), Vec2::new(10.0, 10.0)),   // overlaps
-            Rect::from_min_size(Pos2::new(20.0, 0.0), Vec2::new(10.0, 10.0)),  // no overlap
-            Rect::from_min_size(Pos2::new(0.0, 5.0), Vec2::new(5.0, 10.0)),    // overlaps
+            Rect::from_min_size(Pos2::new(5.0, 5.0), Vec2::new(10.0, 10.0)), // overlaps
+            Rect::from_min_size(Pos2::new(20.0, 0.0), Vec2::new(10.0, 10.0)), // no overlap
+            Rect::from_min_size(Pos2::new(0.0, 5.0), Vec2::new(5.0, 10.0)),  // overlaps
         ];
 
         let overlapping = find_overlapping(target, &others);
@@ -1197,9 +1180,10 @@ mod tests {
     #[test]
     fn test_find_nearest_empty_slot() {
         let size = Vec2::new(100.0, 100.0);
-        let occupied = vec![
-            Rect::from_min_size(Pos2::new(0.0, 0.0), Vec2::new(100.0, 100.0)),
-        ];
+        let occupied = vec![Rect::from_min_size(
+            Pos2::new(0.0, 0.0),
+            Vec2::new(100.0, 100.0),
+        )];
 
         let slot = find_nearest_empty_slot(size, &occupied, None, Some(Pos2::ZERO), DEFAULT_GAP);
 
@@ -1363,9 +1347,9 @@ mod tests {
         // Order by X: rect[0] at x=50, rect[1] at x=200, rect[2] at x=100
         // So sorted order is: 0, 2, 1
         let rects = vec![
-            Rect::from_min_size(Pos2::new(50.0, 0.0), Vec2::new(100.0, 50.0)),   // leftmost
-            Rect::from_min_size(Pos2::new(200.0, 0.0), Vec2::new(80.0, 100.0)),  // rightmost
-            Rect::from_min_size(Pos2::new(100.0, 0.0), Vec2::new(60.0, 70.0)),   // middle
+            Rect::from_min_size(Pos2::new(50.0, 0.0), Vec2::new(100.0, 50.0)), // leftmost
+            Rect::from_min_size(Pos2::new(200.0, 0.0), Vec2::new(80.0, 100.0)), // rightmost
+            Rect::from_min_size(Pos2::new(100.0, 0.0), Vec2::new(60.0, 70.0)), // middle
         ];
 
         let result = arrange_horizontal(&rects, Pos2::new(10.0, 10.0), DEFAULT_GAP, false);
@@ -1377,7 +1361,10 @@ mod tests {
         // rect[2] is middle, so it should be at x=10+100+gap = 118.0
         assert_eq!(result.positions[2].x, 10.0 + 100.0 + DEFAULT_GAP);
         // rect[1] is rightmost, so it should be at x=10+100+gap+60+gap = 186.0
-        assert_eq!(result.positions[1].x, 10.0 + 100.0 + DEFAULT_GAP + 60.0 + DEFAULT_GAP);
+        assert_eq!(
+            result.positions[1].x,
+            10.0 + 100.0 + DEFAULT_GAP + 60.0 + DEFAULT_GAP
+        );
 
         // No overlaps
         let arranged: Vec<Rect> = result
@@ -1395,9 +1382,9 @@ mod tests {
         // Order by Y: rect[0] at y=20, rect[1] at y=200, rect[2] at y=80
         // So sorted order is: 0, 2, 1
         let rects = vec![
-            Rect::from_min_size(Pos2::new(0.0, 20.0), Vec2::new(100.0, 50.0)),   // topmost
-            Rect::from_min_size(Pos2::new(0.0, 200.0), Vec2::new(80.0, 100.0)),  // bottommost
-            Rect::from_min_size(Pos2::new(0.0, 80.0), Vec2::new(60.0, 70.0)),    // middle
+            Rect::from_min_size(Pos2::new(0.0, 20.0), Vec2::new(100.0, 50.0)), // topmost
+            Rect::from_min_size(Pos2::new(0.0, 200.0), Vec2::new(80.0, 100.0)), // bottommost
+            Rect::from_min_size(Pos2::new(0.0, 80.0), Vec2::new(60.0, 70.0)),  // middle
         ];
 
         let result = arrange_vertical(&rects, Pos2::new(10.0, 10.0), DEFAULT_GAP, false);
@@ -1409,7 +1396,10 @@ mod tests {
         // rect[2] is middle, so it should be at y=10+50+gap = 68.0
         assert_eq!(result.positions[2].y, 10.0 + 50.0 + DEFAULT_GAP);
         // rect[1] is bottommost, so it should be at y=10+50+gap+70+gap = 146.0
-        assert_eq!(result.positions[1].y, 10.0 + 50.0 + DEFAULT_GAP + 70.0 + DEFAULT_GAP);
+        assert_eq!(
+            result.positions[1].y,
+            10.0 + 50.0 + DEFAULT_GAP + 70.0 + DEFAULT_GAP
+        );
 
         // No overlaps
         let arranged: Vec<Rect> = result
