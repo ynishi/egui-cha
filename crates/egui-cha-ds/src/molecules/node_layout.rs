@@ -422,6 +422,8 @@ impl NodeLayout {
     /// * `strategy` - The arrangement strategy to use
     /// * `gap` - Gap between panes
     /// * `origin` - Optional origin point (defaults to current bounding box min or (0,0))
+    /// * `z_order_ids` - Optional Z-order for Cascade (back-to-front pane IDs).
+    ///                   First ID = back (top-left), last ID = front (bottom-right).
     ///
     /// # Returns
     /// IDs of panes that were moved
@@ -430,19 +432,13 @@ impl NodeLayout {
         strategy: ArrangeStrategy,
         gap: f32,
         origin: Option<Pos2>,
+        z_order_ids: Option<&[String]>,
     ) -> Vec<String> {
         use super::layout_helpers;
 
-        // For Cascade, sort panes by ID first to ensure consistent Z-order
-        if matches!(strategy, ArrangeStrategy::Cascade) {
-            // Sort panes by ID (this also updates Z-order since panes order = draw order)
-            self.panes.sort_by(|a, b| a.id.cmp(&b.id));
-            // Rebuild index map
-            self.id_to_index.clear();
-            for (i, p) in self.panes.iter().enumerate() {
-                self.id_to_index.insert(p.id.clone(), i);
-            }
-        }
+        // Note: Sorting is now done in layout_helpers based on current positions
+        // (not by ID), so the spatial arrangement is preserved.
+        // Exception: Cascade uses z_order_ids if provided.
 
         // Collect non-collapsed, non-maximized panes
         let pane_data: Vec<(usize, Rect)> = self
@@ -476,7 +472,34 @@ impl NodeLayout {
             }
             ArrangeStrategy::Cascade => {
                 let offset = Vec2::new(30.0, 30.0);
-                layout_helpers::arrange_cascade(&rects, origin, offset)
+
+                // Build cascade order from z_order_ids if provided
+                let cascade_order = z_order_ids.and_then(|ids| {
+                    // Map z_order IDs (back-to-front) to pane_data indices
+                    // Reverse to get back-to-front order (first = top-left)
+                    let order: Vec<usize> = ids
+                        .iter()
+                        .rev() // Reverse: draw_order is front-to-back, we want back-to-front
+                        .filter_map(|id| {
+                            pane_data
+                                .iter()
+                                .position(|(idx, _)| self.panes[*idx].id == *id)
+                        })
+                        .collect();
+
+                    if order.len() == pane_data.len() {
+                        Some(order)
+                    } else {
+                        None // Fallback to default if not all panes matched
+                    }
+                });
+
+                match cascade_order {
+                    Some(order) => {
+                        layout_helpers::arrange_cascade(&rects, origin, offset, Some(&order))
+                    }
+                    None => layout_helpers::arrange_cascade(&rects, origin, offset, None),
+                }
             }
             ArrangeStrategy::Horizontal => {
                 layout_helpers::arrange_horizontal(&rects, origin, gap, false)
@@ -632,15 +655,10 @@ where
             (None, full_rect)
         };
 
-        // Draw menu bar FIRST (before allocating canvas) so it can receive input
-        if let Some(menu_rect) = menu_rect {
-            self.draw_menu_bar(ui, menu_rect, &theme, &mut events);
-        }
-
         // Use canvas_rect for the rest
         let rect = canvas_rect;
 
-        // Load state
+        // Load state (before menu bar so we can pass draw_order)
         let state_id = ui.id().with("node_layout_state");
         let mut state: LayoutState = ui
             .ctx()
@@ -649,6 +667,11 @@ where
 
         // Ensure draw order contains all panes
         self.sync_draw_order(&mut state);
+
+        // Draw menu bar FIRST (before allocating canvas) so it can receive input
+        if let Some(menu_rect) = menu_rect {
+            self.draw_menu_bar(ui, menu_rect, &theme, &mut events, &state.draw_order);
+        }
 
         // Initialize transform on first frame to map graph origin to rect top-left
         if !state.initialized {
@@ -1296,6 +1319,7 @@ where
         rect: Rect,
         theme: &Theme,
         events: &mut Vec<NodeLayoutEvent>,
+        draw_order: &[String],
     ) {
         use crate::atoms::icons;
 
@@ -1351,7 +1375,7 @@ where
             use crate::atoms::ListItem;
 
             if ListItem::new("Grid").icon(icons::GRID_FOUR).compact().show(ui).clicked() {
-                let moved = self.layout.auto_arrange(ArrangeStrategy::Grid { columns: None }, gap, None);
+                let moved = self.layout.auto_arrange(ArrangeStrategy::Grid { columns: None }, gap, None, None);
                 if !moved.is_empty() {
                     events.push(NodeLayoutEvent::AutoArranged {
                         strategy: ArrangeStrategy::Grid { columns: None },
@@ -1361,7 +1385,7 @@ where
                 ui.close();
             }
             if ListItem::new("Horizontal").icon(icons::ARROWS_OUT_LINE_HORIZONTAL).compact().show(ui).clicked() {
-                let moved = self.layout.auto_arrange(ArrangeStrategy::Horizontal, gap, None);
+                let moved = self.layout.auto_arrange(ArrangeStrategy::Horizontal, gap, None, None);
                 if !moved.is_empty() {
                     events.push(NodeLayoutEvent::AutoArranged {
                         strategy: ArrangeStrategy::Horizontal,
@@ -1371,7 +1395,7 @@ where
                 ui.close();
             }
             if ListItem::new("Vertical").icon(icons::ARROWS_OUT_LINE_VERTICAL).compact().show(ui).clicked() {
-                let moved = self.layout.auto_arrange(ArrangeStrategy::Vertical, gap, None);
+                let moved = self.layout.auto_arrange(ArrangeStrategy::Vertical, gap, None, None);
                 if !moved.is_empty() {
                     events.push(NodeLayoutEvent::AutoArranged {
                         strategy: ArrangeStrategy::Vertical,
@@ -1381,7 +1405,8 @@ where
                 ui.close();
             }
             if ListItem::new("Cascade").icon(icons::SQUARES_FOUR).compact().show(ui).clicked() {
-                let moved = self.layout.auto_arrange(ArrangeStrategy::Cascade, gap, None);
+                // Use Z-order: back pane at top-left, front pane at bottom-right
+                let moved = self.layout.auto_arrange(ArrangeStrategy::Cascade, gap, None, Some(draw_order));
                 if !moved.is_empty() {
                     events.push(NodeLayoutEvent::AutoArranged {
                         strategy: ArrangeStrategy::Cascade,
@@ -1392,7 +1417,7 @@ where
             }
             ui.separator();
             if ListItem::new("Resolve Overlaps").icon(icons::BROOM).compact().show(ui).clicked() {
-                let moved = self.layout.auto_arrange(ArrangeStrategy::ResolveOverlaps, gap, None);
+                let moved = self.layout.auto_arrange(ArrangeStrategy::ResolveOverlaps, gap, None, None);
                 if !moved.is_empty() {
                     events.push(NodeLayoutEvent::AutoArranged {
                         strategy: ArrangeStrategy::ResolveOverlaps,
