@@ -589,6 +589,17 @@ impl From<ResolveResult> for ArrangeResult {
     }
 }
 
+/// Result of tile arrange operation (includes resizing)
+#[derive(Clone, Debug)]
+pub struct TileResult {
+    /// New positions for each rectangle (same order as input)
+    pub positions: Vec<Pos2>,
+    /// New sizes for each rectangle (same order as input)
+    pub sizes: Vec<Vec2>,
+    /// Whether any rectangles were moved or resized
+    pub changed: bool,
+}
+
 /// Arrange rectangles in a grid layout.
 ///
 /// Places rectangles in a grid with the specified number of columns.
@@ -932,6 +943,213 @@ pub fn arrange_fit_bounds(
         bounds.min + Vec2::splat(gap / 2.0),
         gap,
     )
+}
+
+/// Arrange rectangles in a tile layout filling available bounds (macOS-style).
+///
+/// This function resizes panes to fill the available space evenly.
+/// Panes are sorted by their current position (raster order) before tiling.
+///
+/// # Layout patterns by pane count:
+/// - 1: Full screen
+/// - 2: Left/Right split (50/50)
+/// - 3: Left (50%) + Right stack (2 x 25%)
+/// - 4: 2x2 grid
+/// - 5: Left stack (2) + Right stack (3)
+/// - 6+: Dynamic grid
+///
+/// # Arguments
+/// * `rects` - Current rectangles (positions used for sorting)
+/// * `bounds` - Available area to fill
+/// * `gap` - Gap between tiles
+/// * `min_sizes` - Optional minimum sizes for each pane
+pub fn arrange_tile(
+    rects: &[Rect],
+    bounds: Rect,
+    gap: f32,
+    min_sizes: Option<&[Vec2]>,
+) -> TileResult {
+    let count = rects.len();
+
+    if count == 0 {
+        return TileResult {
+            positions: Vec::new(),
+            sizes: Vec::new(),
+            changed: false,
+        };
+    }
+
+    // Sort by raster order to preserve spatial layout
+    let avg_height = rects.iter().map(|r| r.height()).sum::<f32>() / count as f32;
+    let order = sort_indices_raster(rects, avg_height * 0.5);
+
+    let mut positions = vec![Pos2::ZERO; count];
+    let mut sizes = vec![Vec2::ZERO; count];
+    let mut changed = false;
+
+    let available_width = bounds.width() - gap;
+    let available_height = bounds.height() - gap;
+
+    match count {
+        1 => {
+            // Full screen
+            let orig_idx = order[0];
+            let new_pos = bounds.min + Vec2::splat(gap / 2.0);
+            let new_size = Vec2::new(available_width, available_height);
+            let new_size = apply_min_size(new_size, min_sizes, orig_idx);
+
+            positions[orig_idx] = new_pos;
+            sizes[orig_idx] = new_size;
+            changed = check_changed(&rects[orig_idx], new_pos, new_size);
+        }
+        2 => {
+            // Left/Right split
+            let half_width = (available_width - gap) / 2.0;
+
+            for (tile_idx, &orig_idx) in order.iter().enumerate() {
+                let x = bounds.min.x + gap / 2.0 + (tile_idx as f32) * (half_width + gap);
+                let new_pos = Pos2::new(x, bounds.min.y + gap / 2.0);
+                let new_size = Vec2::new(half_width, available_height);
+                let new_size = apply_min_size(new_size, min_sizes, orig_idx);
+
+                positions[orig_idx] = new_pos;
+                sizes[orig_idx] = new_size;
+                if check_changed(&rects[orig_idx], new_pos, new_size) {
+                    changed = true;
+                }
+            }
+        }
+        3 => {
+            // Left (50%) + Right stack (2 x 50%)
+            let left_width = (available_width - gap) / 2.0;
+            let right_width = left_width;
+            let right_height = (available_height - gap) / 2.0;
+
+            // First pane: left side
+            let orig_idx = order[0];
+            let new_pos = Pos2::new(bounds.min.x + gap / 2.0, bounds.min.y + gap / 2.0);
+            let new_size = Vec2::new(left_width, available_height);
+            let new_size = apply_min_size(new_size, min_sizes, orig_idx);
+            positions[orig_idx] = new_pos;
+            sizes[orig_idx] = new_size;
+            if check_changed(&rects[orig_idx], new_pos, new_size) {
+                changed = true;
+            }
+
+            // Second pane: right top
+            let orig_idx = order[1];
+            let new_pos = Pos2::new(
+                bounds.min.x + gap / 2.0 + left_width + gap,
+                bounds.min.y + gap / 2.0,
+            );
+            let new_size = Vec2::new(right_width, right_height);
+            let new_size = apply_min_size(new_size, min_sizes, orig_idx);
+            positions[orig_idx] = new_pos;
+            sizes[orig_idx] = new_size;
+            if check_changed(&rects[orig_idx], new_pos, new_size) {
+                changed = true;
+            }
+
+            // Third pane: right bottom
+            let orig_idx = order[2];
+            let new_pos = Pos2::new(
+                bounds.min.x + gap / 2.0 + left_width + gap,
+                bounds.min.y + gap / 2.0 + right_height + gap,
+            );
+            let new_size = Vec2::new(right_width, right_height);
+            let new_size = apply_min_size(new_size, min_sizes, orig_idx);
+            positions[orig_idx] = new_pos;
+            sizes[orig_idx] = new_size;
+            if check_changed(&rects[orig_idx], new_pos, new_size) {
+                changed = true;
+            }
+        }
+        4 => {
+            // 2x2 grid
+            let cell_width = (available_width - gap) / 2.0;
+            let cell_height = (available_height - gap) / 2.0;
+
+            for (tile_idx, &orig_idx) in order.iter().enumerate() {
+                let col = tile_idx % 2;
+                let row = tile_idx / 2;
+                let x = bounds.min.x + gap / 2.0 + (col as f32) * (cell_width + gap);
+                let y = bounds.min.y + gap / 2.0 + (row as f32) * (cell_height + gap);
+                let new_pos = Pos2::new(x, y);
+                let new_size = Vec2::new(cell_width, cell_height);
+                let new_size = apply_min_size(new_size, min_sizes, orig_idx);
+
+                positions[orig_idx] = new_pos;
+                sizes[orig_idx] = new_size;
+                if check_changed(&rects[orig_idx], new_pos, new_size) {
+                    changed = true;
+                }
+            }
+        }
+        _ => {
+            // Dynamic grid for 5+ panes
+            let (cols, rows) = calculate_grid_dimensions(count);
+            let cell_width = (available_width - gap * (cols as f32 - 1.0)) / cols as f32;
+            let cell_height = (available_height - gap * (rows as f32 - 1.0)) / rows as f32;
+
+            for (tile_idx, &orig_idx) in order.iter().enumerate() {
+                let col = tile_idx % cols;
+                let row = tile_idx / cols;
+                let x = bounds.min.x + gap / 2.0 + (col as f32) * (cell_width + gap);
+                let y = bounds.min.y + gap / 2.0 + (row as f32) * (cell_height + gap);
+                let new_pos = Pos2::new(x, y);
+                let new_size = Vec2::new(cell_width, cell_height);
+                let new_size = apply_min_size(new_size, min_sizes, orig_idx);
+
+                positions[orig_idx] = new_pos;
+                sizes[orig_idx] = new_size;
+                if check_changed(&rects[orig_idx], new_pos, new_size) {
+                    changed = true;
+                }
+            }
+        }
+    }
+
+    TileResult {
+        positions,
+        sizes,
+        changed,
+    }
+}
+
+/// Calculate optimal grid dimensions for a given count
+fn calculate_grid_dimensions(count: usize) -> (usize, usize) {
+    match count {
+        0 => (0, 0),
+        1 => (1, 1),
+        2 => (2, 1),
+        3 => (3, 1),
+        4 => (2, 2),
+        5 => (3, 2),
+        6 => (3, 2),
+        7..=9 => (3, 3),
+        10..=12 => (4, 3),
+        _ => {
+            let cols = (count as f32).sqrt().ceil() as usize;
+            let rows = (count + cols - 1) / cols;
+            (cols, rows)
+        }
+    }
+}
+
+/// Apply minimum size constraint
+fn apply_min_size(size: Vec2, min_sizes: Option<&[Vec2]>, idx: usize) -> Vec2 {
+    match min_sizes {
+        Some(mins) if idx < mins.len() => Vec2::new(
+            size.x.max(mins[idx].x),
+            size.y.max(mins[idx].y),
+        ),
+        _ => size,
+    }
+}
+
+/// Check if position or size changed
+fn check_changed(rect: &Rect, new_pos: Pos2, new_size: Vec2) -> bool {
+    rect.min != new_pos || rect.size() != new_size
 }
 
 #[cfg(test)]

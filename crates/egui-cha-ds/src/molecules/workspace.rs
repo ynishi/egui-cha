@@ -382,7 +382,11 @@ impl<'a> WorkspaceCanvas<'a> {
             }
             LayoutMode::Free => visible_panes
                 .iter()
-                .map(|(idx, pane)| (*idx, Rect::from_min_size(pane.position, pane.size)))
+                .map(|(idx, pane)| {
+                    // Position is relative to the canvas rect
+                    let pos = rect.min + pane.position.to_vec2();
+                    (*idx, Rect::from_min_size(pos, pane.size))
+                })
                 .collect(),
         };
 
@@ -597,8 +601,39 @@ impl<'a> WorkspaceCanvas<'a> {
                     });
                 }
             }
+        }
 
-            // Draw pane content (before we borrow painter)
+        // Draw background and pane frames (BEFORE content)
+        {
+            let painter = ui.painter();
+
+            // Draw background
+            painter.rect_filled(rect, 0.0, theme.bg_primary);
+
+            // Draw grid if enabled
+            if self.show_grid {
+                if let Some(grid_size) = self.grid_size {
+                    self.draw_grid(painter, rect, grid_size, &theme);
+                }
+            }
+
+            // Draw pane frames (background and borders)
+            for interaction in &interactions {
+                let pane = &self.panes[interaction.idx];
+                self.draw_pane(
+                    painter,
+                    interaction,
+                    pane,
+                    &theme,
+                    &drag_state,
+                    self.locked,
+                );
+            }
+        }
+
+        // Draw pane content (AFTER background and frames)
+        for interaction in &interactions {
+            let pane = &self.panes[interaction.idx];
             let content_rect = Rect::from_min_max(
                 Pos2::new(interaction.rect.min.x, interaction.rect.min.y + self.title_bar_height),
                 interaction.rect.max,
@@ -607,68 +642,52 @@ impl<'a> WorkspaceCanvas<'a> {
             content(&mut child_ui, pane);
         }
 
-        // Now get painter for all drawing operations
-        let painter = ui.painter();
+        // Draw overlays (dividers, snap guides) AFTER content
+        {
+            let painter = ui.painter();
 
-        // Draw background
-        painter.rect_filled(rect, 0.0, theme.bg_primary);
+            // Draw dividers (Tile mode only)
+            if !self.locked {
+                for divider in &dividers {
+                    let is_active = drag_state.divider_drag.as_ref().map_or(false, |d| {
+                        d.is_vertical == divider.is_vertical
+                    });
+                    let divider_color = if is_active {
+                        theme.primary
+                    } else {
+                        theme.border.gamma_multiply(0.5)
+                    };
 
-        // Draw grid if enabled
-        if self.show_grid {
-            if let Some(grid_size) = self.grid_size {
-                self.draw_grid(painter, rect, grid_size, &theme);
-            }
-        }
-
-        // Draw panes
-        for interaction in &interactions {
-            let pane = &self.panes[interaction.idx];
-            self.draw_pane(
-                painter,
-                interaction,
-                pane,
-                &theme,
-                &drag_state,
-                self.locked,
-            );
-        }
-
-        // Draw dividers (Tile mode only)
-        if !self.locked {
-            for divider in &dividers {
-                let is_active = drag_state.divider_drag.as_ref().map_or(false, |d| {
-                    d.is_vertical == divider.is_vertical
-                });
-                let divider_color = if is_active {
-                    theme.primary
-                } else {
-                    theme.border.gamma_multiply(0.5)
-                };
-
-                // Draw divider line (subtle)
-                if divider.is_vertical {
-                    painter.line_segment(
-                        [
-                            Pos2::new(divider.position, divider.rect.min.y + self.gap),
-                            Pos2::new(divider.position, divider.rect.max.y - self.gap),
-                        ],
-                        Stroke::new(2.0, divider_color),
-                    );
-                } else {
-                    painter.line_segment(
-                        [
-                            Pos2::new(divider.rect.min.x + self.gap, divider.position),
-                            Pos2::new(divider.rect.max.x - self.gap, divider.position),
-                        ],
-                        Stroke::new(2.0, divider_color),
-                    );
+                    // Draw divider line (subtle)
+                    if divider.is_vertical {
+                        painter.line_segment(
+                            [
+                                Pos2::new(divider.position, divider.rect.min.y + self.gap),
+                                Pos2::new(divider.position, divider.rect.max.y - self.gap),
+                            ],
+                            Stroke::new(2.0, divider_color),
+                        );
+                    } else {
+                        painter.line_segment(
+                            [
+                                Pos2::new(divider.rect.min.x + self.gap, divider.position),
+                                Pos2::new(divider.rect.max.x - self.gap, divider.position),
+                            ],
+                            Stroke::new(2.0, divider_color),
+                        );
+                    }
                 }
             }
-        }
 
-        // Draw snap guides
-        if let Some(ref target) = drag_state.snap_target {
-            self.draw_snap_guide(painter, target, rect, &theme);
+            // Draw snap guides
+            if let Some(ref target) = drag_state.snap_target {
+                self.draw_snap_guide(painter, target, rect, &theme);
+            }
+
+            // Draw lock indicator
+            if self.locked {
+                self.draw_lock_indicator(painter, rect, &theme);
+            }
         }
 
         // Handle drag end (mouse released)
@@ -691,11 +710,6 @@ impl<'a> WorkspaceCanvas<'a> {
 
         // Save drag state
         ui.ctx().data_mut(|d| d.insert_temp(canvas_id, drag_state));
-
-        // Draw lock indicator
-        if self.locked {
-            self.draw_lock_indicator(painter, rect, &theme);
-        }
 
         events
     }

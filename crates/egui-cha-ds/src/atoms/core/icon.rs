@@ -118,8 +118,8 @@ pub mod icons {
     pub const SKULL: &str = "\u{e916}";
 
     // Window controls
-    pub const CARET_UP: &str = "\u{e13e}";
-    pub const CARET_DOWN: &str = "\u{e12c}";
+    pub const CARET_UP: &str = "\u{e13c}";
+    pub const CARET_DOWN: &str = "\u{e136}";
     pub const LOCK: &str = "\u{e2ec}";
     pub const LOCK_OPEN: &str = "\u{e2ee}";
     pub const CORNERS_OUT: &str = "\u{e1ce}"; // maximize
@@ -130,6 +130,16 @@ pub mod icons {
     pub const SLIDERS_HORIZONTAL: &str = "\u{e450}";
     pub const IMAGE: &str = "\u{e2c4}";
     pub const MONITOR_PLAY: &str = "\u{e338}";
+
+    // Layout / Arrange
+    pub const GRID_FOUR: &str = "\u{e296}";
+    pub const ARROWS_OUT_LINE_HORIZONTAL: &str = "\u{e534}";
+    pub const ARROWS_OUT_LINE_VERTICAL: &str = "\u{e536}";
+    pub const SQUARES_FOUR: &str = "\u{e464}";
+    pub const BROOM: &str = "\u{ec54}";
+    pub const MAGNIFYING_GLASS_PLUS: &str = "\u{e310}";
+    pub const FRAME_CORNERS: &str = "\u{e626}";
+    pub const LOCK_KEY: &str = "\u{e2fe}"; // for Light lock
 }
 
 /// Icon component using Phosphor Icons
