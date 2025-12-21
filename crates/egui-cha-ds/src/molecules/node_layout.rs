@@ -63,8 +63,8 @@ pub struct LayoutPane {
     pub resizable: bool,
     /// Minimum size constraint
     pub min_size: Vec2,
-    /// Whether the pane is locked (no drag/resize)
-    pub locked: bool,
+    /// Lock level (None, Light, Full)
+    pub lock_level: LockLevel,
 }
 
 impl LayoutPane {
@@ -83,7 +83,7 @@ impl LayoutPane {
             maximized: false,
             resizable: true,
             min_size: Vec2::new(100.0, 60.0),
-            locked: false,
+            lock_level: LockLevel::None,
         }
     }
 
@@ -117,9 +117,9 @@ impl LayoutPane {
         self
     }
 
-    /// Set locked state
-    pub fn locked(mut self, locked: bool) -> Self {
-        self.locked = locked;
+    /// Set lock level
+    pub fn lock_level(mut self, level: LockLevel) -> Self {
+        self.lock_level = level;
         self
     }
 
@@ -127,6 +127,39 @@ impl LayoutPane {
     pub fn with_icon(mut self, icon: &'static str) -> Self {
         self.title_icon = Some(icon);
         self
+    }
+}
+
+/// Lock level for panes and canvas
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum LockLevel {
+    /// No lock - all operations allowed
+    #[default]
+    None,
+    /// Light lock - no move/resize, but collapse/maximize/close allowed
+    Light,
+    /// Full lock - all operations disabled
+    Full,
+}
+
+impl LockLevel {
+    /// Cycle to next lock level (None -> Light -> Full -> None)
+    pub fn cycle(self) -> Self {
+        match self {
+            LockLevel::None => LockLevel::Light,
+            LockLevel::Light => LockLevel::Full,
+            LockLevel::Full => LockLevel::None,
+        }
+    }
+
+    /// Check if move/resize is allowed
+    pub fn allows_move_resize(self) -> bool {
+        matches!(self, LockLevel::None)
+    }
+
+    /// Check if collapse/maximize/close is allowed
+    pub fn allows_window_controls(self) -> bool {
+        !matches!(self, LockLevel::Full)
     }
 }
 
@@ -141,8 +174,8 @@ pub enum NodeLayoutEvent {
     PaneCollapsed { id: String, collapsed: bool },
     /// Pane was maximized/restored
     PaneMaximized { id: String, maximized: bool },
-    /// Pane was locked/unlocked
-    PaneLocked { id: String, locked: bool },
+    /// Pane lock level changed
+    PaneLockChanged { id: String, lock_level: LockLevel },
     /// Pane was closed
     PaneClosed(String),
 }
@@ -264,7 +297,7 @@ impl NodeLayout {
 pub struct NodeLayoutArea<'a, F> {
     layout: &'a mut NodeLayout,
     content_fn: F,
-    locked: bool,
+    lock_level: LockLevel,
     title_height: f32,
     content_padding: Option<f32>,
     grid_size: f32,
@@ -282,7 +315,7 @@ where
         Self {
             layout,
             content_fn,
-            locked: false,
+            lock_level: LockLevel::None,
             title_height: 24.0,
             content_padding: None, // Uses theme.spacing_sm by default
             grid_size: 50.0,
@@ -292,9 +325,15 @@ where
         }
     }
 
-    /// Set locked state (prevents dragging and pan/zoom)
+    /// Set lock level (controls what operations are allowed)
+    pub fn lock_level(mut self, level: LockLevel) -> Self {
+        self.lock_level = level;
+        self
+    }
+
+    /// Set locked state (shorthand for Full lock)
     pub fn locked(mut self, locked: bool) -> Self {
-        self.locked = locked;
+        self.lock_level = if locked { LockLevel::Full } else { LockLevel::None };
         self
     }
 
@@ -353,9 +392,9 @@ where
             state.initialized = true;
         }
 
-        // Handle pan/zoom (only if not locked)
+        // Handle pan/zoom (only if canvas allows move/resize)
         let mut to_screen = state.to_screen;
-        if !self.locked {
+        if self.lock_level.allows_move_resize() {
             let mut scene_response = response.clone();
             Scene::new()
                 .zoom_range(self.min_scale..=self.max_scale)
@@ -383,7 +422,7 @@ where
         let mut pane_resized: Option<(String, Vec2)> = None;
         let mut pane_collapsed: Option<(String, bool)> = None;
         let mut pane_maximized: Option<(String, bool)> = None;
-        let mut pane_locked: Option<(String, bool)> = None;
+        let mut pane_lock_changed: Option<(String, LockLevel)> = None;
         let mut pane_closed: Option<String> = None;
 
         // Button size for title bar
@@ -416,13 +455,13 @@ where
                 pane_rect
             };
 
-            // Skip if not visible in viewport (unless maximized)
-            if !is_maximized && !viewport.intersects(effective_pane_rect) {
-                continue;
-            }
-
             // Transform to screen space
             let screen_pane_rect = to_screen * effective_pane_rect;
+
+            // Skip if not visible in canvas rect (screen space check)
+            if !is_maximized && !rect.intersects(screen_pane_rect) {
+                continue;
+            }
 
             // Draw pane frame (no clipping for infinite canvas)
             let frame_stroke = if state.dragging.as_ref() == Some(&pane_id) {
@@ -468,7 +507,12 @@ where
             // Helper to draw icon button
             let icon_font = egui::FontId::new(scaled_button_size * 0.7, FontFamily::Name("icons".into()));
 
-            // Close button (if closable)
+            // Check if window controls are allowed (not Full locked)
+            let pane_allows_window_ctrl = pane.lock_level.allows_window_controls();
+            let canvas_allows_window_ctrl = self.lock_level.allows_window_controls();
+            let window_ctrl_enabled = pane_allows_window_ctrl && canvas_allows_window_ctrl;
+
+            // Close button (if closable and not full-locked)
             if pane.closable {
                 let close_rect = Rect::from_min_size(
                     Pos2::new(button_x, screen_title_rect.min.y + scaled_button_padding),
@@ -477,9 +521,11 @@ where
                 let close_response = ui.interact(
                     close_rect,
                     ui.id().with(&pane_id).with("close"),
-                    Sense::click(),
+                    if window_ctrl_enabled { Sense::click() } else { Sense::hover() },
                 );
-                let close_color = if close_response.hovered() {
+                let close_color = if !window_ctrl_enabled {
+                    theme.text_muted
+                } else if close_response.hovered() {
                     theme.state_danger
                 } else {
                     theme.text_secondary
@@ -491,7 +537,7 @@ where
                     icon_font.clone(),
                     close_color,
                 );
-                if close_response.clicked() {
+                if window_ctrl_enabled && close_response.clicked() {
                     pane_closed = Some(pane_id.clone());
                 }
                 button_x -= scaled_button_size + scaled_button_padding * 0.5;
@@ -505,9 +551,11 @@ where
             let max_response = ui.interact(
                 max_rect,
                 ui.id().with(&pane_id).with("maximize"),
-                Sense::click(),
+                if window_ctrl_enabled { Sense::click() } else { Sense::hover() },
             );
-            let max_color = if max_response.hovered() {
+            let max_color = if !window_ctrl_enabled {
+                theme.text_muted
+            } else if max_response.hovered() {
                 theme.text_primary
             } else {
                 theme.text_secondary
@@ -524,8 +572,12 @@ where
                 icon_font.clone(),
                 max_color,
             );
-            if max_response.clicked() {
+            if window_ctrl_enabled && max_response.clicked() {
                 pane_maximized = Some((pane_id.clone(), !pane.maximized));
+                // Bring to front when maximizing
+                if !pane.maximized {
+                    pane_to_top = Some(pane_id.clone());
+                }
             }
             button_x -= scaled_button_size + scaled_button_padding * 0.5;
 
@@ -537,9 +589,11 @@ where
             let collapse_response = ui.interact(
                 collapse_rect,
                 ui.id().with(&pane_id).with("collapse"),
-                Sense::click(),
+                if window_ctrl_enabled { Sense::click() } else { Sense::hover() },
             );
-            let collapse_color = if collapse_response.hovered() {
+            let collapse_color = if !window_ctrl_enabled {
+                theme.text_muted
+            } else if collapse_response.hovered() {
                 theme.text_primary
             } else {
                 theme.text_secondary
@@ -556,12 +610,14 @@ where
                 icon_font.clone(),
                 collapse_color,
             );
-            if collapse_response.clicked() {
+            if window_ctrl_enabled && collapse_response.clicked() {
                 pane_collapsed = Some((pane_id.clone(), !pane.collapsed));
             }
             button_x -= scaled_button_size + scaled_button_padding * 0.5;
 
-            // Lock button
+            // Lock button (cycles: None -> Light -> Full -> None)
+            // Disabled when canvas is Full locked
+            let lock_button_enabled = canvas_allows_window_ctrl;
             let lock_rect = Rect::from_min_size(
                 Pos2::new(button_x, screen_title_rect.min.y + scaled_button_padding),
                 Vec2::splat(scaled_button_size),
@@ -569,19 +625,25 @@ where
             let lock_response = ui.interact(
                 lock_rect,
                 ui.id().with(&pane_id).with("lock"),
-                Sense::click(),
+                if lock_button_enabled { Sense::click() } else { Sense::hover() },
             );
-            let lock_color = if lock_response.hovered() {
-                theme.text_primary
-            } else if pane.locked {
-                theme.primary
+            let (lock_icon, lock_color) = if !lock_button_enabled {
+                (icons::LOCK, theme.text_muted)
             } else {
-                theme.text_secondary
-            };
-            let lock_icon = if pane.locked {
-                icons::LOCK
-            } else {
-                icons::LOCK_OPEN
+                match pane.lock_level {
+                    LockLevel::None => (
+                        icons::LOCK_OPEN,
+                        if lock_response.hovered() { theme.text_primary } else { theme.text_secondary },
+                    ),
+                    LockLevel::Light => (
+                        icons::LOCK,
+                        if lock_response.hovered() { theme.text_primary } else { theme.primary },
+                    ),
+                    LockLevel::Full => (
+                        icons::LOCK,
+                        if lock_response.hovered() { theme.text_primary } else { theme.state_danger },
+                    ),
+                }
             };
             painter.text(
                 lock_rect.center(),
@@ -590,8 +652,8 @@ where
                 icon_font.clone(),
                 lock_color,
             );
-            if lock_response.clicked() {
-                pane_locked = Some((pane_id.clone(), !pane.locked));
+            if lock_button_enabled && lock_response.clicked() {
+                pane_lock_changed = Some((pane_id.clone(), pane.lock_level.cycle()));
             }
 
             // Draw title (icon + text, with space for buttons)
@@ -602,7 +664,8 @@ where
                 screen_title_rect.min + Vec2::new(text_padding, 0.0),
                 Pos2::new(title_text_max_x, screen_title_rect.max.y),
             );
-            let clipped_painter = ui.painter().with_clip_rect(title_text_rect);
+            // Clip to both title area and canvas rect
+            let clipped_painter = ui.painter().with_clip_rect(title_text_rect.intersect(rect));
 
             // Draw title icon if present
             let mut title_x = screen_title_rect.left_center().x + text_padding;
@@ -635,11 +698,16 @@ where
                 screen_title_rect.min,
                 Pos2::new(title_text_max_x, screen_title_rect.max.y),
             );
-            let pane_is_locked = pane.locked;
+
+            // Compute effective lock: use stricter of canvas and pane lock levels
+            let pane_lock = pane.lock_level;
+            let can_move_resize = self.lock_level.allows_move_resize() && pane_lock.allows_move_resize();
+            let can_window_control = self.lock_level.allows_window_controls() && pane_lock.allows_window_controls();
+
             let title_response = ui.interact(
                 title_drag_rect,
                 ui.id().with(&pane_id).with("title_drag"),
-                if self.locked || is_maximized || pane_is_locked {
+                if !can_move_resize || is_maximized {
                     Sense::hover()
                 } else {
                     Sense::click_and_drag()
@@ -650,7 +718,7 @@ where
                 pane_to_top = Some(pane_id.clone());
             }
 
-            if !self.locked && !is_maximized && !pane_is_locked && title_response.dragged() {
+            if can_move_resize && !is_maximized && title_response.dragged() {
                 if state.dragging.is_none() && state.resizing.is_none() {
                     state.dragging = Some(pane_id.clone());
                 }
@@ -667,9 +735,9 @@ where
                 state.dragging = None;
             }
 
-            // Resize handling (only if not collapsed, not maximized, resizable, and not locked)
+            // Resize handling (only if not collapsed, not maximized, resizable, and can move/resize)
             // Use direct pointer input to avoid stealing events from title bar
-            if !pane.collapsed && !is_maximized && pane.resizable && !self.locked && !pane_is_locked {
+            if !pane.collapsed && !is_maximized && pane.resizable && can_move_resize {
                 // Detect resize edges (check if pointer is near the pane border)
                 let detect_edge = |pos: Pos2| -> Option<ResizeEdge> {
                     // Must be within expanded pane rect
@@ -878,13 +946,13 @@ where
             }
         }
 
-        // Apply pane locked
-        if let Some((id, locked)) = pane_locked {
+        // Apply pane lock level change
+        if let Some((id, new_level)) = pane_lock_changed {
             if let Some(pane) = self.layout.get_pane_mut(&id) {
-                pane.locked = locked;
-                events.push(NodeLayoutEvent::PaneLocked {
+                pane.lock_level = new_level;
+                events.push(NodeLayoutEvent::PaneLockChanged {
                     id: id.clone(),
-                    locked,
+                    lock_level: new_level,
                 });
             }
         }

@@ -96,7 +96,7 @@ pub use snarl::{
     presets as node_presets, MenuAction, NodeGraph, NodeGraphArea, NodeGraphEvent,
     NodeGraphStyle, NodeId, InPin, InPinId, OutPin, OutPinId, PinInfo, Snarl, SnarlViewer,
 };
-pub use node_layout::{LayoutPane, NodeLayout, NodeLayoutArea, NodeLayoutEvent};
+pub use node_layout::{LayoutPane, LockLevel, NodeLayout, NodeLayoutArea, NodeLayoutEvent};
 pub use workspace::{
     Edge, LayoutMode, SnapTarget, WorkspaceCanvas, WorkspaceEvent, WorkspacePane,
 };

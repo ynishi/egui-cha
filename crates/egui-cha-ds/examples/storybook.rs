@@ -183,7 +183,7 @@ struct Model {
 
     // NodeLayout demo
     node_layout: RefCell<NodeLayout>,
-    node_layout_locked: bool,
+    node_layout_lock_level: egui_cha_ds::LockLevel,
 }
 
 /// Demo node type for NodeGraph showcase
@@ -733,7 +733,7 @@ impl App for StorybookApp {
                     );
                     layout
                 }),
-                node_layout_locked: false,
+                node_layout_lock_level: egui_cha_ds::LockLevel::None,
                 ..Default::default()
             },
             Cmd::none(),
@@ -1141,7 +1141,7 @@ impl App for StorybookApp {
             }
 
             Msg::ToggleNodeLayoutLock => {
-                model.node_layout_locked = !model.node_layout_locked;
+                model.node_layout_lock_level = model.node_layout_lock_level.cycle();
             }
 
             // === VJ/DAW Demo Messages ===
@@ -4034,15 +4034,15 @@ NodeLayoutArea::new(&mut layout, |ui, pane| {
             ctx.ui.label("Drag panes to move them on the infinite canvas. Pan/zoom supported.");
             ctx.ui.add_space(8.0);
 
-            // Lock toggle (external control)
+            // Lock level toggle (external control)
             ctx.horizontal(|ctx| {
-                let lock_label = if model.node_layout_locked { "🔒 Locked" } else { "🔓 Unlocked" };
+                let (lock_label, lock_desc) = match model.node_layout_lock_level {
+                    egui_cha_ds::LockLevel::None => ("🔓 None", "All operations allowed"),
+                    egui_cha_ds::LockLevel::Light => ("🔒 Light", "No move/resize, controls work"),
+                    egui_cha_ds::LockLevel::Full => ("🔒 Full", "All operations disabled"),
+                };
                 Button::new(lock_label).on_click(ctx, Msg::ToggleNodeLayoutLock);
-                ctx.ui.label(if model.node_layout_locked {
-                    "Panes cannot be moved"
-                } else {
-                    "Drag header to move panes"
-                });
+                ctx.ui.label(lock_desc);
             });
             ctx.ui.add_space(8.0);
 
@@ -4056,7 +4056,7 @@ NodeLayoutArea::new(&mut layout, |ui, pane| {
                 .show(ctx.ui, |ui| {
                     ui.set_min_size(egui::vec2(available.x - 20.0, layout_height));
 
-                    let locked = model.node_layout_locked;
+                    let lock_level = model.node_layout_lock_level;
                     NodeLayoutArea::new(&mut model.node_layout.borrow_mut(), |ui, pane| {
                         // Render pane content based on id
                         match pane.id.as_str() {
@@ -4128,7 +4128,7 @@ NodeLayoutArea::new(&mut layout, |ui, pane| {
                                 ui.label(&pane.title);
                             }
                         }
-                    }).locked(locked).show(ui);
+                    }).lock_level(lock_level).show(ui);
                 });
 
             ctx.ui.add_space(16.0);
