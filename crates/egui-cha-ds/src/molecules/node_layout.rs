@@ -28,9 +28,11 @@
 //! .show(ui);
 //! ```
 
+use crate::atoms::icons;
 use crate::Theme;
 use egui::{
-    emath::TSTransform, Color32, CornerRadius, Pos2, Rect, Scene, Sense, Stroke, Ui, Vec2,
+    emath::TSTransform, Color32, CornerRadius, FontFamily, Pos2, Rect, RichText, Scene, Sense,
+    Stroke, Ui, Vec2,
 };
 use std::collections::HashMap;
 
@@ -41,14 +43,28 @@ pub struct LayoutPane {
     pub id: String,
     /// Display title
     pub title: String,
+    /// Optional title icon (Phosphor icon codepoint)
+    pub title_icon: Option<&'static str>,
     /// Position in graph space
     pub position: Pos2,
     /// Desired size (width, height)
     pub size: Vec2,
+    /// Size before maximize (for restore)
+    pub pre_maximize_size: Option<Vec2>,
+    /// Position before maximize (for restore)
+    pub pre_maximize_position: Option<Pos2>,
     /// Whether the pane can be closed
     pub closable: bool,
-    /// Whether the pane is currently collapsed
+    /// Whether the pane is currently collapsed (title bar only)
     pub collapsed: bool,
+    /// Whether the pane is maximized (fills canvas)
+    pub maximized: bool,
+    /// Whether the pane can be resized
+    pub resizable: bool,
+    /// Minimum size constraint
+    pub min_size: Vec2,
+    /// Whether the pane is locked (no drag/resize)
+    pub locked: bool,
 }
 
 impl LayoutPane {
@@ -57,10 +73,17 @@ impl LayoutPane {
         Self {
             id: id.into(),
             title: title.into(),
+            title_icon: None,
             position: Pos2::ZERO,
             size: Vec2::new(300.0, 200.0),
+            pre_maximize_size: None,
+            pre_maximize_position: None,
             closable: false,
             collapsed: false,
+            maximized: false,
+            resizable: true,
+            min_size: Vec2::new(100.0, 60.0),
+            locked: false,
         }
     }
 
@@ -81,6 +104,30 @@ impl LayoutPane {
         self.closable = closable;
         self
     }
+
+    /// Set resizable
+    pub fn resizable(mut self, resizable: bool) -> Self {
+        self.resizable = resizable;
+        self
+    }
+
+    /// Set minimum size
+    pub fn min_size(mut self, width: f32, height: f32) -> Self {
+        self.min_size = Vec2::new(width, height);
+        self
+    }
+
+    /// Set locked state
+    pub fn locked(mut self, locked: bool) -> Self {
+        self.locked = locked;
+        self
+    }
+
+    /// Set title icon (Phosphor icon codepoint)
+    pub fn with_icon(mut self, icon: &'static str) -> Self {
+        self.title_icon = Some(icon);
+        self
+    }
 }
 
 /// Events emitted by NodeLayoutArea
@@ -88,10 +135,29 @@ impl LayoutPane {
 pub enum NodeLayoutEvent {
     /// Pane was moved
     PaneMoved { id: String, position: Pos2 },
+    /// Pane was resized
+    PaneResized { id: String, size: Vec2 },
+    /// Pane was collapsed/expanded (title bar only)
+    PaneCollapsed { id: String, collapsed: bool },
+    /// Pane was maximized/restored
+    PaneMaximized { id: String, maximized: bool },
+    /// Pane was locked/unlocked
+    PaneLocked { id: String, locked: bool },
     /// Pane was closed
     PaneClosed(String),
-    /// Pane was collapsed/expanded
-    PaneCollapsed { id: String, collapsed: bool },
+}
+
+/// Resize direction
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum ResizeEdge {
+    Left,
+    Right,
+    Top,
+    Bottom,
+    TopLeft,
+    TopRight,
+    BottomLeft,
+    BottomRight,
 }
 
 /// Internal state persisted across frames
@@ -101,8 +167,10 @@ struct LayoutState {
     to_screen: TSTransform,
     /// Whether the transform has been initialized with the rect position
     initialized: bool,
-    /// Currently dragging pane
+    /// Currently dragging pane (by title)
     dragging: Option<String>,
+    /// Currently resizing pane
+    resizing: Option<(String, ResizeEdge)>,
     /// Draw order (front to back)
     draw_order: Vec<String>,
 }
@@ -113,6 +181,7 @@ impl Default for LayoutState {
             to_screen: TSTransform::IDENTITY,
             initialized: false,
             dragging: None,
+            resizing: None,
             draw_order: Vec::new(),
         }
     }
@@ -197,6 +266,7 @@ pub struct NodeLayoutArea<'a, F> {
     content_fn: F,
     locked: bool,
     title_height: f32,
+    content_padding: Option<f32>,
     grid_size: f32,
     grid_alpha: u8,
     min_scale: f32,
@@ -214,6 +284,7 @@ where
             content_fn,
             locked: false,
             title_height: 24.0,
+            content_padding: None, // Uses theme.spacing_sm by default
             grid_size: 50.0,
             grid_alpha: 30,
             min_scale: 0.25,
@@ -230,6 +301,12 @@ where
     /// Set title bar height
     pub fn title_height(mut self, height: f32) -> Self {
         self.title_height = height;
+        self
+    }
+
+    /// Set content padding (defaults to theme.spacing_sm)
+    pub fn content_padding(mut self, padding: f32) -> Self {
+        self.content_padding = Some(padding);
         self
     }
 
@@ -303,6 +380,18 @@ where
         // Collect pane interactions
         let mut pane_to_top: Option<String> = None;
         let mut pane_moved: Option<(String, Vec2)> = None;
+        let mut pane_resized: Option<(String, Vec2)> = None;
+        let mut pane_collapsed: Option<(String, bool)> = None;
+        let mut pane_maximized: Option<(String, bool)> = None;
+        let mut pane_locked: Option<(String, bool)> = None;
+        let mut pane_closed: Option<String> = None;
+
+        // Button size for title bar
+        let button_size = self.title_height * 0.7;
+        let button_padding = self.title_height * 0.15;
+
+        // Resize edge detection threshold (in screen pixels)
+        let resize_edge_size = 6.0;
 
         // Draw panes in order (back to front)
         // Collect IDs first to avoid borrow issues during iteration
@@ -312,15 +401,28 @@ where
                 continue;
             };
 
-            let pane_rect = Rect::from_min_size(pane.position, pane.size);
+            // Calculate effective pane rect (considering maximized state)
+            let (pane_rect, is_maximized) = if pane.maximized {
+                // Maximized: fill the viewport
+                (viewport, true)
+            } else {
+                (Rect::from_min_size(pane.position, pane.size), false)
+            };
 
-            // Skip if not visible in viewport
-            if !viewport.intersects(pane_rect) {
+            // For collapsed panes, use only title height
+            let effective_pane_rect = if pane.collapsed && !is_maximized {
+                Rect::from_min_size(pane_rect.min, Vec2::new(pane_rect.width(), self.title_height))
+            } else {
+                pane_rect
+            };
+
+            // Skip if not visible in viewport (unless maximized)
+            if !is_maximized && !viewport.intersects(effective_pane_rect) {
                 continue;
             }
 
             // Transform to screen space
-            let screen_pane_rect = to_screen * pane_rect;
+            let screen_pane_rect = to_screen * effective_pane_rect;
 
             // Draw pane frame (no clipping for infinite canvas)
             let frame_stroke = if state.dragging.as_ref() == Some(&pane_id) {
@@ -345,30 +447,199 @@ where
             );
 
             let radius = theme.radius_sm as u8;
-            let title_rounding = CornerRadius {
-                nw: radius,
-                ne: radius,
-                sw: 0,
-                se: 0,
+            let title_rounding = if pane.collapsed {
+                // All corners rounded when collapsed
+                CornerRadius::same(radius)
+            } else {
+                CornerRadius {
+                    nw: radius,
+                    ne: radius,
+                    sw: 0,
+                    se: 0,
+                }
             };
             painter.rect_filled(screen_title_rect, title_rounding, theme.bg_tertiary);
 
-            // Draw title text
+            // Calculate button positions (right side of title bar)
+            let scaled_button_size = button_size * to_screen.scaling;
+            let scaled_button_padding = button_padding * to_screen.scaling;
+            let mut button_x = screen_title_rect.max.x - scaled_button_padding - scaled_button_size;
+
+            // Helper to draw icon button
+            let icon_font = egui::FontId::new(scaled_button_size * 0.7, FontFamily::Name("icons".into()));
+
+            // Close button (if closable)
+            if pane.closable {
+                let close_rect = Rect::from_min_size(
+                    Pos2::new(button_x, screen_title_rect.min.y + scaled_button_padding),
+                    Vec2::splat(scaled_button_size),
+                );
+                let close_response = ui.interact(
+                    close_rect,
+                    ui.id().with(&pane_id).with("close"),
+                    Sense::click(),
+                );
+                let close_color = if close_response.hovered() {
+                    theme.state_danger
+                } else {
+                    theme.text_secondary
+                };
+                painter.text(
+                    close_rect.center(),
+                    egui::Align2::CENTER_CENTER,
+                    icons::X,
+                    icon_font.clone(),
+                    close_color,
+                );
+                if close_response.clicked() {
+                    pane_closed = Some(pane_id.clone());
+                }
+                button_x -= scaled_button_size + scaled_button_padding * 0.5;
+            }
+
+            // Maximize button
+            let max_rect = Rect::from_min_size(
+                Pos2::new(button_x, screen_title_rect.min.y + scaled_button_padding),
+                Vec2::splat(scaled_button_size),
+            );
+            let max_response = ui.interact(
+                max_rect,
+                ui.id().with(&pane_id).with("maximize"),
+                Sense::click(),
+            );
+            let max_color = if max_response.hovered() {
+                theme.text_primary
+            } else {
+                theme.text_secondary
+            };
+            let max_icon = if pane.maximized {
+                icons::CORNERS_IN
+            } else {
+                icons::CORNERS_OUT
+            };
+            painter.text(
+                max_rect.center(),
+                egui::Align2::CENTER_CENTER,
+                max_icon,
+                icon_font.clone(),
+                max_color,
+            );
+            if max_response.clicked() {
+                pane_maximized = Some((pane_id.clone(), !pane.maximized));
+            }
+            button_x -= scaled_button_size + scaled_button_padding * 0.5;
+
+            // Collapse button
+            let collapse_rect = Rect::from_min_size(
+                Pos2::new(button_x, screen_title_rect.min.y + scaled_button_padding),
+                Vec2::splat(scaled_button_size),
+            );
+            let collapse_response = ui.interact(
+                collapse_rect,
+                ui.id().with(&pane_id).with("collapse"),
+                Sense::click(),
+            );
+            let collapse_color = if collapse_response.hovered() {
+                theme.text_primary
+            } else {
+                theme.text_secondary
+            };
+            let collapse_icon = if pane.collapsed {
+                icons::CARET_DOWN
+            } else {
+                icons::CARET_UP
+            };
+            painter.text(
+                collapse_rect.center(),
+                egui::Align2::CENTER_CENTER,
+                collapse_icon,
+                icon_font.clone(),
+                collapse_color,
+            );
+            if collapse_response.clicked() {
+                pane_collapsed = Some((pane_id.clone(), !pane.collapsed));
+            }
+            button_x -= scaled_button_size + scaled_button_padding * 0.5;
+
+            // Lock button
+            let lock_rect = Rect::from_min_size(
+                Pos2::new(button_x, screen_title_rect.min.y + scaled_button_padding),
+                Vec2::splat(scaled_button_size),
+            );
+            let lock_response = ui.interact(
+                lock_rect,
+                ui.id().with(&pane_id).with("lock"),
+                Sense::click(),
+            );
+            let lock_color = if lock_response.hovered() {
+                theme.text_primary
+            } else if pane.locked {
+                theme.primary
+            } else {
+                theme.text_secondary
+            };
+            let lock_icon = if pane.locked {
+                icons::LOCK
+            } else {
+                icons::LOCK_OPEN
+            };
+            painter.text(
+                lock_rect.center(),
+                egui::Align2::CENTER_CENTER,
+                lock_icon,
+                icon_font.clone(),
+                lock_color,
+            );
+            if lock_response.clicked() {
+                pane_locked = Some((pane_id.clone(), !pane.locked));
+            }
+
+            // Draw title (icon + text, with space for buttons)
+            let title_text_max_x = button_x - scaled_button_padding;
             let font_size = (theme.font_size_sm * to_screen.scaling).max(theme.font_size_xs);
             let text_padding = theme.spacing_sm * to_screen.scaling;
-            painter.text(
-                screen_title_rect.left_center() + Vec2::new(text_padding, 0.0),
+            let title_text_rect = Rect::from_min_max(
+                screen_title_rect.min + Vec2::new(text_padding, 0.0),
+                Pos2::new(title_text_max_x, screen_title_rect.max.y),
+            );
+            let clipped_painter = ui.painter().with_clip_rect(title_text_rect);
+
+            // Draw title icon if present
+            let mut title_x = screen_title_rect.left_center().x + text_padding;
+            if let Some(icon_char) = pane.title_icon {
+                let icon_font = egui::FontId::new(font_size, FontFamily::Name("icons".into()));
+                let icon_galley = clipped_painter.layout_no_wrap(
+                    icon_char.to_string(),
+                    icon_font.clone(),
+                    theme.text_secondary,
+                );
+                clipped_painter.galley(
+                    Pos2::new(title_x, screen_title_rect.center().y - icon_galley.size().y * 0.5),
+                    icon_galley.clone(),
+                    theme.text_secondary,
+                );
+                title_x += icon_galley.size().x + text_padding * 0.5;
+            }
+
+            // Draw title text
+            clipped_painter.text(
+                Pos2::new(title_x, screen_title_rect.center().y),
                 egui::Align2::LEFT_CENTER,
                 &pane.title,
                 egui::FontId::proportional(font_size),
                 theme.text_primary,
             );
 
-            // Title drag interaction
+            // Title drag interaction (only in area before buttons)
+            let title_drag_rect = Rect::from_min_max(
+                screen_title_rect.min,
+                Pos2::new(title_text_max_x, screen_title_rect.max.y),
+            );
+            let pane_is_locked = pane.locked;
             let title_response = ui.interact(
-                screen_title_rect,
-                ui.id().with(&pane_id).with("title"),
-                if self.locked {
+                title_drag_rect,
+                ui.id().with(&pane_id).with("title_drag"),
+                if self.locked || is_maximized || pane_is_locked {
                     Sense::hover()
                 } else {
                     Sense::click_and_drag()
@@ -379,8 +650,8 @@ where
                 pane_to_top = Some(pane_id.clone());
             }
 
-            if !self.locked && title_response.dragged() {
-                if state.dragging.is_none() {
+            if !self.locked && !is_maximized && !pane_is_locked && title_response.dragged() {
+                if state.dragging.is_none() && state.resizing.is_none() {
                     state.dragging = Some(pane_id.clone());
                 }
 
@@ -396,30 +667,157 @@ where
                 state.dragging = None;
             }
 
-            // Draw content area
-            let screen_content_rect = Rect::from_min_max(
-                screen_pane_rect.min + Vec2::new(0.0, scaled_title_height),
-                screen_pane_rect.max,
-            );
+            // Resize handling (only if not collapsed, not maximized, resizable, and not locked)
+            // Use direct pointer input to avoid stealing events from title bar
+            if !pane.collapsed && !is_maximized && pane.resizable && !self.locked && !pane_is_locked {
+                // Detect resize edges (check if pointer is near the pane border)
+                let detect_edge = |pos: Pos2| -> Option<ResizeEdge> {
+                    // Must be within expanded pane rect
+                    let expanded = screen_pane_rect.expand(resize_edge_size);
+                    if !expanded.contains(pos) {
+                        return None;
+                    }
 
-            // Clip content to canvas area
-            let clipped_content_rect = screen_content_rect.intersect(rect);
+                    let in_left = pos.x < screen_pane_rect.min.x + resize_edge_size;
+                    let in_right = pos.x > screen_pane_rect.max.x - resize_edge_size;
+                    let in_top = pos.y < screen_pane_rect.min.y + resize_edge_size;
+                    let in_bottom = pos.y > screen_pane_rect.max.y - resize_edge_size;
 
-            // Only draw content if there's visible space
-            if clipped_content_rect.height() > theme.spacing_xs && clipped_content_rect.width() > theme.spacing_xs {
-                // Create child UI for content
-                let mut child_ui = ui.new_child(
-                    egui::UiBuilder::new()
-                        .max_rect(screen_content_rect)
-                        .layout(egui::Layout::top_down(egui::Align::LEFT)),
+                    match (in_left, in_right, in_top, in_bottom) {
+                        (true, _, true, _) => Some(ResizeEdge::TopLeft),
+                        (true, _, _, true) => Some(ResizeEdge::BottomLeft),
+                        (_, true, true, _) => Some(ResizeEdge::TopRight),
+                        (_, true, _, true) => Some(ResizeEdge::BottomRight),
+                        (true, _, _, _) => Some(ResizeEdge::Left),
+                        (_, true, _, _) => Some(ResizeEdge::Right),
+                        (_, _, true, _) => Some(ResizeEdge::Top),
+                        (_, _, _, true) => Some(ResizeEdge::Bottom),
+                        _ => None,
+                    }
+                };
+
+                // Get pointer state directly (avoids ui.interact stealing events)
+                let pointer = ui.input(|i| i.pointer.clone());
+
+                // Update cursor based on hover position
+                if let Some(hover_pos) = pointer.hover_pos() {
+                    if let Some(edge) = detect_edge(hover_pos) {
+                        let cursor = match edge {
+                            ResizeEdge::Left | ResizeEdge::Right => egui::CursorIcon::ResizeHorizontal,
+                            ResizeEdge::Top | ResizeEdge::Bottom => egui::CursorIcon::ResizeVertical,
+                            ResizeEdge::TopLeft | ResizeEdge::BottomRight => egui::CursorIcon::ResizeNwSe,
+                            ResizeEdge::TopRight | ResizeEdge::BottomLeft => egui::CursorIcon::ResizeNeSw,
+                        };
+                        ui.ctx().set_cursor_icon(cursor);
+                    }
+                }
+
+                // Handle resize drag start
+                if pointer.any_pressed() && state.resizing.is_none() && state.dragging.is_none() {
+                    if let Some(pos) = pointer.press_origin() {
+                        if let Some(edge) = detect_edge(pos) {
+                            state.resizing = Some((pane_id.clone(), edge));
+                            pane_to_top = Some(pane_id.clone());
+                        }
+                    }
+                }
+
+                // Handle resize drag
+                if let Some((ref resize_id, edge)) = state.resizing.clone() {
+                    if resize_id == &pane_id {
+                        if pointer.is_decidedly_dragging() {
+                            let delta = pointer.delta() / to_screen.scaling;
+                            let min_size = pane.min_size;
+
+                            // Calculate new size and position based on edge
+                            let mut new_pos = pane.position;
+                            let mut new_size = pane.size;
+
+                            match edge {
+                                ResizeEdge::Right => {
+                                    new_size.x = (new_size.x + delta.x).max(min_size.x);
+                                }
+                                ResizeEdge::Bottom => {
+                                    new_size.y = (new_size.y + delta.y).max(min_size.y);
+                                }
+                                ResizeEdge::Left => {
+                                    let new_width = (new_size.x - delta.x).max(min_size.x);
+                                    new_pos.x += new_size.x - new_width;
+                                    new_size.x = new_width;
+                                }
+                                ResizeEdge::Top => {
+                                    let new_height = (new_size.y - delta.y).max(min_size.y);
+                                    new_pos.y += new_size.y - new_height;
+                                    new_size.y = new_height;
+                                }
+                                ResizeEdge::TopLeft => {
+                                    let new_width = (new_size.x - delta.x).max(min_size.x);
+                                    let new_height = (new_size.y - delta.y).max(min_size.y);
+                                    new_pos.x += new_size.x - new_width;
+                                    new_pos.y += new_size.y - new_height;
+                                    new_size = Vec2::new(new_width, new_height);
+                                }
+                                ResizeEdge::TopRight => {
+                                    let new_height = (new_size.y - delta.y).max(min_size.y);
+                                    new_pos.y += new_size.y - new_height;
+                                    new_size.x = (new_size.x + delta.x).max(min_size.x);
+                                    new_size.y = new_height;
+                                }
+                                ResizeEdge::BottomLeft => {
+                                    let new_width = (new_size.x - delta.x).max(min_size.x);
+                                    new_pos.x += new_size.x - new_width;
+                                    new_size.x = new_width;
+                                    new_size.y = (new_size.y + delta.y).max(min_size.y);
+                                }
+                                ResizeEdge::BottomRight => {
+                                    new_size.x = (new_size.x + delta.x).max(min_size.x);
+                                    new_size.y = (new_size.y + delta.y).max(min_size.y);
+                                }
+                            }
+
+                            if new_pos != pane.position {
+                                pane_moved = Some((pane_id.clone(), new_pos - pane.position));
+                            }
+                            if new_size != pane.size {
+                                pane_resized = Some((pane_id.clone(), new_size));
+                            }
+                        }
+
+                        // Check if drag ended
+                        if pointer.any_released() {
+                            state.resizing = None;
+                        }
+                    }
+                }
+            }
+
+            // Draw content area (only if not collapsed)
+            if !pane.collapsed {
+                let base_padding = self.content_padding.unwrap_or(theme.spacing_sm);
+                let content_padding = base_padding * to_screen.scaling;
+                let screen_content_rect = Rect::from_min_max(
+                    screen_pane_rect.min + Vec2::new(content_padding, scaled_title_height + content_padding),
+                    screen_pane_rect.max - Vec2::new(content_padding, content_padding),
                 );
-                child_ui.set_clip_rect(clipped_content_rect);
 
-                // Add some padding
-                child_ui.add_space(theme.spacing_xs);
+                // Clip content to canvas area
+                let clipped_content_rect = screen_content_rect.intersect(rect);
 
-                let pane_ref = self.layout.get_pane(&pane_id).unwrap();
-                (self.content_fn)(&mut child_ui, pane_ref);
+                // Only draw content if there's visible space
+                let min_size = theme.spacing_sm * to_screen.scaling;
+                if clipped_content_rect.height() > min_size && clipped_content_rect.width() > min_size {
+                    // Create child UI for content
+                    let mut child_ui = ui.new_child(
+                        egui::UiBuilder::new()
+                            .max_rect(screen_content_rect)
+                            .layout(egui::Layout::top_down(egui::Align::LEFT)),
+                    );
+                    child_ui.set_clip_rect(clipped_content_rect);
+                    child_ui.spacing_mut().item_spacing = egui::vec2(theme.spacing_xs, theme.spacing_xs);
+
+                    let pane_ref = self.layout.get_pane(&pane_id).unwrap();
+                    (self.content_fn)(&mut child_ui, pane_ref);
+                }
             }
         }
 
@@ -432,6 +830,69 @@ where
                     position: pane.position,
                 });
             }
+        }
+
+        // Apply pane resized
+        if let Some((id, new_size)) = pane_resized {
+            if let Some(pane) = self.layout.get_pane_mut(&id) {
+                pane.size = new_size;
+                events.push(NodeLayoutEvent::PaneResized {
+                    id: id.clone(),
+                    size: new_size,
+                });
+            }
+        }
+
+        // Apply pane collapsed
+        if let Some((id, collapsed)) = pane_collapsed {
+            if let Some(pane) = self.layout.get_pane_mut(&id) {
+                pane.collapsed = collapsed;
+                events.push(NodeLayoutEvent::PaneCollapsed {
+                    id: id.clone(),
+                    collapsed,
+                });
+            }
+        }
+
+        // Apply pane maximized
+        if let Some((id, maximized)) = pane_maximized {
+            if let Some(pane) = self.layout.get_pane_mut(&id) {
+                if maximized {
+                    // Store current size/position for restore
+                    pane.pre_maximize_size = Some(pane.size);
+                    pane.pre_maximize_position = Some(pane.position);
+                } else {
+                    // Restore previous size/position
+                    if let Some(size) = pane.pre_maximize_size.take() {
+                        pane.size = size;
+                    }
+                    if let Some(pos) = pane.pre_maximize_position.take() {
+                        pane.position = pos;
+                    }
+                }
+                pane.maximized = maximized;
+                events.push(NodeLayoutEvent::PaneMaximized {
+                    id: id.clone(),
+                    maximized,
+                });
+            }
+        }
+
+        // Apply pane locked
+        if let Some((id, locked)) = pane_locked {
+            if let Some(pane) = self.layout.get_pane_mut(&id) {
+                pane.locked = locked;
+                events.push(NodeLayoutEvent::PaneLocked {
+                    id: id.clone(),
+                    locked,
+                });
+            }
+        }
+
+        // Apply pane closed
+        if let Some(id) = pane_closed {
+            self.layout.remove_pane(&id);
+            events.push(NodeLayoutEvent::PaneClosed(id));
         }
 
         // Bring pane to top

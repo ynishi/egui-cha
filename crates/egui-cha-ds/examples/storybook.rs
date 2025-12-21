@@ -711,15 +711,24 @@ impl App for StorybookApp {
                 node_layout: RefCell::new({
                     let mut layout = NodeLayout::new();
                     layout.add_pane(
-                        LayoutPane::new("preview", "Preview").with_size(280.0, 180.0),
+                        LayoutPane::new("preview", "Preview")
+                            .with_size(280.0, 180.0)
+                            .with_icon(egui_cha_ds::icons::MONITOR_PLAY)
+                            .closable(true),
                         egui::pos2(20.0, 20.0),
                     );
                     layout.add_pane(
-                        LayoutPane::new("effects", "Effects").with_size(200.0, 150.0),
+                        LayoutPane::new("effects", "Effects")
+                            .with_size(200.0, 150.0)
+                            .with_icon(egui_cha_ds::icons::SLIDERS_HORIZONTAL)
+                            .closable(true),
                         egui::pos2(320.0, 20.0),
                     );
                     layout.add_pane(
-                        LayoutPane::new("layers", "Layers").with_size(250.0, 120.0),
+                        LayoutPane::new("layers", "Layers")
+                            .with_size(250.0, 120.0)
+                            .with_icon(egui_cha_ds::icons::STACK)
+                            .closable(true),
                         egui::pos2(20.0, 220.0),
                     );
                     layout

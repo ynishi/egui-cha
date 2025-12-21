@@ -116,6 +116,20 @@ pub mod icons {
     pub const WRENCH: &str = "\u{e5d4}";
     pub const X_CIRCLE: &str = "\u{e4f8}";
     pub const SKULL: &str = "\u{e916}";
+
+    // Window controls
+    pub const CARET_UP: &str = "\u{e13e}";
+    pub const CARET_DOWN: &str = "\u{e12c}";
+    pub const LOCK: &str = "\u{e2ec}";
+    pub const LOCK_OPEN: &str = "\u{e2ee}";
+    pub const CORNERS_OUT: &str = "\u{e1ce}"; // maximize
+    pub const CORNERS_IN: &str = "\u{e1cc}";  // restore
+
+    // Visual / Layers
+    pub const STACK: &str = "\u{e45e}";
+    pub const SLIDERS_HORIZONTAL: &str = "\u{e450}";
+    pub const IMAGE: &str = "\u{e2c4}";
+    pub const MONITOR_PLAY: &str = "\u{e338}";
 }
 
 /// Icon component using Phosphor Icons
@@ -195,6 +209,36 @@ impl Icon {
     }
     pub fn x_circle() -> Self {
         Self::new(icons::X_CIRCLE)
+    }
+    pub fn caret_up() -> Self {
+        Self::new(icons::CARET_UP)
+    }
+    pub fn caret_down() -> Self {
+        Self::new(icons::CARET_DOWN)
+    }
+    pub fn lock() -> Self {
+        Self::new(icons::LOCK)
+    }
+    pub fn lock_open() -> Self {
+        Self::new(icons::LOCK_OPEN)
+    }
+    pub fn corners_out() -> Self {
+        Self::new(icons::CORNERS_OUT)
+    }
+    pub fn corners_in() -> Self {
+        Self::new(icons::CORNERS_IN)
+    }
+    pub fn stack() -> Self {
+        Self::new(icons::STACK)
+    }
+    pub fn sliders_horizontal() -> Self {
+        Self::new(icons::SLIDERS_HORIZONTAL)
+    }
+    pub fn image() -> Self {
+        Self::new(icons::IMAGE)
+    }
+    pub fn monitor_play() -> Self {
+        Self::new(icons::MONITOR_PLAY)
     }
 
     /// Set icon size
