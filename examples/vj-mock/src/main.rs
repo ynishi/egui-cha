@@ -600,7 +600,15 @@ impl App for VjApp {
         }
 
         // Main Central Panel - Live Area
-        render_live_area(model, ctx);
+        let mut live_msgs: Vec<Msg> = Vec::new();
+        egui::CentralPanel::default().show(ctx.ui.ctx(), |ui| {
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                render_live_area_ui(model, ui, &mut live_msgs);
+            });
+        });
+        for msg in live_msgs {
+            ctx.emit(msg);
+        }
     }
 }
 
@@ -608,47 +616,51 @@ impl App for VjApp {
 // Live Area
 // ============================================================
 
-fn render_live_area(model: &Model, ctx: &mut ViewCtx<Msg>) {
+fn render_live_area_ui(model: &Model, ui: &mut egui::Ui, msgs: &mut Vec<Msg>) {
     // Title
-    Text::h1("Live").color(Color32::from_rgb(100, 180, 255)).show(ctx.ui);
-    ctx.ui.separator();
+    Text::h1("Live").color(Color32::from_rgb(100, 180, 255)).show(ui);
+    ui.separator();
 
     // Transport Row
-    ctx.horizontal(|ctx| {
+    ui.horizontal(|ui| {
         // BPM Display
-        ctx.ui.label("BPM:");
-        BpmDisplay::new().show(ctx.ui, model.bpm as f64);
+        ui.label("BPM:");
+        BpmDisplay::new().show(ui, model.bpm as f64);
 
-        ctx.ui.add_space(16.0);
+        ui.add_space(16.0);
 
         // Bar & Beat
         let beat_int = model.beat.floor() as u32;
-        ctx.ui.label(format!("Bar: {} | Beat: {}", model.bar, beat_int.max(1)));
+        ui.label(format!("Bar: {} | Beat: {}", model.bar, beat_int.max(1)));
 
-        ctx.ui.add_space(16.0);
+        ui.add_space(16.0);
 
         // Transport buttons
         if model.playing {
-            semantics::stop(ButtonStyle::Both).on_click(ctx, Msg::TogglePlay);
+            if semantics::stop(ButtonStyle::Both).show(ui) {
+                msgs.push(Msg::TogglePlay);
+            }
         } else {
-            semantics::play(ButtonStyle::Both).on_click(ctx, Msg::TogglePlay);
+            if semantics::play(ButtonStyle::Both).show(ui) {
+                msgs.push(Msg::TogglePlay);
+            }
         }
 
         // Record button
         let rec_color = if model.recording { Color32::RED } else { Color32::GRAY };
-        Icon::record().size(16.0).color(rec_color).show(ctx.ui);
-        if Button::ghost("Rec").show(ctx.ui) {
-            ctx.emit(Msg::ToggleRecord);
+        Icon::record().size(16.0).color(rec_color).show(ui);
+        if Button::ghost("Rec").show(ui) {
+            msgs.push(Msg::ToggleRecord);
         }
 
-        ctx.ui.add_space(16.0);
+        ui.add_space(16.0);
 
         // Status badges
-        Badge::info("MIDI: Off").show(ctx.ui);
-        Badge::new("Audio: Off").show(ctx.ui);
+        Badge::info("MIDI: Off").show(ui);
+        Badge::new("Audio: Off").show(ui);
     });
 
-    ctx.ui.add_space(8.0);
+    ui.add_space(8.0);
 
     // Timeline
     let markers = vec![
@@ -658,37 +670,44 @@ fn render_live_area(model: &Model, ctx: &mut ViewCtx<Msg>) {
         TimelineMarker::new(0.75, "C").with_color(Color32::from_rgb(200, 200, 100)),
     ];
 
-    Timeline::new(120.0)
+    if let Some(event) = Timeline::new(120.0)
         .position(model.timeline_position)
         .markers(&markers)
         .height(32.0)
-        .show_with(ctx, |e| match e {
-            TimelineEvent::Seek(p) => Msg::TimelineSeek(p),
-            _ => Msg::TimelineSeek(model.timeline_position),
-        });
+        .show(ui)
+    {
+        match event {
+            TimelineEvent::Seek(p) => msgs.push(Msg::TimelineSeek(p)),
+            _ => {}
+        }
+    }
 
-    ctx.ui.add_space(12.0);
+    ui.add_space(12.0);
 
     // Setup Selector
-    ctx.horizontal(|ctx| {
-        ctx.ui.label("Setup:");
+    ui.horizontal(|ui| {
+        ui.label("Setup:");
         for (i, setup) in model.setups.iter().enumerate() {
             let selected = model.current_setup == i;
             if selected {
-                Button::primary(&setup.name).on_click(ctx, Msg::SelectSetup(i));
+                if Button::primary(&setup.name).show(ui) {
+                    msgs.push(Msg::SelectSetup(i));
+                }
             } else {
-                Button::outline(&setup.name).on_click(ctx, Msg::SelectSetup(i));
+                if Button::outline(&setup.name).show(ui) {
+                    msgs.push(Msg::SelectSetup(i));
+                }
             }
         }
         if let Some(setup) = model.setups.get(model.current_setup) {
-            Text::caption(&format!("({} clips)", setup.clips.len())).show(ctx.ui);
+            Text::caption(&format!("({} clips)", setup.clips.len())).show(ui);
         }
     });
 
-    ctx.ui.add_space(8.0);
+    ui.add_space(8.0);
 
     // Performance State Card
-    Card::new().show(ctx.ui, |ui| {
+    Card::new().show(ui, |ui| {
         ui.horizontal(|ui| {
             ui.label("Playing:");
             let playing_name = model.current_clip
@@ -733,39 +752,45 @@ fn render_live_area(model: &Model, ctx: &mut ViewCtx<Msg>) {
         });
     });
 
-    ctx.ui.add_space(12.0);
+    ui.add_space(12.0);
 
     // Phrase Grid using ClipGrid
-    ctx.ui.label("Phrase Grid");
+    ui.label("Phrase Grid");
     if let Some(setup) = model.setups.get(model.current_setup) {
-        ClipGrid::new(&setup.clips, 4)
+        if let Some(idx) = ClipGrid::new(&setup.clips, 4)
             .current(model.current_clip)
             .queued(&model.queued_clips)
             .cell_size(100.0, 60.0)
-            .show_with(ctx, Msg::TriggerClip);
+            .show(ui)
+        {
+            msgs.push(Msg::TriggerClip(idx));
+        }
     }
 
-    ctx.ui.add_space(12.0);
+    ui.add_space(12.0);
 
     // CrossFader
-    ctx.ui.label("A/B Mix");
-    CrossFader::new()
+    ui.label("A/B Mix");
+    if let Some(value) = CrossFader::new()
         .value(model.crossfader)
         .labels("Deck A", "Deck B")
         .curve(CrossfaderCurve::EqualPower)
         .size(400.0, 36.0)
-        .show_with(ctx, Msg::CrossfaderChange);
+        .show(ui)
+    {
+        msgs.push(Msg::CrossfaderChange(value));
+    }
 
-    ctx.ui.add_space(16.0);
+    ui.add_space(16.0);
 
     // Audio Reactivity Section (Collapsible)
     let audio_header = if model.audio_section_open { "▼ Audio Reactivity" } else { "▶ Audio Reactivity" };
-    if ctx.ui.selectable_label(false, audio_header).clicked() {
-        ctx.emit(Msg::ToggleAudioSection);
+    if ui.selectable_label(false, audio_header).clicked() {
+        msgs.push(Msg::ToggleAudioSection);
     }
 
     if model.audio_section_open {
-        ctx.ui.indent("audio_section", |ui| {
+        ui.indent("audio_section", |ui| {
             ui.label("Waveform");
             Waveform::new(&model.audio_samples).height(50.0).filled().show(ui);
 
@@ -787,16 +812,16 @@ fn render_live_area(model: &Model, ctx: &mut ViewCtx<Msg>) {
         });
     }
 
-    ctx.ui.add_space(8.0);
+    ui.add_space(8.0);
 
     // MIDI Section (Collapsible)
     let midi_header = if model.midi_section_open { "▼ MIDI Status" } else { "▶ MIDI Status" };
-    if ctx.ui.selectable_label(false, midi_header).clicked() {
-        ctx.emit(Msg::ToggleMidiSection);
+    if ui.selectable_label(false, midi_header).clicked() {
+        msgs.push(Msg::ToggleMidiSection);
     }
 
     if model.midi_section_open {
-        ctx.ui.indent("midi_section", |ui| {
+        ui.indent("midi_section", |ui| {
             MidiMonitor::new()
                 .device_name("MIDI Controller")
                 .cc_values(&model.midi_cc_values)
@@ -950,7 +975,7 @@ fn render_lab_area(model: &Model, ui: &mut egui::Ui, msgs: &mut Vec<Msg>) {
         msgs.push(Msg::ColorChange(tint));
     }
 
-    ui.add_space(24.0);
+    ui.add_space(40.0);
 
     // Output Router
     Text::h3("Output Router").show(ui);
