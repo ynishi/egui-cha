@@ -12,7 +12,7 @@ help:
 	@echo "Release notes:"
 	@echo "  - Run with EXECUTE=yes to actually perform the release (e.g., make release-patch EXECUTE=yes)"
 	@echo "  - By default, releases run in dry-run mode for safety"
-	@echo "  - Releases include git commit, tag creation, and push (but not crates.io publish)"
+	@echo "  - Releases include git commit, tag creation, push, and crates.io publish"
 
 # Crates in dependency order (least dependent first)
 CRATES := \
@@ -46,34 +46,34 @@ clean:
 release-patch:
 ifdef EXECUTE
 	@echo "🚀 Executing patch release..."
-	cargo release patch --workspace --no-publish --execute
+	cargo release patch --workspace --execute
 else
 	@echo "🔍 Running in dry-run mode..."
 	@echo "💡 To execute for real, run: make release-patch EXECUTE=yes"
 	@echo ""
-	cargo release patch --workspace --no-publish
+	cargo release patch --workspace
 endif
 
 # Minor version bump (0.1.0 -> 0.2.0)
 release-minor:
 ifdef EXECUTE
 	@echo "🚀 Executing minor release..."
-	cargo release minor --workspace --no-publish --execute
+	cargo release minor --workspace --execute
 else
 	@echo "🔍 Running in dry-run mode..."
 	@echo "💡 To execute for real, run: make release-minor EXECUTE=yes"
 	@echo ""
-	cargo release minor --workspace --no-publish
+	cargo release minor --workspace
 endif
 
 # Major version bump (0.1.0 -> 1.0.0)
 release-major:
 ifdef EXECUTE
 	@echo "🚀 Executing major release..."
-	cargo release major --workspace --no-publish --execute
+	cargo release major --workspace --execute
 else
 	@echo "🔍 Running in dry-run mode..."
 	@echo "💡 To execute for real, run: make release-major EXECUTE=yes"
 	@echo ""
-	cargo release major --workspace --no-publish
+	cargo release major --workspace
 endif
