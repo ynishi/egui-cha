@@ -187,6 +187,9 @@ struct Model {
     // Sparkline demo
     sparkline_buffer: SparklineBuffer,
 
+    // LogStream demo
+    log_stream_state: std::cell::RefCell<LogStreamState>,
+
     // StatusIndicator demo
     status_demo_state: usize,
 
@@ -590,6 +593,7 @@ const SWARM_COMPONENTS: &[&str] = &[
     "Sparkline",
     "HeatmapGrid",
     "CapacityGauge",
+    "LogStream",
 ];
 
 const SEMANTICS: &[&str] = &[
@@ -791,6 +795,19 @@ impl App for StorybookApp {
                     }
                     buf
                 },
+                log_stream_state: std::cell::RefCell::new({
+                    let mut state = LogStreamState::new().with_max_entries(100);
+                    // Pre-fill with sample logs
+                    state.push_info("Brain #0", "Initializing neural network...");
+                    state.push_info("Manager [1,2]", "Spawning worker pool");
+                    state.push_debug("Worker #3", "Memory allocated: 256MB");
+                    state.push_warn("Manager [1,2]", "Queue depth exceeding threshold (>100)");
+                    state.push_info("Worker #5", "Processing batch 1/10");
+                    state.push_error("Worker #7", "Connection timeout after 30s");
+                    state.push_info("Brain #0", "Inference task started");
+                    state.push_critical("System", "Memory pressure detected!");
+                    state
+                }),
                 status_demo_state: 0,
                 heatmap_states: (0..100)
                     .map(|i| match i % 10 {
@@ -3557,6 +3574,51 @@ fn render_swarm_component(model: &Model, ctx: &mut ViewCtx<Msg>) {
                 .animate(true)
                 .text("Loading...")
                 .show(ctx.ui);
+        }
+        "LogStream" => {
+            ctx.ui.heading("LogStream");
+            ctx.ui
+                .label("Real-time log viewer with filtering and auto-scroll");
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Live Log Viewer");
+            ctx.ui.add_space(4.0);
+
+            // Use RefCell to get mutable access in view
+            LogStream::new(&mut model.log_stream_state.borrow_mut())
+                .height(250.0)
+                .show_toolbar(true)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.strong("Add Test Logs");
+            ctx.ui.horizontal(|ui| {
+                if Button::info("Info").show(ui) {
+                    model
+                        .log_stream_state
+                        .borrow_mut()
+                        .push_info("Demo", "New info message");
+                }
+                if Button::warning("Warn").show(ui) {
+                    model
+                        .log_stream_state
+                        .borrow_mut()
+                        .push_warn("Demo", "Warning occurred");
+                }
+                if Button::danger("Error").show(ui) {
+                    model
+                        .log_stream_state
+                        .borrow_mut()
+                        .push_error("Demo", "Error detected!");
+                }
+            });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.strong("Features");
+            ctx.ui.label("- Severity dropdown filter (All, Debug+, Info+, etc.)");
+            ctx.ui.label("- Text search across messages and sources");
+            ctx.ui.label("- Auto-scroll toggle for live monitoring");
+            ctx.ui.label("- Clear button to reset logs");
         }
         _ => {
             ctx.ui.label("Unknown component");
