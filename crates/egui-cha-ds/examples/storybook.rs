@@ -3615,7 +3615,8 @@ fn render_swarm_component(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
             ctx.ui.add_space(16.0);
             ctx.ui.strong("Features");
-            ctx.ui.label("- Severity dropdown filter (All, Debug+, Info+, etc.)");
+            ctx.ui
+                .label("- Severity dropdown filter (All, Debug+, Info+, etc.)");
             ctx.ui.label("- Text search across messages and sources");
             ctx.ui.label("- Auto-scroll toggle for live monitoring");
             ctx.ui.label("- Clear button to reset logs");

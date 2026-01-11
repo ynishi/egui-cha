@@ -1,9 +1,21 @@
 //! Input atom
+//!
+//! A styled text input component with Theme integration.
+//!
+//! # Example
+//!
+//! ```ignore
+//! Input::new()
+//!     .placeholder("Enter text...")
+//!     .desired_width(200.0)
+//!     .show(ui, &mut value);
+//! ```
 
+use crate::Theme;
 use egui::Ui;
 use egui_cha::ViewCtx;
 
-/// A text input component
+/// A text input component with Theme styling
 pub struct Input<'a> {
     placeholder: &'a str,
     password: bool,
@@ -41,9 +53,13 @@ impl<'a> Input<'a> {
         value: &str,
         on_change: impl FnOnce(String) -> Msg,
     ) {
+        let theme = Theme::current(ctx.ui.ctx());
         let mut current = value.to_string();
 
-        let mut edit = egui::TextEdit::singleline(&mut current).hint_text(self.placeholder);
+        let mut edit = egui::TextEdit::singleline(&mut current)
+            .hint_text(self.placeholder)
+            .text_color(theme.text_primary)
+            .frame(false);
 
         if self.password {
             edit = edit.password(true);
@@ -53,7 +69,15 @@ impl<'a> Input<'a> {
             edit = edit.desired_width(width);
         }
 
-        ctx.ui.add(edit);
+        // Custom frame with theme styling
+        egui::Frame::new()
+            .stroke(egui::Stroke::new(1.0, theme.border))
+            .corner_radius(theme.radius_sm)
+            .fill(theme.bg_primary)
+            .inner_margin(egui::Margin::symmetric(8, 6))
+            .show(ctx.ui, |ui| {
+                ui.add(edit);
+            });
 
         if current != value {
             ctx.emit(on_change(current));
@@ -74,7 +98,12 @@ impl<'a> Input<'a> {
 
     /// Show the input (modifies value in place)
     pub fn show(self, ui: &mut Ui, value: &mut String) {
-        let mut edit = egui::TextEdit::singleline(value).hint_text(self.placeholder);
+        let theme = Theme::current(ui.ctx());
+
+        let mut edit = egui::TextEdit::singleline(value)
+            .hint_text(self.placeholder)
+            .text_color(theme.text_primary)
+            .frame(false);
 
         if self.password {
             edit = edit.password(true);
@@ -84,7 +113,15 @@ impl<'a> Input<'a> {
             edit = edit.desired_width(width);
         }
 
-        ui.add(edit);
+        // Custom frame with theme styling
+        egui::Frame::new()
+            .stroke(egui::Stroke::new(1.0, theme.border))
+            .corner_radius(theme.radius_sm)
+            .fill(theme.bg_primary)
+            .inner_margin(egui::Margin::symmetric(8, 6))
+            .show(ui, |ui| {
+                ui.add(edit);
+            });
     }
 }
 

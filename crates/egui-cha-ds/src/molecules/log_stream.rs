@@ -331,10 +331,7 @@ impl<'a> LogStream<'a> {
                 .show_ui(ui, |ui| {
                     for (label, severity) in &severity_options {
                         if ui
-                            .selectable_label(
-                                self.state.filter.min_severity == *severity,
-                                *label,
-                            )
+                            .selectable_label(self.state.filter.min_severity == *severity, *label)
                             .clicked()
                         {
                             self.state.filter.min_severity = *severity;
