@@ -124,10 +124,43 @@ struct IntervalHandle {
 /// Phosphor Icons font (embedded)
 const PHOSPHOR_FONT: &[u8] = include_bytes!("../assets/fonts/Phosphor.ttf");
 
+/// Set up icon fonts for egui-cha-ds components.
+///
+/// Call this when using `eframe::run_native()` directly instead of `egui_cha::run()`.
+/// This registers the Phosphor Icons font as `FontFamily::Name("icons")`.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// eframe::run_native(
+///     "My App",
+///     options,
+///     Box::new(|cc| {
+///         egui_cha::setup_icon_fonts(&cc.egui_ctx);
+///         Ok(Box::new(MyApp::default()))
+///     }),
+/// )
+/// ```
+pub fn setup_icon_fonts(ctx: &egui::Context) {
+    let mut fonts = egui::FontDefinitions::default();
+
+    fonts.font_data.insert(
+        "phosphor".to_owned(),
+        egui::FontData::from_static(PHOSPHOR_FONT).into(),
+    );
+
+    fonts.families.insert(
+        egui::FontFamily::Name("icons".into()),
+        vec!["phosphor".to_owned()],
+    );
+
+    ctx.set_fonts(fonts);
+}
+
 impl<A: App> TeaRuntime<A> {
     fn new(cc: &eframe::CreationContext<'_>, repaint_mode: RepaintMode) -> Self {
         // Set up fonts
-        Self::setup_fonts(&cc.egui_ctx);
+        setup_icon_fonts(&cc.egui_ctx);
 
         let (model, init_cmd) = A::init();
         let (msg_sender, msg_receiver) = mpsc::channel();
@@ -151,24 +184,6 @@ impl<A: App> TeaRuntime<A> {
         runtime.execute_cmd(init_cmd);
 
         runtime
-    }
-
-    fn setup_fonts(ctx: &egui::Context) {
-        let mut fonts = egui::FontDefinitions::default();
-
-        // Add Phosphor Icons font
-        fonts.font_data.insert(
-            "phosphor".to_owned(),
-            egui::FontData::from_static(PHOSPHOR_FONT).into(),
-        );
-
-        // Register as a named font family
-        fonts.families.insert(
-            egui::FontFamily::Name("icons".into()),
-            vec!["phosphor".to_owned()],
-        );
-
-        ctx.set_fonts(fonts);
     }
 
     fn execute_cmd(&self, cmd: Cmd<A::Msg>) {
