@@ -10,6 +10,12 @@ homepage.workspace = true
 keywords.workspace = true
 categories.workspace = true
 readme = "README.md"
+include = [
+    "src/**/*",
+    "assets/fonts/Phosphor.ttf",
+    "Cargo.toml",
+    "README.md",
+]
 
 [features]
 default = ["macros", "plot", "extras", "studio"]

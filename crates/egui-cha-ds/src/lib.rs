@@ -43,6 +43,44 @@ pub use atoms::*;
 pub use molecules::*;
 pub use theme::{Theme, ThemeVariant};
 
+/// Phosphor Icons font (embedded)
+const PHOSPHOR_FONT: &[u8] = include_bytes!("../assets/fonts/Phosphor.ttf");
+
+/// Set up icon fonts for egui-cha-ds components.
+///
+/// Call this during app initialization to register the Phosphor Icons font
+/// as `FontFamily::Name("icons")`. This is required for icon components to work.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// eframe::run_native(
+///     "My App",
+///     options,
+///     Box::new(|cc| {
+///         egui_cha_ds::setup_fonts(&cc.egui_ctx);
+///         Ok(Box::new(MyApp::default()))
+///     }),
+/// )
+/// ```
+///
+/// Note: If using `egui_cha::run()`, fonts are set up automatically.
+pub fn setup_fonts(ctx: &egui::Context) {
+    let mut fonts = egui::FontDefinitions::default();
+
+    fonts.font_data.insert(
+        "phosphor".to_owned(),
+        egui::FontData::from_static(PHOSPHOR_FONT).into(),
+    );
+
+    fonts.families.insert(
+        egui::FontFamily::Name("icons".into()),
+        vec!["phosphor".to_owned()],
+    );
+
+    ctx.set_fonts(fonts);
+}
+
 // Re-export macro when feature is enabled
 #[cfg(feature = "macros")]
 pub use egui_cha_macros::cha;
