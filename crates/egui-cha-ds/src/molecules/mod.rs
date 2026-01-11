@@ -60,6 +60,7 @@ mod card;
 mod error_console;
 mod form;
 mod heatmap_grid;
+mod log_stream;
 mod menu;
 mod modal;
 mod navbar;
@@ -83,6 +84,7 @@ pub use dock::{layout as dock_layout, DockArea, DockEvent, DockStyle, DockTree, 
 pub use error_console::{ErrorConsole, ErrorConsoleMsg, ErrorConsoleState, ErrorEntry, ErrorLevel};
 pub use form::Form;
 pub use heatmap_grid::{CellState, HeatmapCell, HeatmapGrid};
+pub use log_stream::{LogEntry, LogFilter, LogStream, LogStreamState, TimestampFormat};
 pub use menu::{IconMenu, Menu};
 pub use modal::{ConfirmDialog, ConfirmResult, Modal};
 pub use navbar::{navbar, sidebar, Navbar};
