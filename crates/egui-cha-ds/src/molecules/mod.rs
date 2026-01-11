@@ -59,6 +59,7 @@ mod card;
 // mod dock;  // TODO: waiting for egui 0.31 compatible egui_dock
 mod error_console;
 mod form;
+mod heatmap_grid;
 mod menu;
 mod modal;
 mod navbar;
@@ -81,6 +82,7 @@ pub use card::Card;
 pub use dock::{layout as dock_layout, DockArea, DockEvent, DockStyle, DockTree, TabInfo};
 pub use error_console::{ErrorConsole, ErrorConsoleMsg, ErrorConsoleState, ErrorEntry, ErrorLevel};
 pub use form::Form;
+pub use heatmap_grid::{CellState, HeatmapCell, HeatmapGrid};
 pub use menu::{IconMenu, Menu};
 pub use modal::{ConfirmDialog, ConfirmResult, Modal};
 pub use navbar::{navbar, sidebar, Navbar};

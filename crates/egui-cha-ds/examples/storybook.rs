@@ -181,6 +181,18 @@ struct Model {
     node_layout: RefCell<NodeLayout>,
     node_layout_lock_level: egui_cha_ds::LockLevel,
     node_layout_show_menu_bar: bool,
+
+    // === Swarm Demo States ===
+
+    // Sparkline demo
+    sparkline_buffer: SparklineBuffer,
+
+    // StatusIndicator demo
+    status_demo_state: usize,
+
+    // HeatmapGrid demo
+    heatmap_states: Vec<CellState>,
+    heatmap_selected: Option<(usize, usize)>,
 }
 
 /// Demo node type for NodeGraph showcase
@@ -486,6 +498,12 @@ enum Msg {
 
     // Color Wheel
     ColorWheelChange(Hsva),
+
+    // Swarm
+    CycleStatus,
+    HeatmapClick(usize, usize),
+    RandomizeHeatmap,
+    UpdateSparkline,
 }
 
 const CATEGORIES: &[&str] = &[
@@ -494,10 +512,11 @@ const CATEGORIES: &[&str] = &[
     "MIDI",      // 2: MIDI components
     "Mixer",     // 3: Mixing & effects
     "Visual",    // 4: Visual editing
-    "Semantics", // 5
-    "Molecules", // 6
-    "Framework", // 7
-    "Theme",     // 8
+    "Swarm",     // 5: Swarm visualization
+    "Semantics", // 6
+    "Molecules", // 7
+    "Framework", // 8
+    "Theme",     // 9
 ];
 
 // Core atoms - Basic UI components (always available)
@@ -564,6 +583,9 @@ const VISUAL_ATOMS: &[&str] = &[
 
 // Plot atoms (feature-gated)
 const PLOT_ATOMS: &[&str] = &["Plot"];
+
+// Swarm components - Multi-agent visualization
+const SWARM_COMPONENTS: &[&str] = &["StatusIndicator", "Sparkline", "HeatmapGrid"];
 
 const SEMANTICS: &[&str] = &[
     "Overview",
@@ -754,6 +776,27 @@ impl App for StorybookApp {
                 }),
                 node_layout_lock_level: egui_cha_ds::LockLevel::None,
                 node_layout_show_menu_bar: true,
+
+                // Swarm demo
+                sparkline_buffer: {
+                    let mut buf = SparklineBuffer::new(50);
+                    // Pre-fill with some data
+                    for i in 0..50 {
+                        buf.push(30.0 + 20.0 * ((i as f32) * 0.2).sin() + (i as f32 * 0.5) % 15.0);
+                    }
+                    buf
+                },
+                status_demo_state: 0,
+                heatmap_states: (0..100)
+                    .map(|i| match i % 10 {
+                        0..=5 => CellState::Idle,
+                        6 => CellState::Processing,
+                        7 => CellState::Delegated,
+                        8 => CellState::Escalated,
+                        _ => CellState::Error,
+                    })
+                    .collect(),
+                heatmap_selected: None,
                 ..Default::default()
             },
             Cmd::none(),
@@ -1251,16 +1294,68 @@ impl App for StorybookApp {
             Msg::ColorWheelChange(color) => {
                 model.wheel_color = color;
             }
+
+            // === Swarm ===
+            Msg::CycleStatus => {
+                model.status_demo_state = (model.status_demo_state + 1) % 6;
+            }
+            Msg::HeatmapClick(row, col) => {
+                model.heatmap_selected = Some((row, col));
+            }
+            Msg::RandomizeHeatmap => {
+                use std::collections::hash_map::DefaultHasher;
+                use std::hash::{Hash, Hasher};
+                let mut hasher = DefaultHasher::new();
+                std::time::SystemTime::now().hash(&mut hasher);
+                let seed = hasher.finish();
+                model.heatmap_states = (0..100)
+                    .map(|i| {
+                        let v = ((seed.wrapping_add(i as u64)) % 100) as usize;
+                        match v {
+                            0..=50 => CellState::Idle,
+                            51..=70 => CellState::Processing,
+                            71..=85 => CellState::Delegated,
+                            86..=95 => CellState::Escalated,
+                            _ => CellState::Error,
+                        }
+                    })
+                    .collect();
+            }
+            Msg::UpdateSparkline => {
+                // Add random value to sparkline buffer
+                use std::collections::hash_map::DefaultHasher;
+                use std::hash::{Hash, Hasher};
+                let mut hasher = DefaultHasher::new();
+                std::time::SystemTime::now().hash(&mut hasher);
+                let value = (hasher.finish() % 100) as f32;
+                model.sparkline_buffer.push(value);
+            }
         }
         Cmd::none()
     }
 
     fn subscriptions(model: &Model) -> Sub<Msg> {
+        let mut subs = Vec::new();
+
+        // Interval demo subscription
         if model.interval_enabled {
-            Sub::interval("demo_interval", Duration::from_secs(1), Msg::IntervalTick)
-        } else {
-            Sub::none()
+            subs.push(Sub::interval(
+                "demo_interval",
+                Duration::from_secs(1),
+                Msg::IntervalTick,
+            ));
         }
+
+        // Sparkline data update (when viewing Swarm category)
+        if model.active_category == 5 {
+            subs.push(Sub::interval(
+                "sparkline_update",
+                Duration::from_millis(200),
+                Msg::UpdateSparkline,
+            ));
+        }
+
+        Sub::batch(subs)
     }
 
     fn view(model: &Model, ctx: &mut ViewCtx<Msg>) {
@@ -1307,9 +1402,10 @@ impl App for StorybookApp {
                     2 => MIDI_ATOMS,
                     3 => MIXER_ATOMS,
                     4 => VISUAL_ATOMS,
-                    5 => SEMANTICS,
-                    6 => MOLECULES,
-                    7 => FRAMEWORK,
+                    5 => SWARM_COMPONENTS,
+                    6 => SEMANTICS,
+                    7 => MOLECULES,
+                    8 => FRAMEWORK,
                     _ => THEME_ITEMS,
                 };
                 Menu::new(components).compact().show_with(
@@ -1329,9 +1425,10 @@ impl App for StorybookApp {
                     2 => render_midi_atom(model, ctx),
                     3 => render_mixer_atom(model, ctx),
                     4 => render_visual_atom(model, ctx),
-                    5 => render_semantics(model, ctx),
-                    6 => render_molecule(model, ctx),
-                    7 => render_framework(model, ctx),
+                    5 => render_swarm_component(model, ctx),
+                    6 => render_semantics(model, ctx),
+                    7 => render_molecule(model, ctx),
+                    8 => render_framework(model, ctx),
                     _ => render_theme(model, ctx),
                 });
 
@@ -3229,6 +3326,178 @@ fn render_visual_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
         _ => {
             ctx.ui.label("Component not implemented");
+        }
+    }
+}
+
+fn render_swarm_component(model: &Model, ctx: &mut ViewCtx<Msg>) {
+    match SWARM_COMPONENTS[model.active_component] {
+        "StatusIndicator" => {
+            ctx.ui.heading("StatusIndicator");
+            ctx.ui
+                .label("Animated status indicators for agent/system state");
+            ctx.ui.add_space(8.0);
+
+            // Factory methods
+            ctx.ui.strong("Factory Methods");
+            ctx.horizontal(|ctx| {
+                StatusIndicator::offline().show(ctx.ui);
+                ctx.ui.label("offline()");
+            });
+            ctx.horizontal(|ctx| {
+                StatusIndicator::idle().show(ctx.ui);
+                ctx.ui.label("idle()");
+            });
+            ctx.horizontal(|ctx| {
+                StatusIndicator::active().show(ctx.ui);
+                ctx.ui.label("active() - pulse animation");
+            });
+            ctx.horizontal(|ctx| {
+                StatusIndicator::busy().show(ctx.ui);
+                ctx.ui.label("busy() - pulse animation");
+            });
+            ctx.horizontal(|ctx| {
+                StatusIndicator::warning().show(ctx.ui);
+                ctx.ui.label("warning() - slow blink");
+            });
+            ctx.horizontal(|ctx| {
+                StatusIndicator::error().show(ctx.ui);
+                ctx.ui.label("error() - fast blink");
+            });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.strong("With Labels");
+            ctx.horizontal(|ctx| {
+                StatusIndicator::active().label("Connected").show(ctx.ui);
+            });
+            ctx.horizontal(|ctx| {
+                StatusIndicator::error().label("Disconnected").show(ctx.ui);
+            });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.strong("Custom Sizes");
+            ctx.horizontal(|ctx| {
+                StatusIndicator::active().size(6.0).show(ctx.ui);
+                StatusIndicator::active().size(10.0).show(ctx.ui);
+                StatusIndicator::active().size(16.0).show(ctx.ui);
+                StatusIndicator::active().size(24.0).show(ctx.ui);
+            });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.strong("Interactive (Click to cycle)");
+            let states = [
+                Status::Offline,
+                Status::Idle,
+                Status::Active,
+                Status::Busy,
+                Status::Warning,
+                Status::Error,
+            ];
+            let current = states[model.status_demo_state % states.len()];
+            StatusIndicator::new(current)
+                .size(20.0)
+                .label(format!("{:?}", current))
+                .on_click(ctx, Msg::CycleStatus);
+        }
+        "Sparkline" => {
+            ctx.ui.heading("Sparkline");
+            ctx.ui.label("Compact inline charts for time-series data");
+            ctx.ui.add_space(8.0);
+
+            // Get data from buffer
+            let data = model.sparkline_buffer.as_vec();
+
+            ctx.ui.strong("Basic Sparkline");
+            Sparkline::new(&data).height(24.0).show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.strong("With Fill (Area Chart)");
+            Sparkline::new(&data).height(32.0).fill(true).show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.strong("Fixed Bounds (0-100)");
+            Sparkline::new(&data)
+                .height(32.0)
+                .bounds(0.0, 100.0)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.strong("Show Current Value");
+            Sparkline::new(&data)
+                .height(24.0)
+                .show_current(true)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.strong("Highlight Extremes");
+            Sparkline::new(&data)
+                .height(32.0)
+                .highlight_extremes(true)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.strong("Custom Color");
+            let theme = Theme::current(ctx.ui.ctx());
+            Sparkline::new(&data)
+                .height(24.0)
+                .color(theme.state_warning)
+                .fill(true)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui
+                .label("(Data updates automatically - hover to see values)");
+        }
+        "HeatmapGrid" => {
+            ctx.ui.heading("HeatmapGrid");
+            ctx.ui
+                .label("Color-coded grid for multi-agent state visualization");
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("10x10 Agent Grid");
+            if let Some((row, col)) = HeatmapGrid::new(10, 10)
+                .data(&model.heatmap_states)
+                .cell_size(24.0)
+                .spacing(2.0)
+                .on_hover(|r, c| format!("Agent [{}, {}]", r, c))
+                .show(ctx.ui)
+            {
+                ctx.emit(Msg::HeatmapClick(row, col));
+            }
+
+            ctx.ui.add_space(8.0);
+            if let Some((row, col)) = model.heatmap_selected {
+                ctx.ui.label(format!("Selected: [{}, {}]", row, col));
+            } else {
+                ctx.ui.label("Click a cell to select");
+            }
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.strong("State Legend");
+            let theme = Theme::current(ctx.ui.ctx());
+            ctx.ui.horizontal(|ui| {
+                for (state, name) in [
+                    (CellState::Idle, "Idle"),
+                    (CellState::Processing, "Processing"),
+                    (CellState::Delegated, "Delegated"),
+                    (CellState::Escalated, "Escalated"),
+                    (CellState::Error, "Error"),
+                ] {
+                    let color = state.color(&theme);
+                    // Draw color swatch inline with label
+                    let size = egui::Vec2::splat(12.0);
+                    let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
+                    ui.painter().rect_filled(rect, 2.0, color);
+                    ui.label(name);
+                    ui.add_space(12.0);
+                }
+            });
+
+            ctx.ui.add_space(16.0);
+            Button::primary("Randomize States").on_click(ctx, Msg::RandomizeHeatmap);
+        }
+        _ => {
+            ctx.ui.label("Unknown component");
         }
     }
 }

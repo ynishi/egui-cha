@@ -96,7 +96,7 @@ mod plot;
 #[cfg(feature = "plot")]
 pub use plot::raw as plot_raw;
 #[cfg(feature = "plot")]
-pub use plot::{AutomationPlot, BarPlot, EnvelopePlot, FrequencyPlot, LinePlot};
+pub use plot::{AutomationPlot, BarPlot, EnvelopePlot, FrequencyPlot, LinePlot, Sparkline};
 
 // =============================================================================
 // Extras atoms (extras feature - existing)
