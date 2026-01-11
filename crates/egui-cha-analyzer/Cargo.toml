@@ -9,6 +9,7 @@ repository.workspace = true
 homepage.workspace = true
 keywords.workspace = true
 categories.workspace = true
+readme = "../../README.md"
 
 [dependencies]
 syn = { version = "2.0", features = ["full", "visit", "parsing"] }
