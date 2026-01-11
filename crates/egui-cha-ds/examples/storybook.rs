@@ -585,7 +585,12 @@ const VISUAL_ATOMS: &[&str] = &[
 const PLOT_ATOMS: &[&str] = &["Plot"];
 
 // Swarm components - Multi-agent visualization
-const SWARM_COMPONENTS: &[&str] = &["StatusIndicator", "Sparkline", "HeatmapGrid"];
+const SWARM_COMPONENTS: &[&str] = &[
+    "StatusIndicator",
+    "Sparkline",
+    "HeatmapGrid",
+    "CapacityGauge",
+];
 
 const SEMANTICS: &[&str] = &[
     "Overview",
@@ -3495,6 +3500,63 @@ fn render_swarm_component(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
             ctx.ui.add_space(16.0);
             Button::primary("Randomize States").on_click(ctx, Msg::RandomizeHeatmap);
+        }
+        "CapacityGauge" => {
+            ctx.ui.heading("CapacityGauge");
+            ctx.ui
+                .label("Progress bar with threshold-based color changes for resource utilization");
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Basic Usage (automatic colors)");
+            ctx.ui.add_space(4.0);
+
+            // Low utilization (green)
+            ctx.ui.label("50% - Normal (green)");
+            CapacityGauge::new(0.5).show_percentage().show(ctx.ui);
+
+            ctx.ui.add_space(4.0);
+
+            // Medium utilization (yellow)
+            ctx.ui.label("75% - Warning (yellow)");
+            CapacityGauge::new(0.75).show_percentage().show(ctx.ui);
+
+            ctx.ui.add_space(4.0);
+
+            // High utilization (red)
+            ctx.ui.label("95% - Danger (red)");
+            CapacityGauge::new(0.95).show_percentage().show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.strong("Worker Pool Example");
+            ctx.ui.add_space(4.0);
+
+            // Simulated worker counts
+            let active_workers = 799u64;
+            let total_workers = 1000u64;
+
+            CapacityGauge::from_fraction(active_workers, total_workers)
+                .label("Workers")
+                .thresholds(0.7, 0.9)
+                .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.strong("Custom Thresholds");
+            ctx.ui.add_space(4.0);
+
+            ctx.ui.label("Thresholds: 50% warning, 80% danger");
+            CapacityGauge::new(0.65)
+                .thresholds(0.5, 0.8)
+                .show_percentage()
+                .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.strong("With Animation");
+            ctx.ui.add_space(4.0);
+
+            CapacityGauge::new(0.6)
+                .animate(true)
+                .text("Loading...")
+                .show(ctx.ui);
         }
         _ => {
             ctx.ui.label("Unknown component");
