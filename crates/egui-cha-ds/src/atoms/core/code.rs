@@ -28,10 +28,7 @@ impl<'a> Code<'a> {
         egui::Frame::new()
             .fill(bg)
             .corner_radius(theme.radius_sm)
-            .inner_margin(egui::Margin::symmetric(
-                (theme.spacing_xs * 0.75) as i8,
-                1,
-            ))
+            .inner_margin(egui::Margin::symmetric((theme.spacing_xs * 0.75) as i8, 1))
             .show(ui, |ui| {
                 ui.label(
                     RichText::new(self.text)

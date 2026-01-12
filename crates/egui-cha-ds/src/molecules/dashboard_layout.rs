@@ -502,8 +502,7 @@ impl<'a> DashboardLayout<'a> {
             );
 
             // Draw main background
-            ui.painter()
-                .rect_filled(main_rect, 0.0, theme.bg_primary);
+            ui.painter().rect_filled(main_rect, 0.0, theme.bg_primary);
 
             let inner_rect = main_rect.shrink(theme.spacing_md);
             let mut main_ui = ui.new_child(egui::UiBuilder::new().max_rect(inner_rect));

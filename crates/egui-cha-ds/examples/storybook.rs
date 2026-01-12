@@ -3033,30 +3033,25 @@ fn render_visual_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
                 .locked(model.workspace_locked)
                 .snap_threshold(8.0)
                 .gap(8.0)
-                .show(ctx.ui, |ui, pane| {
-                    match pane.id.as_str() {
-                        "preview" => {
-                            ui.colored_label(
-                                egui::Color32::from_rgb(100, 200, 255),
-                                "Preview Area",
-                            );
-                            ui.label("Video output preview");
-                        }
-                        "effects" => {
-                            ui.colored_label(egui::Color32::from_rgb(255, 150, 100), "Effects");
-                            ui.label("Effect chain");
-                        }
-                        "layers" => {
-                            ui.colored_label(egui::Color32::from_rgb(100, 255, 150), "Layers");
-                            ui.label("Layer stack");
-                        }
-                        "timeline" => {
-                            ui.colored_label(egui::Color32::from_rgb(255, 255, 100), "Timeline");
-                            ui.label("Time-based controls");
-                        }
-                        _ => {
-                            ui.label(&pane.title);
-                        }
+                .show(ctx.ui, |ui, pane| match pane.id.as_str() {
+                    "preview" => {
+                        ui.colored_label(egui::Color32::from_rgb(100, 200, 255), "Preview Area");
+                        ui.label("Video output preview");
+                    }
+                    "effects" => {
+                        ui.colored_label(egui::Color32::from_rgb(255, 150, 100), "Effects");
+                        ui.label("Effect chain");
+                    }
+                    "layers" => {
+                        ui.colored_label(egui::Color32::from_rgb(100, 255, 150), "Layers");
+                        ui.label("Layer stack");
+                    }
+                    "timeline" => {
+                        ui.colored_label(egui::Color32::from_rgb(255, 255, 100), "Timeline");
+                        ui.label("Time-based controls");
+                    }
+                    _ => {
+                        ui.label(&pane.title);
                     }
                 });
 
@@ -5076,7 +5071,8 @@ NodeLayoutArea::new(&mut layout, |ui, pane| {
 
         "DashboardLayout" => {
             ctx.ui.heading("DashboardLayout");
-            ctx.ui.label("Three-column dashboard layout with Theme integration");
+            ctx.ui
+                .label("Three-column dashboard layout with Theme integration");
             ctx.ui.add_space(8.0);
 
             Code::new(
@@ -5194,7 +5190,8 @@ dashboard_full(ui, 48.0, 200.0, 280.0,
             ctx.ui.add_space(8.0);
 
             ctx.ui.strong("Features:");
-            ctx.ui.label("• Theme integrated (background, spacing, border)");
+            ctx.ui
+                .label("• Theme integrated (background, spacing, border)");
             ctx.ui.label("• Collapsible sidebars with title");
             ctx.ui.label("• Resizable sidebars (drag edges)");
             ctx.ui.label("• State persistence (DashboardState)");
