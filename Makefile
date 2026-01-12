@@ -1,4 +1,4 @@
-.PHONY: help publish clean release-patch release-minor release-major
+.PHONY: help publish clean release-patch release-minor release-major storybook
 
 # Default target
 help:
@@ -8,6 +8,7 @@ help:
 	@echo "  release-minor     - Minor version bump (0.1.0 -> 0.2.0) with git operations [dry-run by default]"
 	@echo "  release-major     - Major version bump (0.1.0 -> 1.0.0) with git operations [dry-run by default]"
 	@echo "  clean             - Clean all build artifacts"
+	@echo "  storybook         - Run storybook (egui-cha-ds component showcase)"
 	@echo ""
 	@echo "Release notes:"
 	@echo "  - Run with EXECUTE=yes to actually perform the release (e.g., make release-patch EXECUTE=yes)"
@@ -38,6 +39,10 @@ publish:
 # Clean build artifacts
 clean:
 	cargo clean
+
+# Run storybook (egui-cha-ds component showcase)
+storybook:
+	cargo run -p egui-cha-ds --example storybook --all-features
 
 # Version bumps with git operations (dry-run by default)
 # Usage: make release-patch EXECUTE=yes (to actually execute)

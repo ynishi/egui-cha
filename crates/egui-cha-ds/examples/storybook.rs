@@ -168,6 +168,11 @@ struct Model {
     // Timeline demo
     timeline_position: f64,
 
+    // WorkspaceCanvas demo
+    workspace_panes: Vec<WorkspacePane>,
+    workspace_locked: bool,
+    workspace_tile_mode: bool,
+
     // Color wheel demo
     wheel_color: Hsva,
 
@@ -499,6 +504,11 @@ enum Msg {
     // Timeline
     TimelineSeek(f64),
 
+    // WorkspaceCanvas
+    WorkspaceEvent(WorkspaceEvent),
+    ToggleWorkspaceLock,
+    SetWorkspaceLayoutMode(bool), // true = Tile, false = Free
+
     // Color Wheel
     ColorWheelChange(Hsva),
 
@@ -572,6 +582,7 @@ const MIXER_ATOMS: &[&str] = &[
 
 // Visual atoms - Video/graphics editing
 const VISUAL_ATOMS: &[&str] = &[
+    "WorkspaceCanvas",
     "ClipGrid",
     "Timeline",
     "Preview",
@@ -785,6 +796,28 @@ impl App for StorybookApp {
                 }),
                 node_layout_lock_level: egui_cha_ds::LockLevel::None,
                 node_layout_show_menu_bar: true,
+
+                // WorkspaceCanvas demo
+                workspace_panes: vec![
+                    WorkspacePane::new("preview", "Preview")
+                        .with_position(20.0, 20.0)
+                        .with_size(300.0, 200.0)
+                        .with_order(0),
+                    WorkspacePane::new("effects", "Effects")
+                        .with_position(340.0, 20.0)
+                        .with_size(250.0, 200.0)
+                        .with_order(1),
+                    WorkspacePane::new("layers", "Layers")
+                        .with_position(20.0, 240.0)
+                        .with_size(300.0, 180.0)
+                        .with_order(2),
+                    WorkspacePane::new("timeline", "Timeline")
+                        .with_position(340.0, 240.0)
+                        .with_size(400.0, 100.0)
+                        .with_order(3),
+                ],
+                workspace_locked: false,
+                workspace_tile_mode: true,
 
                 // Swarm demo
                 sparkline_buffer: {
@@ -1312,6 +1345,48 @@ impl App for StorybookApp {
             }
             Msg::TimelineSeek(pos) => {
                 model.timeline_position = pos;
+            }
+            Msg::WorkspaceEvent(event) => match event {
+                WorkspaceEvent::PaneMoved { id, position } => {
+                    if let Some(pane) = model.workspace_panes.iter_mut().find(|p| p.id == id) {
+                        pane.position = position;
+                    }
+                }
+                WorkspaceEvent::PaneResized { id, size } => {
+                    if let Some(pane) = model.workspace_panes.iter_mut().find(|p| p.id == id) {
+                        pane.size = size;
+                    }
+                }
+                WorkspaceEvent::PaneClosed(id) => {
+                    model.workspace_panes.retain(|p| p.id != id);
+                }
+                WorkspaceEvent::PaneMinimized { id, minimized } => {
+                    if let Some(pane) = model.workspace_panes.iter_mut().find(|p| p.id == id) {
+                        pane.minimized = minimized;
+                    }
+                }
+                WorkspaceEvent::PaneReordered { from, to } => {
+                    let idx_from = model.workspace_panes.iter().position(|p| p.order == from);
+                    let idx_to = model.workspace_panes.iter().position(|p| p.order == to);
+                    if let (Some(i), Some(j)) = (idx_from, idx_to) {
+                        model.workspace_panes[i].order = to;
+                        model.workspace_panes[j].order = from;
+                    }
+                }
+                WorkspaceEvent::WeightsChanged(weights) => {
+                    for (id, weight) in weights {
+                        if let Some(pane) = model.workspace_panes.iter_mut().find(|p| p.id == id) {
+                            pane.weight = weight;
+                        }
+                    }
+                }
+                _ => {}
+            },
+            Msg::ToggleWorkspaceLock => {
+                model.workspace_locked = !model.workspace_locked;
+            }
+            Msg::SetWorkspaceLayoutMode(tile) => {
+                model.workspace_tile_mode = tile;
             }
             Msg::ColorWheelChange(color) => {
                 model.wheel_color = color;
@@ -2882,6 +2957,118 @@ fn render_mixer_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
 fn render_visual_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
     match VISUAL_ATOMS[model.active_component] {
+        "WorkspaceCanvas" => {
+            ctx.ui.heading("WorkspaceCanvas");
+            ctx.ui
+                .label("Flexible pane layout with Tile/Free modes and Lock support");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                "WorkspaceCanvas::new(&mut panes)\n    .layout(LayoutMode::Tile { columns: None })\n    .locked(model.locked)\n    .gap(8.0)\n    .show(ui, |ui, pane| { /* render pane content */ });",
+            )
+            .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            // Controls - collect clicks first, then emit
+            let mut set_tile = false;
+            let mut set_free = false;
+            let mut toggle_lock = false;
+
+            ctx.ui.horizontal(|ui| {
+                ui.label("Mode:");
+                if ui
+                    .selectable_label(model.workspace_tile_mode, "Tile")
+                    .clicked()
+                {
+                    set_tile = true;
+                }
+                if ui
+                    .selectable_label(!model.workspace_tile_mode, "Free")
+                    .clicked()
+                {
+                    set_free = true;
+                }
+
+                ui.add_space(16.0);
+
+                let lock_label = if model.workspace_locked {
+                    "Unlock"
+                } else {
+                    "Lock"
+                };
+                if ui.button(lock_label).clicked() {
+                    toggle_lock = true;
+                }
+
+                ui.add_space(16.0);
+                ui.label(format!("Panes: {}", model.workspace_panes.len()));
+            });
+
+            if set_tile {
+                ctx.emit(Msg::SetWorkspaceLayoutMode(true));
+            }
+            if set_free {
+                ctx.emit(Msg::SetWorkspaceLayoutMode(false));
+            }
+            if toggle_lock {
+                ctx.emit(Msg::ToggleWorkspaceLock);
+            }
+
+            ctx.ui.add_space(8.0);
+
+            let layout_mode = if model.workspace_tile_mode {
+                LayoutMode::Tile { columns: None }
+            } else {
+                LayoutMode::Free
+            };
+
+            let mut panes = model.workspace_panes.clone();
+
+            let events = WorkspaceCanvas::new(&mut panes)
+                .layout(layout_mode)
+                .locked(model.workspace_locked)
+                .snap_threshold(8.0)
+                .gap(8.0)
+                .show(ctx.ui, |ui, pane| {
+                    match pane.id.as_str() {
+                        "preview" => {
+                            ui.colored_label(
+                                egui::Color32::from_rgb(100, 200, 255),
+                                "Preview Area",
+                            );
+                            ui.label("Video output preview");
+                        }
+                        "effects" => {
+                            ui.colored_label(egui::Color32::from_rgb(255, 150, 100), "Effects");
+                            ui.label("Effect chain");
+                        }
+                        "layers" => {
+                            ui.colored_label(egui::Color32::from_rgb(100, 255, 150), "Layers");
+                            ui.label("Layer stack");
+                        }
+                        "timeline" => {
+                            ui.colored_label(egui::Color32::from_rgb(255, 255, 100), "Timeline");
+                            ui.label("Time-based controls");
+                        }
+                        _ => {
+                            ui.label(&pane.title);
+                        }
+                    }
+                });
+
+            for event in events {
+                ctx.emit(Msg::WorkspaceEvent(event));
+            }
+
+            ctx.ui.add_space(8.0);
+            ctx.ui.label("• Tile mode: Panes arranged in grid");
+            ctx.ui.label("• Free mode: Drag panes freely");
+            ctx.ui.label("• Lock: Prevent accidental editing");
+        }
+
         "ClipGrid" => {
             ctx.ui.heading("ClipGrid");
             ctx.ui.label("Ableton Live style clip launcher grid");
