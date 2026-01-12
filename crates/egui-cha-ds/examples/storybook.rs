@@ -632,6 +632,7 @@ const MOLECULES: &[&str] = &[
     "Dock",
     "NodeGraph",
     "NodeLayout",
+    "DashboardLayout",
 ];
 
 const FRAMEWORK: &[&str] = &[
@@ -5071,6 +5072,156 @@ NodeLayoutArea::new(&mut layout, |ui, pane| {
             ctx.ui.label("• Free-form pane positioning");
             ctx.ui.label("• Lock mode to prevent changes");
             ctx.ui.label("• Custom content via closure");
+        }
+
+        "DashboardLayout" => {
+            ctx.ui.heading("DashboardLayout");
+            ctx.ui.label("Three-column dashboard layout with Theme integration");
+            ctx.ui.add_space(8.0);
+
+            Code::new(
+                r#"DashboardLayout::new()
+    .top_bar(48.0, |ui| {
+        ui.horizontal(|ui| {
+            ui.heading("MyApp");
+            // Nav tabs...
+        });
+    })
+    .left_sidebar(200.0, |ui| {
+        ui.heading("Navigation");
+        // Menu items...
+    })
+    .right_sidebar(280.0, |ui| {
+        ui.heading("Details");
+        // Info panel...
+    })
+    .main(|ui| {
+        // Main content...
+    })
+    .show(ui);  // Takes &mut Ui - works anywhere!"#,
+            )
+            .show(ctx.ui);
+
+            // Interactive demo
+            ctx.ui.add_space(16.0);
+            ctx.ui.strong("Live Demo:");
+            ctx.ui.add_space(4.0);
+
+            let theme = Theme::current(ctx.ui.ctx());
+            // Create a fixed-size frame for the demo
+            egui::Frame::new()
+                .stroke(egui::Stroke::new(1.0, theme.border))
+                .corner_radius(theme.radius_md)
+                .show(ctx.ui, |ui| {
+                    // Constrain height for the demo
+                    ui.set_min_height(200.0);
+                    ui.set_max_height(200.0);
+
+                    DashboardLayout::new()
+                        .top_bar(32.0, |ui| {
+                            ui.horizontal_centered(|ui| {
+                                Text::body("Demo App").bold().show(ui);
+                                ui.separator();
+                                Text::body("Home").show(ui);
+                                Text::body("Settings").show(ui);
+                            });
+                        })
+                        .left_sidebar(100.0, |ui| {
+                            ui.label("Item 1");
+                            ui.label("Item 2");
+                            ui.label("Item 3");
+                        })
+                        .right_sidebar(100.0, |ui| {
+                            ui.label("Info");
+                            ui.separator();
+                            ui.label("Details here");
+                        })
+                        .main(|ui| {
+                            ui.centered_and_justified(|ui| {
+                                ui.label("Main Content Area");
+                            });
+                        })
+                        .show(ui);
+                });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("With SidebarConfig:");
+            ctx.ui.add_space(4.0);
+
+            Code::new(
+                r#"DashboardLayout::new()
+    .left_sidebar_with_config(
+        SidebarConfig::new(200.0)
+            .title("Scenarios")
+            .collapsible(true)
+            .min_width(150.0),
+        |ui| { /* content */ }
+    )
+    .show(ui);"#,
+            )
+            .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Convenience Functions:");
+            ctx.ui.add_space(4.0);
+
+            Code::new(
+                r#"// Simple 3-column (no top bar)
+dashboard_3col(ui, 200.0, 280.0,
+    |ui| { /* left */ },
+    |ui| { /* main */ },
+    |ui| { /* right */ },
+);
+
+// Full layout with top bar
+dashboard_full(ui, 48.0, 200.0, 280.0,
+    |ui| { /* top */ },
+    |ui| { /* left */ },
+    |ui| { /* main */ },
+    |ui| { /* right */ },
+);"#,
+            )
+            .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Features:");
+            ctx.ui.label("• Theme integrated (background, spacing, border)");
+            ctx.ui.label("• Collapsible sidebars with title");
+            ctx.ui.label("• Resizable sidebars (drag edges)");
+            ctx.ui.label("• State persistence (DashboardState)");
+            ctx.ui.label("• Auto ScrollArea in sidebars");
+            ctx.ui.label("• Event emission (DashboardEvent)");
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Layout Structure:");
+            ctx.ui.add_space(4.0);
+
+            Code::new(
+                r#"+--------------------------------------------------+
+| TopBar (fixed height)                             |
++----------+------------------------+--------------+
+| Left     | Main Content           | Right        |
+| Sidebar  |                        | Sidebar      |
+| (width)  |                        | (width)      |
++----------+------------------------+--------------+"#,
+            )
+            .show(ctx.ui);
+
+            ctx.ui.add_space(8.0);
+            ctx.ui
+                .label("Note: See the screenshot example for a full working demo.");
         }
 
         _ => {

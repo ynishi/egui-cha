@@ -55,6 +55,7 @@
 //! See [`atoms`](crate::atoms) module for the full theme token reference.
 
 mod card;
+mod dashboard_layout;
 // #[cfg(feature = "dock")]
 // mod dock;  // TODO: waiting for egui 0.31 compatible egui_dock
 mod error_console;
@@ -79,6 +80,10 @@ mod toast;
 mod workspace;
 
 pub use card::Card;
+pub use dashboard_layout::{
+    dashboard_3col, dashboard_full, DashboardEvent, DashboardLayout, DashboardState, SidebarConfig,
+    TopBarConfig,
+};
 #[cfg(feature = "dock")]
 pub use dock::{layout as dock_layout, DockArea, DockEvent, DockStyle, DockTree, TabInfo};
 pub use error_console::{ErrorConsole, ErrorConsoleMsg, ErrorConsoleState, ErrorEntry, ErrorLevel};
