@@ -65,6 +65,7 @@ mod log_stream;
 mod menu;
 mod modal;
 mod navbar;
+mod quick_action_bar;
 mod search_bar;
 mod table;
 mod tabs;
@@ -93,6 +94,9 @@ pub use log_stream::{LogEntry, LogFilter, LogStream, LogStreamState, TimestampFo
 pub use menu::{IconMenu, Menu};
 pub use modal::{ConfirmDialog, ConfirmResult, Modal};
 pub use navbar::{navbar, sidebar, Navbar};
+pub use quick_action_bar::{
+    KeyBind, QuickActionBar, QuickActionColumn, QuickActionSize, QuickActionStyle,
+};
 pub use search_bar::SearchBar;
 #[cfg(feature = "extras")]
 pub use table::DataColumnWidth;

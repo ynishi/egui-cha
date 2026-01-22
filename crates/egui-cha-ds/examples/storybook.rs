@@ -136,6 +136,9 @@ struct Model {
     // Context menu demo
     context_menu_last_action: Option<&'static str>,
 
+    // QuickActionBar demo
+    quick_action_last: Option<&'static str>,
+
     // ErrorConsole demo
     error_console: ErrorConsoleState,
 
@@ -517,6 +520,13 @@ enum Msg {
     HeatmapClick(usize, usize),
     RandomizeHeatmap,
     UpdateSparkline,
+
+    // QuickActionBar
+    QuickActionSettings,
+    QuickActionPlay,
+    QuickActionStop,
+    QuickActionSave,
+    QuickActionSearch,
 }
 
 const CATEGORIES: &[&str] = &[
@@ -633,6 +643,7 @@ const MOLECULES: &[&str] = &[
     "NodeGraph",
     "NodeLayout",
     "DashboardLayout",
+    "QuickActionBar",
 ];
 
 const FRAMEWORK: &[&str] = &[
@@ -1240,6 +1251,23 @@ impl App for StorybookApp {
             }
             Msg::ContextMenuDelete => {
                 model.context_menu_last_action = Some("Delete");
+            }
+
+            // QuickActionBar demo
+            Msg::QuickActionSettings => {
+                model.quick_action_last = Some("Settings");
+            }
+            Msg::QuickActionPlay => {
+                model.quick_action_last = Some("Play");
+            }
+            Msg::QuickActionStop => {
+                model.quick_action_last = Some("Stop");
+            }
+            Msg::QuickActionSave => {
+                model.quick_action_last = Some("Save");
+            }
+            Msg::QuickActionSearch => {
+                model.quick_action_last = Some("Search");
             }
 
             // ErrorConsole demo
@@ -2194,6 +2222,22 @@ fn render_core_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
                 ctx.ui
                     .label("Hover label")
                     .with_tooltip("Labels can have tooltips");
+            });
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.strong("Delay options:");
+            ctx.ui.add_space(8.0);
+
+            ctx.horizontal(|ctx| {
+                ctx.ui
+                    .button("Default (~0.5s)")
+                    .with_tooltip("Default delay tooltip");
+                ctx.ui
+                    .button("Immediate")
+                    .with_tooltip_immediate("Shows instantly!");
+                ctx.ui
+                    .button("Custom (1s)")
+                    .with_tooltip_delayed("Custom 1 second delay", 1.0);
             });
         }
 
@@ -5219,6 +5263,223 @@ dashboard_full(ui, 48.0, 200.0, 280.0,
             ctx.ui.add_space(8.0);
             ctx.ui
                 .label("Note: See the screenshot example for a full working demo.");
+        }
+
+        "QuickActionBar" => {
+            ctx.ui.heading("QuickActionBar");
+            ctx.ui
+                .label("Horizontal toolbar of icon buttons with tooltips");
+            ctx.ui.add_space(8.0);
+
+            // === Simple Demo: Click to see action ===
+            ctx.ui.strong("Try it! Click any icon:");
+            ctx.ui.add_space(4.0);
+
+            QuickActionBar::new()
+                .action(icons::GEAR, "Open Settings", Msg::QuickActionSettings)
+                .action(icons::PLAY, "Start playback", Msg::QuickActionPlay)
+                .action(icons::STOP, "Stop playback", Msg::QuickActionStop)
+                .action(icons::FLOPPY_DISK, "Save current file", Msg::QuickActionSave)
+                .action(icons::MAGNIFYING_GLASS, "Search in project", Msg::QuickActionSearch)
+                .tooltip_immediate()
+                .show(ctx);
+
+            // Show last action with visual feedback
+            if let Some(action) = model.quick_action_last {
+                ctx.ui.add_space(8.0);
+                ctx.ui.horizontal(|ui| {
+                    ui.label("Clicked:");
+                    Badge::success(action).show(ui);
+                });
+            }
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            // === Tooltip Demo ===
+            ctx.ui.strong("Hover for Tooltips:");
+            ctx.ui.label("(Each icon shows a detailed description on hover)");
+            ctx.ui.add_space(4.0);
+
+            QuickActionBar::new()
+                .action(icons::HOUSE, "Navigate to Home screen - Your dashboard overview", Msg::QuickActionSettings)
+                .action(icons::USER, "View Profile - Edit your account settings and preferences", Msg::QuickActionSettings)
+                .action(icons::FOLDER_SIMPLE, "Open Project - Browse and select project files", Msg::QuickActionSettings)
+                .action(icons::DOWNLOAD_SIMPLE, "Download - Export current work to local disk", Msg::QuickActionSettings)
+                .action(icons::UPLOAD_SIMPLE, "Upload - Import files from your computer", Msg::QuickActionSettings)
+                .style(QuickActionStyle::Outline)
+                .tooltip_immediate()
+                .show(ctx);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            // === Code Example ===
+            ctx.ui.strong("Usage:");
+            ctx.ui.add_space(4.0);
+            Code::new(
+                r#"QuickActionBar::new()
+    .action(icons::GEAR, "Settings", Msg::Settings)
+    .action(icons::PLAY, "Run", Msg::Run)
+    .action_with_keybind(icons::FLOPPY_DISK, "Save", Msg::Save, KeyBind::cmd(Key::S))
+    .size(QuickActionSize::Medium)
+    .style(QuickActionStyle::Ghost)
+    .show(ctx);"#,
+            )
+            .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            // Ghost style demo
+            ctx.ui.strong("Ghost Style (default):");
+            ctx.ui.add_space(4.0);
+            QuickActionBar::new()
+                .action(icons::GEAR, "Settings", Msg::QuickActionSettings)
+                .action(icons::PLAY, "Play", Msg::QuickActionPlay)
+                .action(icons::STOP, "Stop", Msg::QuickActionStop)
+                .action(icons::FLOPPY_DISK, "Save", Msg::QuickActionSave)
+                .action(icons::MAGNIFYING_GLASS, "Search", Msg::QuickActionSearch)
+                .style(QuickActionStyle::Ghost)
+                .tooltip_immediate()
+                .show(ctx);
+
+            ctx.ui.add_space(12.0);
+
+            // Outline style demo
+            ctx.ui.strong("Outline Style:");
+            ctx.ui.add_space(4.0);
+            QuickActionBar::new()
+                .action(icons::GEAR, "Settings", Msg::QuickActionSettings)
+                .action(icons::PLAY, "Play", Msg::QuickActionPlay)
+                .action(icons::STOP, "Stop", Msg::QuickActionStop)
+                .action(icons::FLOPPY_DISK, "Save", Msg::QuickActionSave)
+                .action(icons::MAGNIFYING_GLASS, "Search", Msg::QuickActionSearch)
+                .style(QuickActionStyle::Outline)
+                .tooltip_immediate()
+                .show(ctx);
+
+            ctx.ui.add_space(12.0);
+
+            // Filled style demo
+            ctx.ui.strong("Filled Style:");
+            ctx.ui.add_space(4.0);
+            QuickActionBar::new()
+                .action(icons::GEAR, "Settings", Msg::QuickActionSettings)
+                .action(icons::PLAY, "Play", Msg::QuickActionPlay)
+                .action(icons::STOP, "Stop", Msg::QuickActionStop)
+                .action(icons::FLOPPY_DISK, "Save", Msg::QuickActionSave)
+                .action(icons::MAGNIFYING_GLASS, "Search", Msg::QuickActionSearch)
+                .style(QuickActionStyle::Filled)
+                .tooltip_immediate()
+                .show(ctx);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            // Size variants
+            ctx.ui.strong("Size Variants:");
+            ctx.ui.add_space(4.0);
+
+            ctx.ui.horizontal(|ui| {
+                ui.label("Small:");
+            });
+            QuickActionBar::new()
+                .action(icons::GEAR, "Settings", Msg::QuickActionSettings)
+                .action(icons::PLAY, "Play", Msg::QuickActionPlay)
+                .action(icons::STOP, "Stop", Msg::QuickActionStop)
+                .size(QuickActionSize::Small)
+                .tooltip_immediate()
+                .show(ctx);
+
+            ctx.ui.add_space(8.0);
+            ctx.ui.horizontal(|ui| {
+                ui.label("Medium (default):");
+            });
+            QuickActionBar::new()
+                .action(icons::GEAR, "Settings", Msg::QuickActionSettings)
+                .action(icons::PLAY, "Play", Msg::QuickActionPlay)
+                .action(icons::STOP, "Stop", Msg::QuickActionStop)
+                .size(QuickActionSize::Medium)
+                .tooltip_immediate()
+                .show(ctx);
+
+            ctx.ui.add_space(8.0);
+            ctx.ui.horizontal(|ui| {
+                ui.label("Large:");
+            });
+            QuickActionBar::new()
+                .action(icons::GEAR, "Settings", Msg::QuickActionSettings)
+                .action(icons::PLAY, "Play", Msg::QuickActionPlay)
+                .action(icons::STOP, "Stop", Msg::QuickActionStop)
+                .size(QuickActionSize::Large)
+                .tooltip_immediate()
+                .show(ctx);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            // With custom colors
+            ctx.ui.strong("Custom Colors:");
+            ctx.ui.add_space(4.0);
+            let theme = Theme::current(ctx.ui.ctx());
+            QuickActionBar::new()
+                .action_colored(icons::PLAY, "Play", Msg::QuickActionPlay, theme.state_success)
+                .action_colored(icons::STOP, "Stop", Msg::QuickActionStop, theme.state_danger)
+                .action_colored(icons::WARNING, "Alert", Msg::QuickActionSettings, theme.state_warning)
+                .action_colored(icons::INFO, "Info", Msg::QuickActionSearch, theme.state_info)
+                .tooltip_immediate()
+                .show(ctx);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            // With keybinds
+            ctx.ui.strong("With Keyboard Shortcuts:");
+            ctx.ui.add_space(4.0);
+            ctx.ui.label("(Hover to see keybinds in tooltip)");
+            ctx.ui.add_space(4.0);
+            QuickActionBar::new()
+                .action_with_keybind(
+                    icons::FLOPPY_DISK,
+                    "Save",
+                    Msg::QuickActionSave,
+                    KeyBind::cmd(egui::Key::S),
+                )
+                .action_with_keybind(
+                    icons::MAGNIFYING_GLASS,
+                    "Search",
+                    Msg::QuickActionSearch,
+                    KeyBind::cmd(egui::Key::F),
+                )
+                .action_with_keybind(
+                    icons::GEAR,
+                    "Settings",
+                    Msg::QuickActionSettings,
+                    KeyBind::cmd(egui::Key::Comma),
+                )
+                .tooltip_immediate()
+                .show(ctx);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Features:");
+            ctx.ui.label("• Phosphor Icons integration");
+            ctx.ui.label("• Three size variants (Small/Medium/Large)");
+            ctx.ui.label("• Three styles (Ghost/Outline/Filled)");
+            ctx.ui.label("• Tooltip on hover with description");
+            ctx.ui.label("• Optional keyboard shortcuts");
+            ctx.ui.label("• Custom icon colors");
+            ctx.ui.label("• Theme-aware scaling");
+            ctx.ui.label("• TEA-compliant with ViewCtx integration");
         }
 
         _ => {
