@@ -25,6 +25,7 @@ extras = ["dep:egui_extras"]
 # tiles = ["dep:egui_tiles"]  # TODO: egui 0.31 compat
 dock = ["dep:egui_dock"]
 snarl = ["dep:egui-snarl"]
+fuzzy = []  # Enable fuzzy matching in CommandPalette
 
 # VJ/DAW component features
 audio = []   # Audio visualization (BPM, transport, waveform, etc.)

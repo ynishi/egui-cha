@@ -139,10 +139,15 @@ struct Model {
     // QuickActionBar demo
     quick_action_last: Option<&'static str>,
 
+    // CommandPalette demo
+    command_palette: RefCell<CommandPaletteState>,
+    command_palette_last_action: Option<&'static str>,
+
     // ErrorConsole demo
     error_console: ErrorConsoleState,
 
     // Dock demo (RefCell for interior mutability in view)
+    #[cfg(feature = "dock")]
     dock: RefCell<DockTree<DemoPane>>,
 
     // === VJ/DAW Demo States ===
@@ -471,6 +476,7 @@ enum Msg {
     ErrorConsoleMsg(ErrorConsoleMsg),
 
     // Dock
+    #[cfg(feature = "dock")]
     DockEvent(DockEvent<DemoPane>),
 
     // NodeGraph
@@ -527,6 +533,15 @@ enum Msg {
     QuickActionStop,
     QuickActionSave,
     QuickActionSearch,
+
+    // CommandPalette
+    CommandPaletteToggle,
+    CommandPaletteClose,
+    CommandPaletteNewFile,
+    CommandPaletteOpenFile,
+    CommandPaletteSaveFile,
+    CommandPaletteSettings,
+    CommandPaletteHelp,
 }
 
 const CATEGORIES: &[&str] = &[
@@ -644,6 +659,7 @@ const MOLECULES: &[&str] = &[
     "NodeLayout",
     "DashboardLayout",
     "QuickActionBar",
+    "CommandPalette",
 ];
 
 const FRAMEWORK: &[&str] = &[
@@ -737,6 +753,7 @@ impl App for StorybookApp {
                 shadow_blur: 4.0,
                 overlay_dim: 0.5,
                 bindings,
+                #[cfg(feature = "dock")]
                 dock: RefCell::new(dock_layout::three_column(
                     DemoPane::Browser,
                     DemoPane::Editor,
@@ -1270,6 +1287,29 @@ impl App for StorybookApp {
                 model.quick_action_last = Some("Search");
             }
 
+            // CommandPalette demo
+            Msg::CommandPaletteToggle => {
+                model.command_palette.borrow_mut().toggle();
+            }
+            Msg::CommandPaletteClose => {
+                model.command_palette.borrow_mut().close();
+            }
+            Msg::CommandPaletteNewFile => {
+                model.command_palette_last_action = Some("New File");
+            }
+            Msg::CommandPaletteOpenFile => {
+                model.command_palette_last_action = Some("Open File");
+            }
+            Msg::CommandPaletteSaveFile => {
+                model.command_palette_last_action = Some("Save File");
+            }
+            Msg::CommandPaletteSettings => {
+                model.command_palette_last_action = Some("Settings");
+            }
+            Msg::CommandPaletteHelp => {
+                model.command_palette_last_action = Some("Help");
+            }
+
             // ErrorConsole demo
             Msg::ErrorConsolePush(level) => {
                 let msg = match level {
@@ -1286,6 +1326,7 @@ impl App for StorybookApp {
                 ErrorConsoleMsg::DismissAll => model.error_console.clear(),
             },
 
+            #[cfg(feature = "dock")]
             Msg::DockEvent(event) => {
                 // Handle dock events (tab closed, add clicked, etc.)
                 match event {
@@ -4764,6 +4805,7 @@ Strip::horizontal()
             });
         }
 
+        #[cfg(feature = "dock")]
         "Dock" => {
             ctx.ui.heading("Dock");
             ctx.ui
@@ -4866,6 +4908,16 @@ dock_layout::daw(browser, main, inspector, timeline);
 dock_layout::vscode(sidebar, editors, terminals);"#,
             )
             .show(ctx.ui);
+        }
+
+        #[cfg(not(feature = "dock"))]
+        "Dock" => {
+            ctx.ui.heading("Dock");
+            ctx.ui
+                .label("Dockable panel layout with tabs (wraps egui_dock)");
+            ctx.ui.add_space(8.0);
+            ctx.ui
+                .label("Enable 'dock' feature to see the interactive demo.");
         }
 
         #[cfg(feature = "snarl")]
@@ -5480,6 +5532,105 @@ dashboard_full(ui, 48.0, 200.0, 280.0,
             ctx.ui.label("• Custom icon colors");
             ctx.ui.label("• Theme-aware scaling");
             ctx.ui.label("• TEA-compliant with ViewCtx integration");
+        }
+
+        "CommandPalette" => {
+            ctx.ui.heading("CommandPalette");
+            ctx.ui.label("Keyboard-driven command launcher with search");
+            ctx.ui.add_space(8.0);
+
+            // Open button
+            ctx.ui.strong("Try it:");
+            ctx.ui.add_space(4.0);
+            Button::primary("Open Command Palette").on_click(ctx, Msg::CommandPaletteToggle);
+
+            // Show last action
+            if let Some(action) = model.command_palette_last_action {
+                ctx.ui.add_space(8.0);
+                ctx.ui.horizontal(|ui| {
+                    ui.label("Last action:");
+                    Badge::success(action).show(ui);
+                });
+            }
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            // Code example
+            ctx.ui.strong("Usage:");
+            ctx.ui.add_space(4.0);
+            Code::new(
+                r#"// In your Model
+command_palette: CommandPaletteState,
+
+// In your view
+if model.command_palette.is_open {
+    CommandPalette::new()
+        .placeholder("Type a command...")
+        .item(icons::GEAR, "Settings", Msg::Settings)
+        .item_with_shortcut(icons::FLOPPY_DISK, "Save", Msg::Save, "⌘S")
+        .separator()
+        .group("File", |p| {
+            p.item(icons::FILE, "New File", Msg::NewFile)
+             .item(icons::FOLDER_SIMPLE, "Open", Msg::Open)
+        })
+        .show(ctx, &mut model.command_palette, Msg::Close);
+}"#,
+            )
+            .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Features:");
+            ctx.ui.label("• Keyboard navigation (↑/↓/Enter/Escape)");
+            ctx.ui.label("• Search filtering with optional fuzzy matching");
+            ctx.ui.label("• Groups and separators for organization");
+            ctx.ui.label("• Shortcut display for each command");
+            ctx.ui.label("• Phosphor Icons integration");
+            ctx.ui.label("• Auto-focus on search input");
+            ctx.ui.label("• Scroll to selected item");
+            ctx.ui.label("• TEA-compliant with ViewCtx");
+
+            // Render the command palette overlay if open
+            if model.command_palette.borrow().is_open {
+                CommandPalette::new()
+                    .placeholder("Type a command...")
+                    .item_with_description(icons::FILE, "New File", Msg::CommandPaletteNewFile, "Create a new file")
+                    .item_with_shortcut(icons::FOLDER_SIMPLE, "Open File", Msg::CommandPaletteOpenFile, "⌘O")
+                    .item_with_shortcut(icons::FLOPPY_DISK, "Save File", Msg::CommandPaletteSaveFile, "⌘S")
+                    .separator()
+                    .group("Edit", |p| {
+                        p.item_with_description(icons::COPY, "Cut", Msg::CommandPaletteNewFile, "Cut selection")
+                         .item_with_description(icons::COPY, "Copy", Msg::CommandPaletteNewFile, "Copy selection")
+                         .item_with_description(icons::COPY, "Paste", Msg::CommandPaletteNewFile, "Paste from clipboard")
+                         .item(icons::ARROW_LEFT, "Undo", Msg::CommandPaletteNewFile)
+                         .item(icons::ARROW_RIGHT, "Redo", Msg::CommandPaletteNewFile)
+                    })
+                    .group("View", |p| {
+                        p.item_with_description(icons::EYE, "Toggle Sidebar", Msg::CommandPaletteNewFile, "Show/hide sidebar")
+                         .item_with_description(icons::WRENCH, "Toggle Terminal", Msg::CommandPaletteNewFile, "Show/hide terminal")
+                         .item(icons::MAGNIFYING_GLASS_PLUS, "Zoom In", Msg::CommandPaletteNewFile)
+                         .item(icons::MAGNIFYING_GLASS, "Zoom Out", Msg::CommandPaletteNewFile)
+                         .item(icons::CORNERS_OUT, "Full Screen", Msg::CommandPaletteNewFile)
+                    })
+                    .group("Go", |p| {
+                        p.item_with_description(icons::FILE, "Go to File", Msg::CommandPaletteNewFile, "Quick open file")
+                         .item_with_description(icons::HASH, "Go to Symbol", Msg::CommandPaletteNewFile, "@")
+                         .item_with_description(icons::HASH, "Go to Line", Msg::CommandPaletteNewFile, ":")
+                         .item(icons::STACK, "Go to Bookmark", Msg::CommandPaletteNewFile)
+                    })
+                    .group("Settings", |p| {
+                        p.item(icons::GEAR, "Preferences", Msg::CommandPaletteSettings)
+                         .item(icons::SLIDERS_HORIZONTAL, "Keyboard Shortcuts", Msg::CommandPaletteSettings)
+                         .item(icons::IMAGE, "Color Theme", Msg::CommandPaletteSettings)
+                         .item(icons::INFO, "Help", Msg::CommandPaletteHelp)
+                         .item(icons::BUG, "Report Issue", Msg::CommandPaletteHelp)
+                    })
+                    .show(ctx, &mut model.command_palette.borrow_mut(), Msg::CommandPaletteClose);
+            }
         }
 
         _ => {
