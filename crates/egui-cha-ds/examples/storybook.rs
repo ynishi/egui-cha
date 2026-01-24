@@ -209,6 +209,9 @@ struct Model {
     // HeatmapGrid demo
     heatmap_states: Vec<CellState>,
     heatmap_selected: Option<(usize, usize)>,
+
+    // Chat demo
+    chat_state: std::cell::RefCell<ChatState>,
 }
 
 /// Demo node type for NodeGraph showcase
@@ -488,6 +491,9 @@ enum Msg {
     SetNodeLayoutLock(egui_cha_ds::LockLevel),
     ToggleNodeLayoutMenuBar,
 
+    // Chat
+    ChatMessageSent(String),
+
     // === VJ/DAW Demo Messages ===
 
     // MIDI Keyboard
@@ -660,6 +666,7 @@ const MOLECULES: &[&str] = &[
     "DashboardLayout",
     "QuickActionBar",
     "CommandPalette",
+    "Chat",
 ];
 
 const FRAMEWORK: &[&str] = &[
@@ -881,6 +888,12 @@ impl App for StorybookApp {
                     })
                     .collect(),
                 heatmap_selected: None,
+                chat_state: std::cell::RefCell::new({
+                    let mut state = ChatState::new();
+                    state.push_system("Welcome to the Chat demo!");
+                    state.push_assistant("Hi! I'm a demo assistant. Try sending a message!");
+                    state
+                }),
                 ..Default::default()
             },
             Cmd::none(),
@@ -1361,6 +1374,15 @@ impl App for StorybookApp {
 
             Msg::ToggleNodeLayoutMenuBar => {
                 model.node_layout_show_menu_bar = !model.node_layout_show_menu_bar;
+            }
+
+            // Chat
+            Msg::ChatMessageSent(user_msg) => {
+                let mut chat = model.chat_state.borrow_mut();
+                chat.push_user(&user_msg);
+                // Simulate assistant response
+                let response = format!("You said: \"{}\" - This is a demo response!", user_msg);
+                chat.push_assistant(response);
             }
 
             // === VJ/DAW Demo Messages ===
@@ -5631,6 +5653,73 @@ if model.command_palette.is_open {
                     })
                     .show(ctx, &mut model.command_palette.borrow_mut(), Msg::CommandPaletteClose);
             }
+        }
+
+        "Chat" => {
+            ctx.ui.heading("Chat");
+            ctx.ui.label("Simple chat component with message bubbles and input");
+            ctx.ui.add_space(8.0);
+
+            // Chat demo - collect message outside closure to avoid borrow issues
+            let theme = Theme::current(ctx.ui.ctx());
+            let submitted_msg = egui::Frame::group(ctx.ui.style())
+                .inner_margin(8.0)
+                .show(ctx.ui, |ui| {
+                    let mut chat_state = model.chat_state.borrow_mut();
+                    Chat::new(&mut chat_state)
+                        .height(300.0)
+                        .show_timestamp(true)
+                        .placeholder("Type a message...")
+                        .system_message_color(theme.text_secondary)
+                        .show(ui)
+                })
+                .inner;
+
+            if let Some(msg) = submitted_msg {
+                ctx.emit(Msg::ChatMessageSent(msg));
+            }
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            // Code example
+            ctx.ui.strong("Usage:");
+            ctx.ui.add_space(4.0);
+            Code::new(
+                r#"// In your Model
+chat_state: ChatState,
+
+// In your view
+if let Some(msg) = Chat::new(&mut model.chat_state)
+    .height(400.0)
+    .show_timestamp(true)
+    .system_message_color(theme.text_secondary) // Optional: custom system message color
+    .show(ui)
+{
+    // User sent a message
+    ctx.emit(Msg::UserMessage(msg));
+}
+
+// Adding messages
+chat_state.push_user("Hello!");
+chat_state.push_assistant("Hi! How can I help?");
+chat_state.push_system("User joined");"#,
+            )
+            .show(ctx.ui);
+
+            ctx.ui.add_space(16.0);
+            ctx.ui.separator();
+            ctx.ui.add_space(8.0);
+
+            ctx.ui.strong("Features:");
+            ctx.ui.label("• User/Assistant/System message roles");
+            ctx.ui.label("• Chat bubble styling (right-aligned user, left-aligned assistant)");
+            ctx.ui.label("• Auto-scroll on new messages");
+            ctx.ui.label("• Enter key to send");
+            ctx.ui.label("• Optional timestamp display");
+            ctx.ui.label("• Custom sender names");
+            ctx.ui.label("• Maximum message history limit");
         }
 
         _ => {

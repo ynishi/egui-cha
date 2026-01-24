@@ -55,6 +55,7 @@
 //! See [`atoms`](crate::atoms) module for the full theme token reference.
 
 mod card;
+mod chat;
 mod command_palette;
 mod dashboard_layout;
 // #[cfg(feature = "dock")]
@@ -82,6 +83,7 @@ mod toast;
 mod workspace;
 
 pub use card::Card;
+pub use chat::{Chat, ChatMessage, ChatRole, ChatState};
 pub use command_palette::{CommandEntry, CommandItem, CommandPalette, CommandPaletteState};
 pub use dashboard_layout::{
     dashboard_3col, dashboard_full, DashboardEvent, DashboardLayout, DashboardState, SidebarConfig,
