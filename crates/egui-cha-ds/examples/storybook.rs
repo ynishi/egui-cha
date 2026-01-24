@@ -5353,8 +5353,16 @@ dashboard_full(ui, 48.0, 200.0, 280.0,
                 .action(icons::GEAR, "Open Settings", Msg::QuickActionSettings)
                 .action(icons::PLAY, "Start playback", Msg::QuickActionPlay)
                 .action(icons::STOP, "Stop playback", Msg::QuickActionStop)
-                .action(icons::FLOPPY_DISK, "Save current file", Msg::QuickActionSave)
-                .action(icons::MAGNIFYING_GLASS, "Search in project", Msg::QuickActionSearch)
+                .action(
+                    icons::FLOPPY_DISK,
+                    "Save current file",
+                    Msg::QuickActionSave,
+                )
+                .action(
+                    icons::MAGNIFYING_GLASS,
+                    "Search in project",
+                    Msg::QuickActionSearch,
+                )
                 .tooltip_immediate()
                 .show(ctx);
 
@@ -5373,15 +5381,36 @@ dashboard_full(ui, 48.0, 200.0, 280.0,
 
             // === Tooltip Demo ===
             ctx.ui.strong("Hover for Tooltips:");
-            ctx.ui.label("(Each icon shows a detailed description on hover)");
+            ctx.ui
+                .label("(Each icon shows a detailed description on hover)");
             ctx.ui.add_space(4.0);
 
             QuickActionBar::new()
-                .action(icons::HOUSE, "Navigate to Home screen - Your dashboard overview", Msg::QuickActionSettings)
-                .action(icons::USER, "View Profile - Edit your account settings and preferences", Msg::QuickActionSettings)
-                .action(icons::FOLDER_SIMPLE, "Open Project - Browse and select project files", Msg::QuickActionSettings)
-                .action(icons::DOWNLOAD_SIMPLE, "Download - Export current work to local disk", Msg::QuickActionSettings)
-                .action(icons::UPLOAD_SIMPLE, "Upload - Import files from your computer", Msg::QuickActionSettings)
+                .action(
+                    icons::HOUSE,
+                    "Navigate to Home screen - Your dashboard overview",
+                    Msg::QuickActionSettings,
+                )
+                .action(
+                    icons::USER,
+                    "View Profile - Edit your account settings and preferences",
+                    Msg::QuickActionSettings,
+                )
+                .action(
+                    icons::FOLDER_SIMPLE,
+                    "Open Project - Browse and select project files",
+                    Msg::QuickActionSettings,
+                )
+                .action(
+                    icons::DOWNLOAD_SIMPLE,
+                    "Download - Export current work to local disk",
+                    Msg::QuickActionSettings,
+                )
+                .action(
+                    icons::UPLOAD_SIMPLE,
+                    "Upload - Import files from your computer",
+                    Msg::QuickActionSettings,
+                )
                 .style(QuickActionStyle::Outline)
                 .tooltip_immediate()
                 .show(ctx);
@@ -5503,10 +5532,30 @@ dashboard_full(ui, 48.0, 200.0, 280.0,
             ctx.ui.add_space(4.0);
             let theme = Theme::current(ctx.ui.ctx());
             QuickActionBar::new()
-                .action_colored(icons::PLAY, "Play", Msg::QuickActionPlay, theme.state_success)
-                .action_colored(icons::STOP, "Stop", Msg::QuickActionStop, theme.state_danger)
-                .action_colored(icons::WARNING, "Alert", Msg::QuickActionSettings, theme.state_warning)
-                .action_colored(icons::INFO, "Info", Msg::QuickActionSearch, theme.state_info)
+                .action_colored(
+                    icons::PLAY,
+                    "Play",
+                    Msg::QuickActionPlay,
+                    theme.state_success,
+                )
+                .action_colored(
+                    icons::STOP,
+                    "Stop",
+                    Msg::QuickActionStop,
+                    theme.state_danger,
+                )
+                .action_colored(
+                    icons::WARNING,
+                    "Alert",
+                    Msg::QuickActionSettings,
+                    theme.state_warning,
+                )
+                .action_colored(
+                    icons::INFO,
+                    "Info",
+                    Msg::QuickActionSearch,
+                    theme.state_info,
+                )
                 .tooltip_immediate()
                 .show(ctx);
 
@@ -5608,7 +5657,8 @@ if model.command_palette.is_open {
 
             ctx.ui.strong("Features:");
             ctx.ui.label("• Keyboard navigation (↑/↓/Enter/Escape)");
-            ctx.ui.label("• Search filtering with optional fuzzy matching");
+            ctx.ui
+                .label("• Search filtering with optional fuzzy matching");
             ctx.ui.label("• Groups and separators for organization");
             ctx.ui.label("• Shortcut display for each command");
             ctx.ui.label("• Phosphor Icons integration");
@@ -5620,44 +5670,128 @@ if model.command_palette.is_open {
             if model.command_palette.borrow().is_open {
                 CommandPalette::new()
                     .placeholder("Type a command...")
-                    .item_with_description(icons::FILE, "New File", Msg::CommandPaletteNewFile, "Create a new file")
-                    .item_with_shortcut(icons::FOLDER_SIMPLE, "Open File", Msg::CommandPaletteOpenFile, "⌘O")
-                    .item_with_shortcut(icons::FLOPPY_DISK, "Save File", Msg::CommandPaletteSaveFile, "⌘S")
+                    .item_with_description(
+                        icons::FILE,
+                        "New File",
+                        Msg::CommandPaletteNewFile,
+                        "Create a new file",
+                    )
+                    .item_with_shortcut(
+                        icons::FOLDER_SIMPLE,
+                        "Open File",
+                        Msg::CommandPaletteOpenFile,
+                        "⌘O",
+                    )
+                    .item_with_shortcut(
+                        icons::FLOPPY_DISK,
+                        "Save File",
+                        Msg::CommandPaletteSaveFile,
+                        "⌘S",
+                    )
                     .separator()
                     .group("Edit", |p| {
-                        p.item_with_description(icons::COPY, "Cut", Msg::CommandPaletteNewFile, "Cut selection")
-                         .item_with_description(icons::COPY, "Copy", Msg::CommandPaletteNewFile, "Copy selection")
-                         .item_with_description(icons::COPY, "Paste", Msg::CommandPaletteNewFile, "Paste from clipboard")
-                         .item(icons::ARROW_LEFT, "Undo", Msg::CommandPaletteNewFile)
-                         .item(icons::ARROW_RIGHT, "Redo", Msg::CommandPaletteNewFile)
+                        p.item_with_description(
+                            icons::COPY,
+                            "Cut",
+                            Msg::CommandPaletteNewFile,
+                            "Cut selection",
+                        )
+                        .item_with_description(
+                            icons::COPY,
+                            "Copy",
+                            Msg::CommandPaletteNewFile,
+                            "Copy selection",
+                        )
+                        .item_with_description(
+                            icons::COPY,
+                            "Paste",
+                            Msg::CommandPaletteNewFile,
+                            "Paste from clipboard",
+                        )
+                        .item(icons::ARROW_LEFT, "Undo", Msg::CommandPaletteNewFile)
+                        .item(
+                            icons::ARROW_RIGHT,
+                            "Redo",
+                            Msg::CommandPaletteNewFile,
+                        )
                     })
                     .group("View", |p| {
-                        p.item_with_description(icons::EYE, "Toggle Sidebar", Msg::CommandPaletteNewFile, "Show/hide sidebar")
-                         .item_with_description(icons::WRENCH, "Toggle Terminal", Msg::CommandPaletteNewFile, "Show/hide terminal")
-                         .item(icons::MAGNIFYING_GLASS_PLUS, "Zoom In", Msg::CommandPaletteNewFile)
-                         .item(icons::MAGNIFYING_GLASS, "Zoom Out", Msg::CommandPaletteNewFile)
-                         .item(icons::CORNERS_OUT, "Full Screen", Msg::CommandPaletteNewFile)
+                        p.item_with_description(
+                            icons::EYE,
+                            "Toggle Sidebar",
+                            Msg::CommandPaletteNewFile,
+                            "Show/hide sidebar",
+                        )
+                        .item_with_description(
+                            icons::WRENCH,
+                            "Toggle Terminal",
+                            Msg::CommandPaletteNewFile,
+                            "Show/hide terminal",
+                        )
+                        .item(
+                            icons::MAGNIFYING_GLASS_PLUS,
+                            "Zoom In",
+                            Msg::CommandPaletteNewFile,
+                        )
+                        .item(
+                            icons::MAGNIFYING_GLASS,
+                            "Zoom Out",
+                            Msg::CommandPaletteNewFile,
+                        )
+                        .item(
+                            icons::CORNERS_OUT,
+                            "Full Screen",
+                            Msg::CommandPaletteNewFile,
+                        )
                     })
                     .group("Go", |p| {
-                        p.item_with_description(icons::FILE, "Go to File", Msg::CommandPaletteNewFile, "Quick open file")
-                         .item_with_description(icons::HASH, "Go to Symbol", Msg::CommandPaletteNewFile, "@")
-                         .item_with_description(icons::HASH, "Go to Line", Msg::CommandPaletteNewFile, ":")
-                         .item(icons::STACK, "Go to Bookmark", Msg::CommandPaletteNewFile)
+                        p.item_with_description(
+                            icons::FILE,
+                            "Go to File",
+                            Msg::CommandPaletteNewFile,
+                            "Quick open file",
+                        )
+                        .item_with_description(
+                            icons::HASH,
+                            "Go to Symbol",
+                            Msg::CommandPaletteNewFile,
+                            "@",
+                        )
+                        .item_with_description(
+                            icons::HASH,
+                            "Go to Line",
+                            Msg::CommandPaletteNewFile,
+                            ":",
+                        )
+                        .item(
+                            icons::STACK,
+                            "Go to Bookmark",
+                            Msg::CommandPaletteNewFile,
+                        )
                     })
                     .group("Settings", |p| {
                         p.item(icons::GEAR, "Preferences", Msg::CommandPaletteSettings)
-                         .item(icons::SLIDERS_HORIZONTAL, "Keyboard Shortcuts", Msg::CommandPaletteSettings)
-                         .item(icons::IMAGE, "Color Theme", Msg::CommandPaletteSettings)
-                         .item(icons::INFO, "Help", Msg::CommandPaletteHelp)
-                         .item(icons::BUG, "Report Issue", Msg::CommandPaletteHelp)
+                            .item(
+                                icons::SLIDERS_HORIZONTAL,
+                                "Keyboard Shortcuts",
+                                Msg::CommandPaletteSettings,
+                            )
+                            .item(icons::IMAGE, "Color Theme", Msg::CommandPaletteSettings)
+                            .item(icons::INFO, "Help", Msg::CommandPaletteHelp)
+                            .item(icons::BUG, "Report Issue", Msg::CommandPaletteHelp)
                     })
-                    .show(ctx, &mut model.command_palette.borrow_mut(), Msg::CommandPaletteClose);
+                    .show(
+                        ctx,
+                        &mut model.command_palette.borrow_mut(),
+                        Msg::CommandPaletteClose,
+                    );
             }
         }
 
         "Chat" => {
             ctx.ui.heading("Chat");
-            ctx.ui.label("Simple chat component with message bubbles and input");
+            ctx.ui
+                .label("Simple chat component with message bubbles and input");
             ctx.ui.add_space(8.0);
 
             // Chat demo - collect message outside closure to avoid borrow issues
@@ -5714,7 +5848,8 @@ chat_state.push_system("User joined");"#,
 
             ctx.ui.strong("Features:");
             ctx.ui.label("• User/Assistant/System message roles");
-            ctx.ui.label("• Chat bubble styling (right-aligned user, left-aligned assistant)");
+            ctx.ui
+                .label("• Chat bubble styling (right-aligned user, left-aligned assistant)");
             ctx.ui.label("• Auto-scroll on new messages");
             ctx.ui.label("• Enter key to send");
             ctx.ui.label("• Optional timestamp display");

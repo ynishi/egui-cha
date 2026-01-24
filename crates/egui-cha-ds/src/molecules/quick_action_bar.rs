@@ -450,8 +450,7 @@ impl<Msg: Clone> QuickActionBar<Msg> {
             ui.spacing_mut().item_spacing.x = spacing;
 
             for (index, action) in self.actions.iter().enumerate() {
-                let response =
-                    render_action_button(ui, action, &theme, size, style, tooltip_delay);
+                let response = render_action_button(ui, action, &theme, size, style, tooltip_delay);
 
                 if response.clicked() && !action.disabled {
                     clicked_index = Some(index);
@@ -461,7 +460,6 @@ impl<Msg: Clone> QuickActionBar<Msg> {
 
         clicked_index
     }
-
 }
 
 /// Render a single action button (standalone function to avoid borrow issues)
@@ -511,8 +509,10 @@ fn render_action_button<Msg>(
     // Create the button
     let button_size = egui::vec2(icon_size + padding * 2.0, icon_size + padding * 2.0);
 
-    let (rect, response) =
-        ui.allocate_exact_size(button_size, egui::Sense::click().union(egui::Sense::hover()));
+    let (rect, response) = ui.allocate_exact_size(
+        button_size,
+        egui::Sense::click().union(egui::Sense::hover()),
+    );
 
     if ui.is_rect_visible(rect) {
         let is_hovered = response.hovered() && !action.disabled;
@@ -645,8 +645,7 @@ impl<Msg: Clone> QuickActionColumn<Msg> {
             ui.spacing_mut().item_spacing.y = spacing;
 
             for action in &self.bar.actions {
-                let response =
-                    render_action_button(ui, action, &theme, size, style, tooltip_delay);
+                let response = render_action_button(ui, action, &theme, size, style, tooltip_delay);
 
                 if response.clicked() && !action.disabled {
                     messages_to_emit.push(action.msg.clone());

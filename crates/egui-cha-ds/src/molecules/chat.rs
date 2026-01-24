@@ -149,7 +149,12 @@ impl ChatState {
     }
 
     /// Push with custom sender name
-    pub fn push_from(&mut self, role: ChatRole, sender: impl Into<String>, content: impl Into<String>) {
+    pub fn push_from(
+        &mut self,
+        role: ChatRole,
+        sender: impl Into<String>,
+        content: impl Into<String>,
+    ) {
         self.push(ChatMessage::new(role, content).with_sender(sender));
     }
 
@@ -375,11 +380,13 @@ impl<'a> Chat<'a> {
                                 };
                                 ui.horizontal(|ui| {
                                     ui.add_space((ui.available_width() - 60.0).max(0.0));
-                                    ui.label(
-                                        RichText::new(ts)
-                                            .size(theme.font_size_xs)
-                                            .color(if is_user { theme.primary_text.gamma_multiply(0.7) } else { theme.text_muted }),
-                                    );
+                                    ui.label(RichText::new(ts).size(theme.font_size_xs).color(
+                                        if is_user {
+                                            theme.primary_text.gamma_multiply(0.7)
+                                        } else {
+                                            theme.text_muted
+                                        },
+                                    ));
                                 });
                             }
                         });
@@ -392,9 +399,7 @@ impl<'a> Chat<'a> {
         let mut submitted = None;
 
         // Check for Enter without Shift (submit) before rendering
-        let enter_pressed = ui.input(|i| {
-            i.key_pressed(egui::Key::Enter) && !i.modifiers.shift
-        });
+        let enter_pressed = ui.input(|i| i.key_pressed(egui::Key::Enter) && !i.modifiers.shift);
 
         ui.horizontal(|ui| {
             // Text input with custom frame
@@ -403,7 +408,10 @@ impl<'a> Chat<'a> {
                 .stroke(egui::Stroke::new(1.0, theme.border))
                 .corner_radius(theme.radius_sm)
                 .fill(theme.bg_primary)
-                .inner_margin(egui::Margin::symmetric(theme.spacing_sm as i8, theme.spacing_xs as i8))
+                .inner_margin(egui::Margin::symmetric(
+                    theme.spacing_sm as i8,
+                    theme.spacing_xs as i8,
+                ))
                 .show(ui, |ui| {
                     ui.add(
                         egui::TextEdit::multiline(&mut self.state.input_text)

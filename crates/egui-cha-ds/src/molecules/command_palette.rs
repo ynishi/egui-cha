@@ -182,9 +182,8 @@ impl<Msg: Clone> CommandPalette<Msg> {
 
     /// Add a simple command item
     pub fn item(mut self, icon: &'static str, label: impl Into<String>, msg: Msg) -> Self {
-        self.entries.push(CommandEntry::Item(
-            CommandItem::new(label, msg).icon(icon),
-        ));
+        self.entries
+            .push(CommandEntry::Item(CommandItem::new(label, msg).icon(icon)));
         self
     }
 
@@ -333,7 +332,10 @@ impl<Msg: Clone> CommandPalette<Msg> {
                                 state.selected_index = (state.selected_index + 1) % item_count;
                             }
                             if input.key_pressed(Key::ArrowUp) && item_count > 0 {
-                                state.selected_index = state.selected_index.checked_sub(1).unwrap_or(item_count - 1);
+                                state.selected_index = state
+                                    .selected_index
+                                    .checked_sub(1)
+                                    .unwrap_or(item_count - 1);
                             }
                             if input.key_pressed(Key::Enter) && !flat_items.is_empty() {
                                 if let Some(item) = flat_items.get(state.selected_index) {
@@ -452,7 +454,10 @@ impl<Msg: Clone> CommandPalette<Msg> {
                                 state.selected_index = (state.selected_index + 1) % item_count;
                             }
                             if input.key_pressed(Key::ArrowUp) && item_count > 0 {
-                                state.selected_index = state.selected_index.checked_sub(1).unwrap_or(item_count - 1);
+                                state.selected_index = state
+                                    .selected_index
+                                    .checked_sub(1)
+                                    .unwrap_or(item_count - 1);
                             }
                             if input.key_pressed(Key::Enter) && !flat_items.is_empty() {
                                 selected_index = Some(state.selected_index);
@@ -678,7 +683,10 @@ impl<Msg: Clone> CommandPalette<Msg> {
                 if let Some(icon) = item.icon {
                     let galley = painter.layout_no_wrap(
                         icon.to_string(),
-                        egui::FontId::new(theme.font_size_md, egui::FontFamily::Name("icons".into())),
+                        egui::FontId::new(
+                            theme.font_size_md,
+                            egui::FontFamily::Name("icons".into()),
+                        ),
                         icon_color,
                     );
                     let icon_pos = egui::pos2(x, center_y - galley.size().y / 2.0);
