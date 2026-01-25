@@ -137,6 +137,18 @@ pub struct Theme {
     pub surface_alpha: f32,
     /// Shadow blur radius. None = no shadow (lightweight), Some(4.0) = subtle shadow
     pub shadow_blur: Option<f32>,
+
+    // Glass / Transparency (for vibrancy windows)
+    /// Glass frame opacity (0.0 = fully transparent, 1.0 = opaque). Default: 0.6
+    pub glass_opacity: f32,
+    /// Glass frame blur radius (visual hint, actual blur requires vibrancy). Default: 8.0
+    pub glass_blur_radius: f32,
+    /// Glass frame tint color. None = use bg_primary
+    pub glass_tint: Option<Color32>,
+    /// Show border on glass frames. Default: true
+    pub glass_border: bool,
+    /// Custom titlebar height. Default: 32.0
+    pub titlebar_height: f32,
 }
 
 impl Default for Theme {
@@ -230,6 +242,13 @@ impl Theme {
             overlay_dim: 0.5,
             surface_alpha: 1.0,
             shadow_blur: None, // Lightweight: no shadow
+
+            // Glass / Transparency
+            glass_opacity: 0.6,
+            glass_blur_radius: 8.0,
+            glass_tint: None, // Use bg_primary
+            glass_border: true,
+            titlebar_height: 32.0,
         }
     }
 
@@ -317,6 +336,13 @@ impl Theme {
             overlay_dim: 0.7,
             surface_alpha: 1.0,
             shadow_blur: None, // Lightweight: no shadow
+
+            // Glass / Transparency (slightly more opaque for dark theme)
+            glass_opacity: 0.7,
+            glass_blur_radius: 8.0,
+            glass_tint: None, // Use bg_primary
+            glass_border: true,
+            titlebar_height: 32.0,
         }
     }
 
@@ -332,6 +358,73 @@ impl Theme {
     /// Create theme from external provider
     pub fn from_provider(provider: impl ThemeProvider) -> Self {
         provider.to_ds_theme()
+    }
+
+    /// Apply only color-related settings without affecting layout/spacing
+    ///
+    /// Use this for theme switching (dark/light toggle) to avoid layout changes.
+    /// Unlike `apply()`, this only updates Visuals colors, not typography or spacing.
+    pub fn apply_colors_only(&self, ctx: &egui::Context) {
+        // Store theme for component access via Theme::current()
+        ctx.data_mut(|d| d.insert_temp(Id::new(Self::STORAGE_ID), self.clone()));
+
+        let mut style = (*ctx.style()).clone();
+        let visuals = &mut style.visuals;
+
+        // Dark mode flag
+        visuals.dark_mode = self.variant == ThemeVariant::Dark;
+
+        // Background colors
+        visuals.panel_fill = self.bg_primary;
+        visuals.window_fill = self.bg_primary;
+        visuals.extreme_bg_color = self.bg_secondary;
+        visuals.faint_bg_color = self.bg_secondary;
+        visuals.code_bg_color = self.bg_tertiary;
+
+        // Text colors
+        visuals.override_text_color = Some(self.text_primary);
+        visuals.hyperlink_color = self.primary;
+        visuals.warn_fg_color = self.state_warning;
+        visuals.error_fg_color = self.state_danger;
+
+        // Widget styles - noninteractive (labels, separators)
+        visuals.widgets.noninteractive.bg_fill = self.bg_secondary;
+        visuals.widgets.noninteractive.weak_bg_fill = self.bg_secondary;
+        visuals.widgets.noninteractive.bg_stroke.color = self.border;
+        visuals.widgets.noninteractive.fg_stroke.color = self.text_primary;
+
+        // Widget styles - inactive (buttons at rest)
+        visuals.widgets.inactive.bg_fill = self.bg_tertiary;
+        visuals.widgets.inactive.weak_bg_fill = self.bg_tertiary;
+        visuals.widgets.inactive.bg_stroke.color = self.border;
+        visuals.widgets.inactive.fg_stroke.color = self.text_primary;
+
+        // Widget styles - hovered
+        visuals.widgets.hovered.bg_fill = self.primary_hover;
+        visuals.widgets.hovered.weak_bg_fill = self.primary_hover;
+        visuals.widgets.hovered.bg_stroke.color = self.primary;
+        visuals.widgets.hovered.fg_stroke.color = self.primary_text;
+
+        // Widget styles - active (being clicked)
+        visuals.widgets.active.bg_fill = self.primary;
+        visuals.widgets.active.weak_bg_fill = self.primary;
+        visuals.widgets.active.bg_stroke.color = self.primary;
+        visuals.widgets.active.fg_stroke.color = self.primary_text;
+
+        // Widget styles - open (dropdown open, etc)
+        visuals.widgets.open.bg_fill = self.bg_tertiary;
+        visuals.widgets.open.weak_bg_fill = self.bg_tertiary;
+        visuals.widgets.open.bg_stroke.color = self.primary;
+        visuals.widgets.open.fg_stroke.color = self.text_primary;
+
+        // Selection
+        visuals.selection.bg_fill = self.primary.linear_multiply(0.3);
+        visuals.selection.stroke.color = self.primary;
+
+        // Window stroke color (not width)
+        visuals.window_stroke.color = self.border;
+
+        ctx.set_style(style);
     }
 
     /// Apply theme to egui context and store for component access
@@ -681,6 +774,13 @@ impl Theme {
             overlay_dim: 0.4,
             surface_alpha: 1.0,
             shadow_blur: None, // Lightweight: no shadow
+
+            // Glass / Transparency (soft for pastel)
+            glass_opacity: 0.55,
+            glass_blur_radius: 10.0,
+            glass_tint: None,
+            glass_border: true,
+            titlebar_height: 32.0,
         }
     }
 
@@ -768,6 +868,13 @@ impl Theme {
             overlay_dim: 0.6,
             surface_alpha: 1.0,
             shadow_blur: None, // Lightweight: no shadow
+
+            // Glass / Transparency (slightly more opaque for pastel dark)
+            glass_opacity: 0.65,
+            glass_blur_radius: 10.0,
+            glass_tint: None,
+            glass_border: true,
+            titlebar_height: 32.0,
         }
     }
 }
@@ -843,6 +950,13 @@ pub struct ThemeConfig {
     pub shadow_blur: Option<f32>,
     pub overlay_dim: Option<f32>,
     pub surface_alpha: Option<f32>,
+
+    // Glass / Transparency
+    pub glass_opacity: Option<f32>,
+    pub glass_blur_radius: Option<f32>,
+    pub glass_tint: Option<String>,
+    pub glass_border: Option<bool>,
+    pub titlebar_height: Option<f32>,
 }
 
 #[cfg(feature = "serde")]
@@ -990,6 +1104,23 @@ impl Theme {
             theme.surface_alpha = alpha;
         }
 
+        // Apply glass / transparency settings
+        if let Some(opacity) = config.glass_opacity {
+            theme.glass_opacity = opacity.clamp(0.0, 1.0);
+        }
+        if let Some(blur) = config.glass_blur_radius {
+            theme.glass_blur_radius = blur.max(0.0);
+        }
+        if let Some(ref tint) = config.glass_tint {
+            theme.glass_tint = ThemeConfig::parse_color(tint);
+        }
+        if let Some(border) = config.glass_border {
+            theme.glass_border = border;
+        }
+        if let Some(height) = config.titlebar_height {
+            theme.titlebar_height = height.max(0.0);
+        }
+
         theme
     }
 
@@ -1027,6 +1158,11 @@ impl Theme {
             shadow_blur: self.shadow_blur,
             overlay_dim: Some(self.overlay_dim),
             surface_alpha: Some(self.surface_alpha),
+            glass_opacity: Some(self.glass_opacity),
+            glass_blur_radius: Some(self.glass_blur_radius),
+            glass_tint: self.glass_tint.map(ThemeConfig::color_to_hex),
+            glass_border: Some(self.glass_border),
+            titlebar_height: Some(self.titlebar_height),
         }
     }
 

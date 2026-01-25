@@ -27,6 +27,7 @@ extras = ["dep:egui_extras"]
 dock = ["dep:egui_dock"]
 snarl = ["dep:egui-snarl"]
 fuzzy = []  # Enable fuzzy matching in CommandPalette
+vibrancy = ["dep:window-vibrancy", "dep:raw-window-handle"]  # Window blur/acrylic/mica effects (macOS/Windows)
 
 # VJ/DAW component features
 audio = []   # Audio visualization (BPM, transport, waveform, etc.)
@@ -50,6 +51,8 @@ egui_dock = { workspace = true, optional = true }
 egui-snarl = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
 toml = { workspace = true, optional = true }
+window-vibrancy = { workspace = true, optional = true }
+raw-window-handle = { workspace = true, optional = true }
 
 [dev-dependencies]
 egui-cha = { workspace = true, features = ["eframe"] }

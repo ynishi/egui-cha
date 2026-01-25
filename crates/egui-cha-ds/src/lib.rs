@@ -39,6 +39,12 @@ mod molecules;
 pub mod semantics;
 mod theme;
 
+#[cfg(feature = "vibrancy")]
+pub mod vibrancy;
+
+#[cfg(feature = "vibrancy")]
+pub mod titlebar;
+
 pub use atoms::*;
 pub use molecules::*;
 pub use theme::{LightweightTheme, Theme, ThemeProvider, ThemeVariant};

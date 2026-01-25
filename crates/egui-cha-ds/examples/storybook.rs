@@ -688,6 +688,7 @@ const THEME_ITEMS: &[&str] = &[
     "Shadow & Overlay",
     "Preview",
     "LightweightTheme",
+    "Glass & Titlebar",
 ];
 
 /// Rebuild theme from model settings
@@ -6750,6 +6751,10 @@ fn render_theme(model: &Model, ctx: &mut ViewCtx<'_, Msg>) {
             render_lightweight_theme_demo(ctx);
         }
 
+        "Glass & Titlebar" => {
+            render_glass_titlebar_demo(ctx, model);
+        }
+
         _ => {
             ctx.ui.label("Theme item not implemented");
         }
@@ -6935,4 +6940,197 @@ let theme = BrandTheme.to_theme();"#;
         .label("• Hover states auto-generated (lighten/darken)");
     ctx.ui.label("• Secondary/muted text derived with alpha");
     ctx.ui.label("• Border colors derived from background");
+}
+
+/// Demo for Glass & Titlebar components (vibrancy feature)
+fn render_glass_titlebar_demo(ctx: &mut ViewCtx<'_, Msg>, _model: &Model) {
+    #[cfg(feature = "vibrancy")]
+    {
+        use egui_cha_ds::titlebar::{TitleBar, TitleBarButtonStyle, TitleBarStyle};
+        use egui_cha_ds::vibrancy::GlassFrame;
+
+        let theme = Theme::current(ctx.ui.ctx());
+
+        ctx.ui.heading("Glass & Titlebar");
+        ctx.ui.label("Components for transparent/vibrancy windows");
+        ctx.ui.add_space(12.0);
+
+        // Theme glass settings
+        ctx.ui.strong("Theme Glass Settings:");
+        ctx.ui.add_space(4.0);
+        egui::Grid::new("glass_settings_grid")
+            .num_columns(2)
+            .spacing([20.0, 4.0])
+            .show(ctx.ui, |ui| {
+                ui.label("glass_opacity:");
+                ui.label(format!("{:.2}", theme.glass_opacity));
+                ui.end_row();
+
+                ui.label("glass_blur_radius:");
+                ui.label(format!("{:.1}", theme.glass_blur_radius));
+                ui.end_row();
+
+                ui.label("glass_border:");
+                ui.label(if theme.glass_border { "true" } else { "false" });
+                ui.end_row();
+
+                ui.label("titlebar_height:");
+                ui.label(format!("{:.1}", theme.titlebar_height));
+                ui.end_row();
+            });
+
+        ctx.ui.add_space(16.0);
+        ctx.ui.separator();
+        ctx.ui.add_space(12.0);
+
+        // GlassFrame demo
+        ctx.ui.strong("GlassFrame Component:");
+        ctx.ui.add_space(8.0);
+
+        ctx.ui.horizontal(|ui| {
+            // Default from theme
+            GlassFrame::from_theme(&theme).show(ui, |ui| {
+                ui.label("From Theme");
+                ui.small("Uses theme settings");
+            });
+
+            ui.add_space(8.0);
+
+            // Light preset
+            GlassFrame::light().show(ui, |ui| {
+                ui.label("Light Preset");
+                ui.small("High opacity, white tint");
+            });
+
+            ui.add_space(8.0);
+
+            // Dark preset
+            GlassFrame::dark().show(ui, |ui| {
+                ui.label("Dark Preset");
+                ui.small("Higher opacity, dark tint");
+            });
+
+            ui.add_space(8.0);
+
+            // Frosted preset
+            GlassFrame::frosted().show(ui, |ui| {
+                ui.label("Frosted Preset");
+                ui.small("Very high opacity");
+            });
+        });
+
+        ctx.ui.add_space(16.0);
+        ctx.ui.separator();
+        ctx.ui.add_space(12.0);
+
+        // TitleBar demo
+        ctx.ui.strong("TitleBar Component:");
+        ctx.ui.label("Custom titlebar for frameless windows");
+        ctx.ui.add_space(8.0);
+
+        // TrafficLights style (macOS)
+        ctx.ui.label("TrafficLights Style (macOS):");
+        egui::Frame::new()
+            .fill(theme.bg_secondary)
+            .corner_radius(4.0)
+            .show(ctx.ui, |ui| {
+                TitleBar::new("My Application")
+                    .id("demo_trafficlights")
+                    .style(TitleBarStyle::from_theme(&theme))
+                    .show(ui);
+            });
+
+        ctx.ui.add_space(8.0);
+
+        // Windows style
+        ctx.ui.label("Windows Style:");
+        egui::Frame::new()
+            .fill(theme.bg_secondary)
+            .corner_radius(4.0)
+            .show(ctx.ui, |ui| {
+                let mut style = TitleBarStyle::from_theme(&theme);
+                style.button_style = TitleBarButtonStyle::WindowsIcons;
+                TitleBar::new("My Application")
+                    .id("demo_windows")
+                    .style(style)
+                    .show(ui);
+            });
+
+        ctx.ui.add_space(8.0);
+
+        // Minimal style
+        ctx.ui.label("Minimal Style:");
+        egui::Frame::new()
+            .fill(theme.bg_secondary)
+            .corner_radius(4.0)
+            .show(ctx.ui, |ui| {
+                let mut style = TitleBarStyle::from_theme(&theme);
+                style.button_style = TitleBarButtonStyle::Minimal;
+                TitleBar::new("My Application")
+                    .id("demo_minimal")
+                    .style(style)
+                    .show(ui);
+            });
+
+        ctx.ui.add_space(8.0);
+
+        // Transparent style
+        ctx.ui.label("Transparent Style (for vibrancy):");
+        GlassFrame::from_theme(&theme)
+            .corner_radius(4.0)
+            .show(ctx.ui, |ui| {
+                TitleBar::new("Transparent Window")
+                    .id("demo_transparent")
+                    .style(TitleBarStyle::transparent_from_theme(&theme))
+                    .show(ui);
+            });
+
+        ctx.ui.add_space(16.0);
+        ctx.ui.separator();
+        ctx.ui.add_space(8.0);
+
+        // Usage instructions
+        ctx.ui.strong("Usage:");
+        ctx.ui.label("1. Enable vibrancy feature in Cargo.toml");
+        ctx.ui
+            .label("2. Create transparent viewport with transparent_viewport_builder()");
+        ctx.ui
+            .label("3. Apply vibrancy with apply_vibrancy(&window, config)");
+        ctx.ui.label("4. Use GlassFrame and TitleBar for UI");
+
+        ctx.ui.add_space(8.0);
+        ctx.ui.collapsing("Code Example", |ui| {
+            let code = r#"// Cargo.toml
+egui-cha-ds = { version = "0.4", features = ["vibrancy"] }
+
+// App setup
+let options = eframe::NativeOptions {
+    viewport: transparent_viewport_builder(),
+    ..Default::default()
+};
+
+// After window creation
+apply_vibrancy(&window, VibrancyConfig::mica_dark());
+
+// In your UI
+TitleBar::new("My App")
+    .style(TitleBarStyle::transparent_from_theme(&theme))
+    .show(ui);
+
+GlassFrame::from_theme(&theme).show(ui, |ui| {
+    ui.label("Content on glass");
+});"#;
+            ui.code(code);
+        });
+    }
+
+    #[cfg(not(feature = "vibrancy"))]
+    {
+        ctx.ui.heading("Glass & Titlebar");
+        ctx.ui.add_space(8.0);
+        ctx.ui.label("This demo requires the 'vibrancy' feature.");
+        ctx.ui.add_space(4.0);
+        ctx.ui
+            .code("cargo run --example storybook --features vibrancy");
+    }
 }

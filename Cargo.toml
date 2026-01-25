@@ -44,3 +44,7 @@ tracing = "0.1"
 # Serialization
 serde = { version = "1", features = ["derive"] }
 toml = "0.8"
+
+# Window effects
+window-vibrancy = "0.7"
+raw-window-handle = "0.6"
