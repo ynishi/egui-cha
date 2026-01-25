@@ -4,11 +4,39 @@
 //! - Design tokens (colors, spacing, radii)
 //! - `Theme::current()` for component access
 //! - `ThemeProvider` trait for external theme integration
+//! - TOML-based theme configuration (with `serde` feature)
+//!
+//! # TOML Configuration Example
+//!
+//! ```toml
+//! base = "dark"
+//! primary = "#8B5CF6"
+//! spacing_scale = 0.85
+//! shadow_blur = 4.0
+//! ```
+//!
+//! # Usage
+//!
+//! ```ignore
+//! // Load theme from TOML file
+//! let theme = Theme::load_toml("my-theme.toml")?;
+//! theme.apply(&ctx);
+//!
+//! // Or create from ThemeConfig
+//! let config = ThemeConfig {
+//!     base: Some("dark".into()),
+//!     primary: Some("#8B5CF6".into()),
+//!     ..Default::default()
+//! };
+//! let theme = Theme::from_config(&config);
+//! ```
 
 use egui::{Color32, FontId, Id, TextStyle};
 
 /// Theme variant
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
 pub enum ThemeVariant {
     #[default]
     Light,
@@ -741,5 +769,605 @@ impl Theme {
             surface_alpha: 1.0,
             shadow_blur: None, // Lightweight: no shadow
         }
+    }
+}
+
+// ============================================================================
+// TOML Configuration Support (feature = "serde")
+// ============================================================================
+
+/// TOML-friendly theme configuration with human-readable color format.
+///
+/// All fields are optional - unspecified fields inherit from base theme.
+///
+/// # Color Format
+///
+/// Colors can be specified as:
+/// - Hex: `"#RRGGBB"` or `"#RRGGBBAA"`
+/// - RGB: `"rgb(r, g, b)"` or `"rgba(r, g, b, a)"`
+///
+/// # Example TOML
+///
+/// ```toml
+/// base = "dark"
+/// primary = "#8B5CF6"
+/// bg_primary = "#1a1a2e"
+/// spacing_scale = 0.85
+/// font_scale = 1.1
+/// shadow_blur = 4.0
+/// ```
+#[cfg(feature = "serde")]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[serde(default)]
+pub struct ThemeConfig {
+    /// Base theme: "light", "dark", "pastel", "pastel_dark"
+    pub base: Option<String>,
+
+    // Colors - Primary
+    pub primary: Option<String>,
+    pub primary_hover: Option<String>,
+    pub primary_text: Option<String>,
+
+    // Colors - Secondary
+    pub secondary: Option<String>,
+    pub secondary_hover: Option<String>,
+    pub secondary_text: Option<String>,
+
+    // Colors - Background
+    pub bg_primary: Option<String>,
+    pub bg_secondary: Option<String>,
+    pub bg_tertiary: Option<String>,
+
+    // Colors - Text
+    pub text_primary: Option<String>,
+    pub text_secondary: Option<String>,
+    pub text_muted: Option<String>,
+
+    // Colors - UI State
+    pub state_success: Option<String>,
+    pub state_warning: Option<String>,
+    pub state_danger: Option<String>,
+    pub state_info: Option<String>,
+
+    // Colors - Border
+    pub border: Option<String>,
+    pub border_focus: Option<String>,
+
+    // Scale factors (1.0 = default)
+    pub spacing_scale: Option<f32>,
+    pub font_scale: Option<f32>,
+    pub radius_scale: Option<f32>,
+    pub stroke_scale: Option<f32>,
+
+    // Effects
+    pub shadow_blur: Option<f32>,
+    pub overlay_dim: Option<f32>,
+    pub surface_alpha: Option<f32>,
+}
+
+#[cfg(feature = "serde")]
+impl ThemeConfig {
+    /// Parse a color string to Color32.
+    ///
+    /// Supports:
+    /// - `#RRGGBB`
+    /// - `#RRGGBBAA`
+    /// - `rgb(r, g, b)`
+    /// - `rgba(r, g, b, a)`
+    pub fn parse_color(s: &str) -> Option<Color32> {
+        let s = s.trim();
+
+        // Hex format: #RRGGBB or #RRGGBBAA
+        if let Some(hex) = s.strip_prefix('#') {
+            return match hex.len() {
+                6 => {
+                    let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
+                    let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
+                    let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
+                    Some(Color32::from_rgb(r, g, b))
+                }
+                8 => {
+                    let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
+                    let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
+                    let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
+                    let a = u8::from_str_radix(&hex[6..8], 16).ok()?;
+                    Some(Color32::from_rgba_unmultiplied(r, g, b, a))
+                }
+                _ => None,
+            };
+        }
+
+        // RGB format: rgb(r, g, b)
+        if let Some(inner) = s.strip_prefix("rgb(").and_then(|s| s.strip_suffix(')')) {
+            let parts: Vec<&str> = inner.split(',').collect();
+            if parts.len() == 3 {
+                let r: u8 = parts[0].trim().parse().ok()?;
+                let g: u8 = parts[1].trim().parse().ok()?;
+                let b: u8 = parts[2].trim().parse().ok()?;
+                return Some(Color32::from_rgb(r, g, b));
+            }
+        }
+
+        // RGBA format: rgba(r, g, b, a)
+        if let Some(inner) = s.strip_prefix("rgba(").and_then(|s| s.strip_suffix(')')) {
+            let parts: Vec<&str> = inner.split(',').collect();
+            if parts.len() == 4 {
+                let r: u8 = parts[0].trim().parse().ok()?;
+                let g: u8 = parts[1].trim().parse().ok()?;
+                let b: u8 = parts[2].trim().parse().ok()?;
+                // Alpha can be 0-255 or 0.0-1.0
+                let a_str = parts[3].trim();
+                let a: u8 = if a_str.contains('.') {
+                    let f: f32 = a_str.parse().ok()?;
+                    (f * 255.0) as u8
+                } else {
+                    a_str.parse().ok()?
+                };
+                return Some(Color32::from_rgba_unmultiplied(r, g, b, a));
+            }
+        }
+
+        None
+    }
+
+    /// Convert Color32 to hex string (#RRGGBB or #RRGGBBAA)
+    pub fn color_to_hex(color: Color32) -> String {
+        let [r, g, b, a] = color.to_srgba_unmultiplied();
+        if a == 255 {
+            format!("#{:02X}{:02X}{:02X}", r, g, b)
+        } else {
+            format!("#{:02X}{:02X}{:02X}{:02X}", r, g, b, a)
+        }
+    }
+}
+
+#[cfg(feature = "serde")]
+impl Theme {
+    /// Create a Theme from ThemeConfig.
+    ///
+    /// Starts from base theme and applies overrides.
+    pub fn from_config(config: &ThemeConfig) -> Self {
+        // Start with base theme
+        let mut theme = match config.base.as_deref() {
+            Some("dark") => Self::dark(),
+            Some("pastel") => Self::pastel(),
+            Some("pastel_dark") => Self::pastel_dark(),
+            _ => Self::light(), // default
+        };
+
+        // Apply color overrides
+        macro_rules! apply_color {
+            ($field:ident) => {
+                if let Some(ref s) = config.$field {
+                    if let Some(c) = ThemeConfig::parse_color(s) {
+                        theme.$field = c;
+                    }
+                }
+            };
+        }
+
+        apply_color!(primary);
+        apply_color!(primary_hover);
+        apply_color!(primary_text);
+        apply_color!(secondary);
+        apply_color!(secondary_hover);
+        apply_color!(secondary_text);
+        apply_color!(bg_primary);
+        apply_color!(bg_secondary);
+        apply_color!(bg_tertiary);
+        apply_color!(text_primary);
+        apply_color!(text_secondary);
+        apply_color!(text_muted);
+        apply_color!(state_success);
+        apply_color!(state_warning);
+        apply_color!(state_danger);
+        apply_color!(state_info);
+        apply_color!(border);
+        apply_color!(border_focus);
+
+        // Apply scale factors
+        if let Some(scale) = config.spacing_scale {
+            theme = theme.with_spacing_scale(scale);
+        }
+        if let Some(scale) = config.font_scale {
+            theme = theme.with_font_scale(scale);
+        }
+        if let Some(scale) = config.radius_scale {
+            theme = theme.with_radius_scale(scale);
+        }
+        if let Some(scale) = config.stroke_scale {
+            theme = theme.with_stroke_scale(scale);
+        }
+
+        // Apply effects
+        if let Some(blur) = config.shadow_blur {
+            theme.shadow_blur = Some(blur);
+        }
+        if let Some(dim) = config.overlay_dim {
+            theme.overlay_dim = dim;
+        }
+        if let Some(alpha) = config.surface_alpha {
+            theme.surface_alpha = alpha;
+        }
+
+        theme
+    }
+
+    /// Convert Theme to ThemeConfig for serialization.
+    ///
+    /// Exports all color values as hex strings.
+    pub fn to_config(&self) -> ThemeConfig {
+        ThemeConfig {
+            base: Some(match self.variant {
+                ThemeVariant::Light => "light".into(),
+                ThemeVariant::Dark => "dark".into(),
+            }),
+            primary: Some(ThemeConfig::color_to_hex(self.primary)),
+            primary_hover: Some(ThemeConfig::color_to_hex(self.primary_hover)),
+            primary_text: Some(ThemeConfig::color_to_hex(self.primary_text)),
+            secondary: Some(ThemeConfig::color_to_hex(self.secondary)),
+            secondary_hover: Some(ThemeConfig::color_to_hex(self.secondary_hover)),
+            secondary_text: Some(ThemeConfig::color_to_hex(self.secondary_text)),
+            bg_primary: Some(ThemeConfig::color_to_hex(self.bg_primary)),
+            bg_secondary: Some(ThemeConfig::color_to_hex(self.bg_secondary)),
+            bg_tertiary: Some(ThemeConfig::color_to_hex(self.bg_tertiary)),
+            text_primary: Some(ThemeConfig::color_to_hex(self.text_primary)),
+            text_secondary: Some(ThemeConfig::color_to_hex(self.text_secondary)),
+            text_muted: Some(ThemeConfig::color_to_hex(self.text_muted)),
+            state_success: Some(ThemeConfig::color_to_hex(self.state_success)),
+            state_warning: Some(ThemeConfig::color_to_hex(self.state_warning)),
+            state_danger: Some(ThemeConfig::color_to_hex(self.state_danger)),
+            state_info: Some(ThemeConfig::color_to_hex(self.state_info)),
+            border: Some(ThemeConfig::color_to_hex(self.border)),
+            border_focus: Some(ThemeConfig::color_to_hex(self.border_focus)),
+            spacing_scale: None, // Not stored, applied at creation
+            font_scale: None,
+            radius_scale: None,
+            stroke_scale: None,
+            shadow_blur: self.shadow_blur,
+            overlay_dim: Some(self.overlay_dim),
+            surface_alpha: Some(self.surface_alpha),
+        }
+    }
+
+    /// Load theme from TOML string.
+    pub fn from_toml(toml_str: &str) -> Result<Self, toml::de::Error> {
+        let config: ThemeConfig = toml::from_str(toml_str)?;
+        Ok(Self::from_config(&config))
+    }
+
+    /// Serialize theme to TOML string.
+    pub fn to_toml(&self) -> Result<String, toml::ser::Error> {
+        toml::to_string_pretty(&self.to_config())
+    }
+
+    /// Load theme from TOML file.
+    pub fn load_toml(path: impl AsRef<std::path::Path>) -> Result<Self, ThemeLoadError> {
+        let content = std::fs::read_to_string(path)?;
+        let theme = Self::from_toml(&content)?;
+        Ok(theme)
+    }
+
+    /// Save theme to TOML file.
+    pub fn save_toml(&self, path: impl AsRef<std::path::Path>) -> Result<(), ThemeSaveError> {
+        let toml_str = self.to_toml()?;
+        std::fs::write(path, toml_str)?;
+        Ok(())
+    }
+}
+
+/// Error loading theme from file
+#[cfg(feature = "serde")]
+#[derive(Debug)]
+pub enum ThemeLoadError {
+    Io(std::io::Error),
+    Parse(toml::de::Error),
+}
+
+#[cfg(feature = "serde")]
+impl std::fmt::Display for ThemeLoadError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Io(e) => write!(f, "IO error: {}", e),
+            Self::Parse(e) => write!(f, "Parse error: {}", e),
+        }
+    }
+}
+
+#[cfg(feature = "serde")]
+impl std::error::Error for ThemeLoadError {}
+
+#[cfg(feature = "serde")]
+impl From<std::io::Error> for ThemeLoadError {
+    fn from(e: std::io::Error) -> Self {
+        Self::Io(e)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl From<toml::de::Error> for ThemeLoadError {
+    fn from(e: toml::de::Error) -> Self {
+        Self::Parse(e)
+    }
+}
+
+/// Error saving theme to file
+#[cfg(feature = "serde")]
+#[derive(Debug)]
+pub enum ThemeSaveError {
+    Io(std::io::Error),
+    Serialize(toml::ser::Error),
+}
+
+#[cfg(feature = "serde")]
+impl std::fmt::Display for ThemeSaveError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Io(e) => write!(f, "IO error: {}", e),
+            Self::Serialize(e) => write!(f, "Serialize error: {}", e),
+        }
+    }
+}
+
+#[cfg(feature = "serde")]
+impl std::error::Error for ThemeSaveError {}
+
+#[cfg(feature = "serde")]
+impl From<std::io::Error> for ThemeSaveError {
+    fn from(e: std::io::Error) -> Self {
+        Self::Io(e)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl From<toml::ser::Error> for ThemeSaveError {
+    fn from(e: toml::ser::Error) -> Self {
+        Self::Serialize(e)
+    }
+}
+
+// ============================================================================
+// Lightweight Theme Trait
+// ============================================================================
+
+/// Minimal theme trait for quick theme creation.
+///
+/// Implement only 3 methods to create a basic theme.
+/// All other values inherit from the base theme.
+///
+/// # Example
+///
+/// ```
+/// use egui::Color32;
+/// use egui_cha_ds::theme::{LightweightTheme, Theme};
+///
+/// struct MyBrandTheme;
+///
+/// impl LightweightTheme for MyBrandTheme {
+///     fn primary(&self) -> Color32 {
+///         Color32::from_rgb(139, 92, 246)  // Violet
+///     }
+///     fn background(&self) -> Color32 {
+///         Color32::from_rgb(15, 15, 25)  // Dark
+///     }
+///     fn text(&self) -> Color32 {
+///         Color32::from_rgb(240, 240, 250)  // Light
+///     }
+/// }
+///
+/// let theme = MyBrandTheme.to_theme();
+/// ```
+pub trait LightweightTheme {
+    /// Primary accent color (buttons, links, highlights)
+    fn primary(&self) -> Color32;
+
+    /// Main background color
+    fn background(&self) -> Color32;
+
+    /// Primary text color
+    fn text(&self) -> Color32;
+
+    /// Convert to full Theme with sensible defaults.
+    ///
+    /// Automatically derives:
+    /// - Hover states (slightly darker/lighter)
+    /// - Secondary colors (muted primary)
+    /// - Border colors (based on background)
+    /// - Text on primary (contrast with primary)
+    fn to_theme(&self) -> Theme {
+        let primary = self.primary();
+        let bg = self.background();
+        let text = self.text();
+
+        // Detect if dark or light theme based on background luminance
+        let [r, g, b, _] = bg.to_array();
+        let luminance = 0.299 * r as f32 + 0.587 * g as f32 + 0.114 * b as f32;
+        let is_dark = luminance < 128.0;
+
+        // Start with base theme
+        let mut theme = if is_dark {
+            Theme::dark()
+        } else {
+            Theme::light()
+        };
+
+        // Apply primary color
+        theme.primary = primary;
+        theme.primary_hover = if is_dark {
+            lighten(primary, 0.15)
+        } else {
+            darken(primary, 0.15)
+        };
+        theme.primary_text = contrast_text(primary);
+        theme.border_focus = primary;
+
+        // Apply background
+        theme.bg_primary = bg;
+        theme.bg_secondary = if is_dark {
+            lighten(bg, 0.05)
+        } else {
+            darken(bg, 0.02)
+        };
+        theme.bg_tertiary = if is_dark {
+            lighten(bg, 0.10)
+        } else {
+            darken(bg, 0.05)
+        };
+
+        // Apply text
+        theme.text_primary = text;
+        theme.text_secondary = with_alpha(text, 0.7);
+        theme.text_muted = with_alpha(text, 0.5);
+
+        // Border based on background
+        theme.border = if is_dark {
+            lighten(bg, 0.15)
+        } else {
+            darken(bg, 0.10)
+        };
+
+        theme
+    }
+}
+
+// Helper functions for color manipulation
+
+fn lighten(color: Color32, amount: f32) -> Color32 {
+    let [r, g, b, a] = color.to_array();
+    let f = 1.0 + amount;
+    Color32::from_rgba_unmultiplied(
+        ((r as f32 * f).min(255.0)) as u8,
+        ((g as f32 * f).min(255.0)) as u8,
+        ((b as f32 * f).min(255.0)) as u8,
+        a,
+    )
+}
+
+fn darken(color: Color32, amount: f32) -> Color32 {
+    let [r, g, b, a] = color.to_array();
+    let f = 1.0 - amount;
+    Color32::from_rgba_unmultiplied(
+        (r as f32 * f) as u8,
+        (g as f32 * f) as u8,
+        (b as f32 * f) as u8,
+        a,
+    )
+}
+
+fn with_alpha(color: Color32, alpha: f32) -> Color32 {
+    let [r, g, b, _] = color.to_array();
+    Color32::from_rgba_unmultiplied(r, g, b, (alpha * 255.0) as u8)
+}
+
+fn contrast_text(bg: Color32) -> Color32 {
+    let [r, g, b, _] = bg.to_array();
+    let luminance = 0.299 * r as f32 + 0.587 * g as f32 + 0.114 * b as f32;
+    if luminance > 128.0 {
+        Color32::from_rgb(17, 24, 39) // Dark text
+    } else {
+        Color32::WHITE // Light text
+    }
+}
+
+// ============================================================================
+// Tests
+// ============================================================================
+
+#[cfg(all(test, feature = "serde"))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_hex_color() {
+        assert_eq!(
+            ThemeConfig::parse_color("#FF0000"),
+            Some(Color32::from_rgb(255, 0, 0))
+        );
+        assert_eq!(
+            ThemeConfig::parse_color("#00FF00"),
+            Some(Color32::from_rgb(0, 255, 0))
+        );
+        assert_eq!(
+            ThemeConfig::parse_color("#0000FF"),
+            Some(Color32::from_rgb(0, 0, 255))
+        );
+        assert_eq!(
+            ThemeConfig::parse_color("#FF000080"),
+            Some(Color32::from_rgba_unmultiplied(255, 0, 0, 128))
+        );
+    }
+
+    #[test]
+    fn test_parse_rgb_color() {
+        assert_eq!(
+            ThemeConfig::parse_color("rgb(255, 0, 0)"),
+            Some(Color32::from_rgb(255, 0, 0))
+        );
+        assert_eq!(
+            ThemeConfig::parse_color("rgba(255, 0, 0, 128)"),
+            Some(Color32::from_rgba_unmultiplied(255, 0, 0, 128))
+        );
+        assert_eq!(
+            ThemeConfig::parse_color("rgba(255, 0, 0, 0.5)"),
+            Some(Color32::from_rgba_unmultiplied(255, 0, 0, 127))
+        );
+    }
+
+    #[test]
+    fn test_color_to_hex() {
+        assert_eq!(
+            ThemeConfig::color_to_hex(Color32::from_rgb(255, 0, 0)),
+            "#FF0000"
+        );
+        assert_eq!(
+            ThemeConfig::color_to_hex(Color32::from_rgba_unmultiplied(255, 0, 0, 128)),
+            "#FF000080"
+        );
+    }
+
+    #[test]
+    fn test_theme_from_toml() {
+        let toml = r##"
+            base = "dark"
+            primary = "#8B5CF6"
+            spacing_scale = 0.85
+        "##;
+
+        let theme = Theme::from_toml(toml).unwrap();
+        assert_eq!(theme.variant, ThemeVariant::Dark);
+        assert_eq!(theme.primary, Color32::from_rgb(139, 92, 246));
+    }
+
+    #[test]
+    fn test_theme_roundtrip() {
+        let original = Theme::dark();
+        let toml = original.to_toml().unwrap();
+        let restored = Theme::from_toml(&toml).unwrap();
+
+        assert_eq!(original.variant, restored.variant);
+        assert_eq!(original.primary, restored.primary);
+        assert_eq!(original.bg_primary, restored.bg_primary);
+    }
+
+    #[test]
+    fn test_lightweight_theme() {
+        struct TestTheme;
+        impl LightweightTheme for TestTheme {
+            fn primary(&self) -> Color32 {
+                Color32::from_rgb(139, 92, 246)
+            }
+            fn background(&self) -> Color32 {
+                Color32::from_rgb(15, 15, 25)
+            }
+            fn text(&self) -> Color32 {
+                Color32::WHITE
+            }
+        }
+
+        let theme = TestTheme.to_theme();
+        assert_eq!(theme.primary, Color32::from_rgb(139, 92, 246));
+        assert_eq!(theme.bg_primary, Color32::from_rgb(15, 15, 25));
+        assert_eq!(theme.text_primary, Color32::WHITE);
+        assert_eq!(theme.variant, ThemeVariant::Dark); // Detected from bg
     }
 }

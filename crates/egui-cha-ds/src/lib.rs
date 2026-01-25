@@ -41,7 +41,10 @@ mod theme;
 
 pub use atoms::*;
 pub use molecules::*;
-pub use theme::{Theme, ThemeVariant};
+pub use theme::{LightweightTheme, Theme, ThemeProvider, ThemeVariant};
+
+#[cfg(feature = "serde")]
+pub use theme::{ThemeConfig, ThemeLoadError, ThemeSaveError};
 
 /// Phosphor Icons font (embedded)
 const PHOSPHOR_FONT: &[u8] = include_bytes!("../assets/fonts/Phosphor.ttf");
@@ -90,5 +93,8 @@ pub mod prelude {
     pub use crate::atoms::*;
     pub use crate::molecules::*;
     pub use crate::semantics::{self, ButtonStyle, LogSeverity, SeverityLog};
-    pub use crate::theme::{Theme, ThemeVariant};
+    pub use crate::theme::{LightweightTheme, Theme, ThemeProvider, ThemeVariant};
+
+    #[cfg(feature = "serde")]
+    pub use crate::theme::{ThemeConfig, ThemeLoadError, ThemeSaveError};
 }

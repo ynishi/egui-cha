@@ -26,7 +26,7 @@ egui-cha-ds = { version = "0.4.0", path = "crates/egui-cha-ds" }
 egui-cha-macros = { version = "0.4.0", path = "crates/egui-cha-macros" }
 
 # Egui ecosystem
-egui = "0.33"
+egui = { version = "0.33", features = ["serde"] }
 egui_dock = "0.18"
 egui_extras = "0.33"
 egui_plot = "0.34"
@@ -40,3 +40,7 @@ tokio = { version = "1", features = ["rt-multi-thread", "sync", "time"] }
 # Utilities
 thiserror = "2"
 tracing = "0.1"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"

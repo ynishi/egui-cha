@@ -18,8 +18,9 @@ include = [
 ]
 
 [features]
-default = ["macros", "plot", "extras", "studio"]
+default = ["macros", "plot", "extras", "studio", "serde"]
 macros = ["dep:egui-cha-macros"]
+serde = ["dep:serde", "dep:toml"]
 plot = ["dep:egui_plot"]
 extras = ["dep:egui_extras"]
 # tiles = ["dep:egui_tiles"]  # TODO: egui 0.31 compat
@@ -47,6 +48,8 @@ egui_extras = { workspace = true, optional = true }
 # egui_tiles = { workspace = true, optional = true }  # TODO: egui 0.31 compat
 egui_dock = { workspace = true, optional = true }
 egui-snarl = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+toml = { workspace = true, optional = true }
 
 [dev-dependencies]
 egui-cha = { workspace = true, features = ["eframe"] }

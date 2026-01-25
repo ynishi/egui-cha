@@ -683,7 +683,12 @@ const FRAMEWORK: &[&str] = &[
     "RepaintMode",
 ];
 
-const THEME_ITEMS: &[&str] = &["Scale Controls", "Shadow & Overlay", "Preview"];
+const THEME_ITEMS: &[&str] = &[
+    "Scale Controls",
+    "Shadow & Overlay",
+    "Preview",
+    "LightweightTheme",
+];
 
 /// Rebuild theme from model settings
 fn rebuild_theme(model: &mut Model) {
@@ -1567,6 +1572,23 @@ impl App for StorybookApp {
                     _ => "Pastel Dark > Light",
                 };
                 Button::ghost(theme_label).on_click(ctx, Msg::ToggleTheme);
+
+                // Quick scaling adjustment
+                ctx.ui.add_space(4.0);
+                ctx.ui
+                    .label(format!("Scale: {:.0}%", model.spacing_scale * 100.0));
+                let mut scale = model.spacing_scale;
+                if ctx
+                    .ui
+                    .add(
+                        egui::Slider::new(&mut scale, 0.6..=1.5)
+                            .show_value(false)
+                            .step_by(0.05),
+                    )
+                    .changed()
+                {
+                    ctx.emit(Msg::SetSpacingScale(scale));
+                }
 
                 ctx.ui.separator();
                 ctx.ui.strong("Categories");
@@ -6478,8 +6500,19 @@ fn render_theme(model: &Model, ctx: &mut ViewCtx<'_, Msg>) {
                 _ => "Pastel Dark",
             };
             ctx.ui.horizontal(|ui| {
-                ui.strong("Base Theme:");
-                Badge::info(theme_name).show(ui);
+                let theme = Theme::current(ui.ctx());
+                ui.label(
+                    egui::RichText::new("Base Theme:")
+                        .strong()
+                        .color(theme.text_primary),
+                );
+                // Use different badge style based on theme for better visibility
+                match model.theme_index {
+                    0 => Badge::new(theme_name).show(ui), // Light - use default (gray)
+                    1 => Badge::info(theme_name).show(ui), // Dark - use info (blue)
+                    2 => Badge::success(theme_name).show(ui), // Pastel - use success (green)
+                    _ => Badge::warning(theme_name).show(ui), // Pastel Dark - use warning (amber)
+                };
             });
             ctx.ui.add_space(16.0);
 
@@ -6713,8 +6746,193 @@ fn render_theme(model: &Model, ctx: &mut ViewCtx<'_, Msg>) {
                 });
         }
 
+        "LightweightTheme" => {
+            render_lightweight_theme_demo(ctx);
+        }
+
         _ => {
             ctx.ui.label("Theme item not implemented");
         }
     }
+}
+
+/// Demo for LightweightTheme trait
+fn render_lightweight_theme_demo(ctx: &mut ViewCtx<'_, Msg>) {
+    use egui_cha_ds::LightweightTheme;
+
+    ctx.ui.heading("LightweightTheme Trait");
+    ctx.ui.label("Create custom themes with just 3 methods");
+    ctx.ui.add_space(8.0);
+
+    // Example implementation
+    ctx.ui.strong("Example Implementation:");
+    ctx.ui.add_space(4.0);
+
+    let code = r#"struct BrandTheme;
+
+impl LightweightTheme for BrandTheme {
+    fn primary(&self) -> Color32 {
+        Color32::from_rgb(139, 92, 246)  // Violet
+    }
+    fn background(&self) -> Color32 {
+        Color32::from_rgb(15, 15, 25)    // Dark
+    }
+    fn text(&self) -> Color32 {
+        Color32::WHITE
+    }
+}
+
+let theme = BrandTheme.to_theme();"#;
+
+    egui::Frame::new()
+        .fill(ctx.ui.visuals().code_bg_color)
+        .inner_margin(8.0)
+        .corner_radius(4.0)
+        .show(ctx.ui, |ui| {
+            ui.add(
+                egui::TextEdit::multiline(&mut code.to_string())
+                    .code_editor()
+                    .interactive(false)
+                    .desired_width(f32::INFINITY),
+            );
+        });
+
+    ctx.ui.add_space(16.0);
+    ctx.ui.separator();
+    ctx.ui.add_space(8.0);
+
+    // Live demo themes
+    ctx.ui.strong("Live Theme Previews:");
+    ctx.ui.add_space(8.0);
+
+    // Define some example lightweight themes
+    struct VioletTheme;
+    impl LightweightTheme for VioletTheme {
+        fn primary(&self) -> egui::Color32 {
+            egui::Color32::from_rgb(139, 92, 246)
+        }
+        fn background(&self) -> egui::Color32 {
+            egui::Color32::from_rgb(15, 15, 25)
+        }
+        fn text(&self) -> egui::Color32 {
+            egui::Color32::WHITE
+        }
+    }
+
+    struct OceanTheme;
+    impl LightweightTheme for OceanTheme {
+        fn primary(&self) -> egui::Color32 {
+            egui::Color32::from_rgb(6, 182, 212)
+        }
+        fn background(&self) -> egui::Color32 {
+            egui::Color32::from_rgb(8, 47, 73)
+        }
+        fn text(&self) -> egui::Color32 {
+            egui::Color32::from_rgb(224, 242, 254)
+        }
+    }
+
+    struct SunsetTheme;
+    impl LightweightTheme for SunsetTheme {
+        fn primary(&self) -> egui::Color32 {
+            egui::Color32::from_rgb(251, 146, 60)
+        }
+        fn background(&self) -> egui::Color32 {
+            egui::Color32::from_rgb(255, 251, 245)
+        }
+        fn text(&self) -> egui::Color32 {
+            egui::Color32::from_rgb(67, 56, 46)
+        }
+    }
+
+    struct ForestTheme;
+    impl LightweightTheme for ForestTheme {
+        fn primary(&self) -> egui::Color32 {
+            egui::Color32::from_rgb(34, 197, 94)
+        }
+        fn background(&self) -> egui::Color32 {
+            egui::Color32::from_rgb(20, 30, 20)
+        }
+        fn text(&self) -> egui::Color32 {
+            egui::Color32::from_rgb(220, 240, 220)
+        }
+    }
+
+    let themes: &[(&str, Box<dyn LightweightTheme>)] = &[
+        ("Violet", Box::new(VioletTheme)),
+        ("Ocean", Box::new(OceanTheme)),
+        ("Sunset", Box::new(SunsetTheme)),
+        ("Forest", Box::new(ForestTheme)),
+    ];
+
+    // Show theme swatches
+    ctx.ui.horizontal_wrapped(|ui| {
+        for (name, lightweight) in themes {
+            let theme = lightweight.to_theme();
+
+            egui::Frame::new()
+                .fill(theme.bg_primary)
+                .stroke(egui::Stroke::new(1.0, theme.border))
+                .inner_margin(12.0)
+                .corner_radius(8.0)
+                .show(ui, |ui| {
+                    ui.set_min_width(120.0);
+
+                    // Theme name
+                    ui.colored_label(theme.text_primary, egui::RichText::new(*name).strong());
+                    ui.add_space(8.0);
+
+                    // Color swatches
+                    ui.horizontal(|ui| {
+                        // Primary swatch
+                        let (rect, _) =
+                            ui.allocate_exact_size(egui::vec2(24.0, 24.0), egui::Sense::hover());
+                        ui.painter().rect_filled(rect, 4.0, theme.primary);
+
+                        // Background swatch
+                        let (rect, _) =
+                            ui.allocate_exact_size(egui::vec2(24.0, 24.0), egui::Sense::hover());
+                        ui.painter().rect_filled(rect, 4.0, theme.bg_secondary);
+                        ui.painter().rect_stroke(
+                            rect,
+                            4.0,
+                            egui::Stroke::new(1.0, theme.border),
+                            egui::StrokeKind::Inside,
+                        );
+
+                        // Text swatch
+                        let (rect, _) =
+                            ui.allocate_exact_size(egui::vec2(24.0, 24.0), egui::Sense::hover());
+                        ui.painter().rect_filled(rect, 4.0, theme.text_primary);
+                    });
+
+                    ui.add_space(4.0);
+
+                    // Variant badge
+                    let variant_text = match theme.variant {
+                        egui_cha_ds::ThemeVariant::Light => "Light",
+                        egui_cha_ds::ThemeVariant::Dark => "Dark",
+                    };
+                    ui.colored_label(
+                        theme.text_secondary,
+                        egui::RichText::new(variant_text).small(),
+                    );
+                });
+
+            ui.add_space(8.0);
+        }
+    });
+
+    ctx.ui.add_space(16.0);
+    ctx.ui.separator();
+    ctx.ui.add_space(8.0);
+
+    // Auto-detection explanation
+    ctx.ui.strong("Auto-Detection:");
+    ctx.ui
+        .label("• Light/Dark variant detected from background luminance");
+    ctx.ui
+        .label("• Hover states auto-generated (lighten/darken)");
+    ctx.ui.label("• Secondary/muted text derived with alpha");
+    ctx.ui.label("• Border colors derived from background");
 }
