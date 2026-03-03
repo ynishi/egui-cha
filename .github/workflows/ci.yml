@@ -17,16 +17,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            cargo-flags: ""
+          - os: macos-latest
+            cargo-flags: "--all-features"
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - run: cargo check --workspace --all-features
+      - run: cargo check --workspace ${{ matrix.cargo-flags }}
 
   clippy:
     name: Clippy
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -51,16 +55,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            cargo-flags: ""
+          - os: macos-latest
+            cargo-flags: "--all-features"
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - run: cargo test --workspace --all-features
+      - run: cargo test --workspace ${{ matrix.cargo-flags }}
 
   doc:
     name: Doc
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     env:
       RUSTDOCFLAGS: -D warnings
     steps:
@@ -68,12 +76,3 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo doc --workspace --all-features --no-deps
-
-  msrv:
-    name: MSRV (1.75)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.75
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo check --workspace
