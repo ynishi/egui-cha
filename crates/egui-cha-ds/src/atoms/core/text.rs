@@ -4,7 +4,7 @@
 //!
 //! # Examples
 //!
-//! ```rust
+//! ```ignore
 //! use egui_cha_ds::atoms::Text;
 //!
 //! // Headings

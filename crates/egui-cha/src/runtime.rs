@@ -12,10 +12,11 @@ use tokio::runtime::Runtime as TokioRuntime;
 use tokio::task::JoinHandle;
 
 /// Repaint mode for controlling frame rate
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum RepaintMode {
     /// Event-driven (default) - only repaint on user input or pending messages.
     /// Most power-efficient, ideal for standard UI applications.
+    #[default]
     Reactive,
     /// Fixed FPS - repaint at specified frames per second.
     /// Useful for animations, VJ software, or real-time visualizations.
@@ -23,12 +24,6 @@ pub enum RepaintMode {
     /// VSync - repaint at monitor refresh rate.
     /// Smooth rendering synced to display, uses more resources.
     VSync,
-}
-
-impl Default for RepaintMode {
-    fn default() -> Self {
-        Self::Reactive
-    }
 }
 
 /// Configuration for running the app

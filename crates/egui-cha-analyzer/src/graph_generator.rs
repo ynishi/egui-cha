@@ -2,6 +2,9 @@
 
 use crate::types::{AnalysisResult, FileAnalysis};
 
+/// Indices of UI elements, actions, and state mutations grouped by function context.
+type ContextGroup = (Vec<usize>, Vec<usize>, Vec<usize>);
+
 /// Generate a precise Mermaid flowchart from flows (scope-aware)
 pub fn generate_flow_mermaid(analysis: &FileAnalysis) -> String {
     if analysis.flows.is_empty() {
@@ -210,7 +213,7 @@ pub fn generate_summary_mermaid(result: &AnalysisResult) -> String {
 /// Connect nodes based on function context
 fn connect_by_context(lines: &mut Vec<String>, analysis: &FileAnalysis) {
     // Group everything by context (function name)
-    let mut by_context: std::collections::HashMap<String, (Vec<usize>, Vec<usize>, Vec<usize>)> =
+    let mut by_context: std::collections::HashMap<String, ContextGroup> =
         std::collections::HashMap::new();
 
     for (i, ui) in analysis.ui_elements.iter().enumerate() {

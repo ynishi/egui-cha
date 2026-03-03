@@ -1275,7 +1275,7 @@ impl From<toml::ser::Error> for ThemeSaveError {
 ///
 /// ```
 /// use egui::Color32;
-/// use egui_cha_ds::theme::{LightweightTheme, Theme};
+/// use egui_cha_ds::{LightweightTheme, Theme};
 ///
 /// struct MyBrandTheme;
 ///

@@ -79,6 +79,11 @@ fn vj_theme() -> Theme {
         overlay_dim: 0.8,
         surface_alpha: 1.0,
         shadow_blur: None,
+        glass_opacity: 0.5,
+        glass_blur_radius: 10.0,
+        glass_tint: None,
+        glass_border: true,
+        titlebar_height: 32.0,
     }
 }
 
@@ -471,10 +476,8 @@ impl App for VjApp {
             Msg::TriggerClip(idx) => {
                 if model.quantize == Quantize::Immediate {
                     model.current_clip = Some(idx);
-                } else {
-                    if !model.queued_clips.contains(&idx) {
-                        model.queued_clips.push(idx);
-                    }
+                } else if !model.queued_clips.contains(&idx) {
+                    model.queued_clips.push(idx);
                 }
                 // Update clip states
                 if let Some(setup) = model.setups.get_mut(model.current_setup) {
@@ -553,12 +556,11 @@ impl App for VjApp {
                 }
                 _ => {}
             },
-            Msg::MediaEvent(event) => match event {
-                MediaBrowserEvent::Select(id) => {
+            Msg::MediaEvent(event) => {
+                if let MediaBrowserEvent::Select(id) = event {
                     model.selected_media = Some(id);
                 }
-                _ => {}
-            },
+            }
             Msg::LayerEvent(event) => match event {
                 LayerEvent::ToggleVisible(idx) => {
                     if let Some(l) = model.layers.get_mut(idx) {
@@ -646,9 +648,20 @@ fn render_live_area_ui(model: &Model, ui: &mut egui::Ui, msgs: &mut Vec<Msg>) {
 
     // Transport Row
     ui.horizontal(|ui| {
-        // BPM Display
+        // BPM Display + Edit
         ui.label("BPM:");
         BpmDisplay::new().show(ui, model.bpm as f64);
+        let mut bpm = model.bpm;
+        if ui
+            .add(
+                egui::DragValue::new(&mut bpm)
+                    .speed(0.5)
+                    .range(20.0..=300.0),
+            )
+            .changed()
+        {
+            msgs.push(Msg::SetBpm(bpm));
+        }
 
         ui.add_space(16.0);
 
@@ -663,10 +676,8 @@ fn render_live_area_ui(model: &Model, ui: &mut egui::Ui, msgs: &mut Vec<Msg>) {
             if semantics::stop(ButtonStyle::Both).show(ui) {
                 msgs.push(Msg::TogglePlay);
             }
-        } else {
-            if semantics::play(ButtonStyle::Both).show(ui) {
-                msgs.push(Msg::TogglePlay);
-            }
+        } else if semantics::play(ButtonStyle::Both).show(ui) {
+            msgs.push(Msg::TogglePlay);
         }
 
         // Record button
@@ -697,16 +708,13 @@ fn render_live_area_ui(model: &Model, ui: &mut egui::Ui, msgs: &mut Vec<Msg>) {
         TimelineMarker::new(0.75, "C").with_color(Color32::from_rgb(200, 200, 100)),
     ];
 
-    if let Some(event) = Timeline::new(120.0)
+    if let Some(TimelineEvent::Seek(p)) = Timeline::new(120.0)
         .position(model.timeline_position)
         .markers(&markers)
         .height(32.0)
         .show(ui)
     {
-        match event {
-            TimelineEvent::Seek(p) => msgs.push(Msg::TimelineSeek(p)),
-            _ => {}
-        }
+        msgs.push(Msg::TimelineSeek(p));
     }
 
     ui.add_space(12.0);
@@ -720,10 +728,8 @@ fn render_live_area_ui(model: &Model, ui: &mut egui::Ui, msgs: &mut Vec<Msg>) {
                 if Button::primary(&setup.name).show(ui) {
                     msgs.push(Msg::SelectSetup(i));
                 }
-            } else {
-                if Button::outline(&setup.name).show(ui) {
-                    msgs.push(Msg::SelectSetup(i));
-                }
+            } else if Button::outline(&setup.name).show(ui) {
+                msgs.push(Msg::SelectSetup(i));
             }
         }
         if let Some(setup) = model.setups.get(model.current_setup) {
@@ -770,13 +776,13 @@ fn render_live_area_ui(model: &Model, ui: &mut egui::Ui, msgs: &mut Vec<Msg>) {
                 .selectable_label(model.switch_mode == SwitchMode::Auto, "Auto")
                 .clicked()
             {
-                // emit via return
+                msgs.push(Msg::SetSwitchMode(SwitchMode::Auto));
             }
             if ui
                 .selectable_label(model.switch_mode == SwitchMode::Manual, "Manual")
                 .clicked()
             {
-                // emit via return
+                msgs.push(Msg::SetSwitchMode(SwitchMode::Manual));
             }
 
             ui.add_space(16.0);
@@ -793,7 +799,7 @@ fn render_live_area_ui(model: &Model, ui: &mut egui::Ui, msgs: &mut Vec<Msg>) {
                     .selectable_label(model.quantize == q, q.label())
                     .clicked()
                 {
-                    // emit via return
+                    msgs.push(Msg::SetQuantize(q));
                 }
             }
         });
@@ -917,10 +923,8 @@ fn render_lab_area(model: &Model, ui: &mut egui::Ui, msgs: &mut Vec<Msg>) {
                 if Button::primary(&patch.name).show(ui) {
                     msgs.push(Msg::SelectPatch(i));
                 }
-            } else {
-                if Button::outline(&patch.name).show(ui) {
-                    msgs.push(Msg::SelectPatch(i));
-                }
+            } else if Button::outline(&patch.name).show(ui) {
+                msgs.push(Msg::SelectPatch(i));
             }
         }
     });
