@@ -3,6 +3,10 @@
 //! Visual catalog of all DS components and framework features
 
 use egui_cha::prelude::*;
+#[cfg(feature = "codedash")]
+use egui_cha_ds::codedash::{
+    MetricsBubble, MetricsTable, ModuleMap, ModuleMapState, SortColumn, SortOrder,
+};
 use egui_cha_ds::prelude::*;
 #[cfg(feature = "dock")]
 use egui_cha_ds::{dock_layout, DockArea, DockTree};
@@ -212,6 +216,18 @@ struct Model {
 
     // Chat demo
     chat_state: std::cell::RefCell<ChatState>,
+
+    // Codedash demo
+    #[cfg(feature = "codedash")]
+    codedash_result: RefCell<Option<codedash_schemas::analyze::AnalyzeResult>>,
+    #[cfg(feature = "codedash")]
+    codedash_map_state: RefCell<ModuleMapState>,
+    #[cfg(feature = "codedash")]
+    codedash_sort_col: SortColumn,
+    #[cfg(feature = "codedash")]
+    codedash_sort_order: SortOrder,
+    #[cfg(feature = "codedash")]
+    codedash_view_mode: std::cell::Cell<usize>, // 0=table, 1=map, 2=bubble
 }
 
 /// Demo node type for NodeGraph showcase
@@ -656,6 +672,8 @@ const MOLECULES: &[&str] = &[
     "QuickActionBar",
     "CommandPalette",
     "Chat",
+    #[cfg(feature = "codedash")]
+    "Codedash",
 ];
 
 const FRAMEWORK: &[&str] = &[
@@ -5842,10 +5860,239 @@ chat_state.push_system("User joined");"#,
             ctx.ui.label("• Maximum message history limit");
         }
 
+        #[cfg(feature = "codedash")]
+        "Codedash" => {
+            render_codedash(model, ctx);
+        }
+
         _ => {
             ctx.ui.label("Component not implemented");
         }
     }
+}
+
+#[cfg(feature = "codedash")]
+fn make_sample_analyze_result() -> codedash_schemas::analyze::AnalyzeResult {
+    use codedash_schemas::analyze::{AnalyzeResult, Binding, EvalEntry, Group, PerceptValues};
+
+    let entries = vec![
+        {
+            let mut e = EvalEntry::new(
+                "function".into(),
+                "parse_config".into(),
+                "src/config::parse_config".into(),
+                "src/config".into(),
+                10,
+                85,
+                75,
+                PerceptValues::new(0.6, 0.7, 0.4, 0.3),
+                PerceptValues::new(48.0, 0.7, 0.4, 0.3),
+            );
+            e.cyclomatic = Some(12);
+            e.params = Some(3);
+            e.depth = Some(4);
+            e.git_churn_30d = Some(8);
+            e.coverage = Some(0.82);
+            e.visibility = "pub".into();
+            e
+        },
+        {
+            let mut e = EvalEntry::new(
+                "function".into(),
+                "validate_input".into(),
+                "src/config::validate_input".into(),
+                "src/config".into(),
+                90,
+                130,
+                40,
+                PerceptValues::new(0.3, 0.35, 0.5, 0.2),
+                PerceptValues::new(84.0, 0.35, 0.5, 0.2),
+            );
+            e.cyclomatic = Some(5);
+            e.params = Some(4);
+            e.depth = Some(2);
+            e.git_churn_30d = Some(3);
+            e.coverage = Some(0.95);
+            e.visibility = "pub".into();
+            e
+        },
+        {
+            let mut e = EvalEntry::new(
+                "function".into(),
+                "render_output".into(),
+                "src/render::render_output".into(),
+                "src/render".into(),
+                5,
+                200,
+                195,
+                PerceptValues::new(0.9, 0.95, 0.6, 0.8),
+                PerceptValues::new(12.0, 0.95, 0.6, 0.8),
+            );
+            e.cyclomatic = Some(22);
+            e.params = Some(5);
+            e.depth = Some(6);
+            e.git_churn_30d = Some(15);
+            e.coverage = Some(0.45);
+            e.visibility = "pub".into();
+            e
+        },
+        {
+            let mut e = EvalEntry::new(
+                "struct".into(),
+                "AppState".into(),
+                "src/app::AppState".into(),
+                "src/app".into(),
+                1,
+                25,
+                25,
+                PerceptValues::new(0.0, 0.15, 0.0, 0.0),
+                PerceptValues::new(120.0, 0.15, 0.0, 0.0),
+            );
+            e.field_count = Some(8);
+            e.visibility = "pub".into();
+            e
+        },
+        {
+            let mut e = EvalEntry::new(
+                "method".into(),
+                "process_event".into(),
+                "src/app::AppState.process_event".into(),
+                "src/app".into(),
+                30,
+                120,
+                90,
+                PerceptValues::new(0.7, 0.8, 0.5, 0.5),
+                PerceptValues::new(36.0, 0.8, 0.5, 0.5),
+            );
+            e.cyclomatic = Some(15);
+            e.params = Some(2);
+            e.depth = Some(5);
+            e.git_churn_30d = Some(20);
+            e.coverage = Some(0.60);
+            e.visibility = "pub".into();
+            e
+        },
+        {
+            let mut e = EvalEntry::new(
+                "function".into(),
+                "init_logger".into(),
+                "src/util::init_logger".into(),
+                "src/util".into(),
+                1,
+                15,
+                15,
+                PerceptValues::new(0.05, 0.08, 0.1, 0.1),
+                PerceptValues::new(114.0, 0.08, 0.1, 0.1),
+            );
+            e.cyclomatic = Some(1);
+            e.params = Some(0);
+            e.depth = Some(1);
+            e.coverage = Some(1.0);
+            e.visibility = "pub(crate)".into();
+            e
+        },
+    ];
+
+    let bindings = vec![
+        Binding::new("cyclomatic".into(), "hue".into()),
+        Binding::new("lines".into(), "size".into()),
+        Binding::new("params".into(), "border".into()),
+        Binding::new("depth".into(), "opacity".into()),
+    ];
+
+    let groups = vec![
+        Group::new("src/config".into(), 2, 33.3),
+        Group::new("src/render".into(), 1, 16.7),
+        Group::new("src/app".into(), 2, 33.3),
+        Group::new("src/util".into(), 1, 16.7),
+    ];
+
+    let mut result = AnalyzeResult::new(bindings, entries, 6);
+    result.groups = groups;
+    result
+}
+
+#[cfg(feature = "codedash")]
+fn render_codedash(model: &Model, ctx: &mut ViewCtx<Msg>) {
+    ctx.ui.heading("Codedash Metrics");
+    ctx.ui
+        .label("Visualization components for codedash analyze results.");
+    ctx.ui.add_space(8.0);
+
+    // Lazy-init sample data
+    {
+        let mut opt = model.codedash_result.borrow_mut();
+        if opt.is_none() {
+            *opt = Some(make_sample_analyze_result());
+        }
+    }
+    let binding = model.codedash_result.borrow();
+    let result = binding.as_ref().expect("just initialized");
+
+    let view_mode = model.codedash_view_mode.get();
+
+    // View mode tabs
+    ctx.ui.horizontal(|ui| {
+        if ui.selectable_label(view_mode == 0, "Table").clicked() {
+            model.codedash_view_mode.set(0);
+        }
+        if ui.selectable_label(view_mode == 1, "Module Map").clicked() {
+            model.codedash_view_mode.set(1);
+        }
+        if ui.selectable_label(view_mode == 2, "Bubbles").clicked() {
+            model.codedash_view_mode.set(2);
+        }
+    });
+
+    ctx.ui.add_space(8.0);
+    ctx.ui.separator();
+    ctx.ui.add_space(8.0);
+
+    match model.codedash_view_mode.get() {
+        0 => {
+            MetricsTable::new(result)
+                .sort(model.codedash_sort_col, model.codedash_sort_order)
+                .show(ctx.ui);
+        }
+        1 => {
+            let mut map_state = model.codedash_map_state.borrow_mut();
+            ModuleMap::new(result).show(ctx.ui, &mut map_state);
+        }
+        _ => {
+            let max_churn = result
+                .entries
+                .iter()
+                .filter_map(|e| e.git_churn_30d)
+                .max()
+                .unwrap_or(1);
+
+            ctx.ui.horizontal_wrapped(|ui| {
+                for entry in &result.entries {
+                    MetricsBubble::new(entry).max_churn(max_churn).show(ui);
+                }
+            });
+        }
+    }
+
+    ctx.ui.add_space(16.0);
+    ctx.ui.separator();
+    ctx.ui.add_space(8.0);
+
+    ctx.ui.strong("Visual Encodings:");
+    ctx.ui.label("Circle size = lines of code");
+    ctx.ui
+        .label("Inner ring color = complexity hue (green=low, red=high)");
+    ctx.ui.label("Outer ring (amber) = git churn intensity");
+    ctx.ui.label("Body color = domain/module grouping");
+
+    ctx.ui.add_space(8.0);
+    ctx.ui.strong("Components:");
+    ctx.ui
+        .label("MetricsTable - Sortable table with percept-colored cells");
+    ctx.ui
+        .label("ModuleMap - Force-directed graph with zoom/pan");
+    ctx.ui
+        .label("MetricsBubble - Individual node visualization");
 }
 
 fn render_framework(model: &Model, ctx: &mut ViewCtx<Msg>) {

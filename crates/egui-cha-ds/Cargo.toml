@@ -26,6 +26,7 @@ extras = ["dep:egui_extras"]
 # tiles = ["dep:egui_tiles"]  # TODO: egui 0.31 compat
 dock = ["dep:egui_dock"]
 snarl = ["dep:egui-snarl"]
+codedash = ["dep:codedash-schemas", "dep:serde_json"]  # codedash metrics visualization components
 fuzzy = []  # Enable fuzzy matching in CommandPalette
 vibrancy = ["dep:window-vibrancy", "dep:raw-window-handle"]  # Window blur/acrylic/mica effects (macOS/Windows)
 
@@ -50,7 +51,9 @@ egui_extras = { workspace = true, optional = true }
 egui_dock = { workspace = true, optional = true }
 egui-snarl = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
+serde_json = { version = "1", optional = true }
 toml = { workspace = true, optional = true }
+codedash-schemas = { version = "0.2", optional = true }
 window-vibrancy = { workspace = true, optional = true }
 raw-window-handle = { workspace = true, optional = true }
 
