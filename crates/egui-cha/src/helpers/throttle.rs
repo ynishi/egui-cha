@@ -417,7 +417,10 @@ mod tests {
 
     #[test]
     fn test_throttler_blocks_rapid_calls() {
-        let mut throttler = Throttler::new();
+        use crate::testing::FakeClock;
+
+        let clock = FakeClock::new();
+        let mut throttler = ThrottlerWithClock::new(clock.clone());
         let interval = Duration::from_millis(50);
 
         // First call executes
@@ -429,12 +432,12 @@ mod tests {
         assert!(cmd2.is_none());
 
         // Still throttled
-        thread::sleep(Duration::from_millis(20));
+        clock.advance(Duration::from_millis(20));
         let cmd3 = throttler.run(interval, || Cmd::Msg(3));
         assert!(cmd3.is_none());
 
         // After interval, executes again
-        thread::sleep(Duration::from_millis(35));
+        clock.advance(Duration::from_millis(35));
         let cmd4 = throttler.run(interval, || Cmd::Msg(4));
         assert!(cmd4.is_msg());
     }
