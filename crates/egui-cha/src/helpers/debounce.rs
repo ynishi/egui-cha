@@ -253,26 +253,28 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "tokio")]
     fn test_debouncer_reset_on_trigger() {
-        let mut debouncer = Debouncer::new();
+        use crate::testing::FakeClock;
 
-        // First trigger
-        let _cmd = debouncer.trigger::<()>(Duration::from_millis(50), ());
+        let clock = FakeClock::new();
+        let mut debouncer = DebouncerWithClock::new(clock.clone());
 
-        // Wait partial time
-        thread::sleep(Duration::from_millis(30));
+        // First trigger (50ms delay)
+        debouncer.mark_trigger(Duration::from_millis(50));
+
+        // Advance partial time
+        clock.advance(Duration::from_millis(30));
         assert!(!debouncer.should_fire()); // Not yet
 
         // Trigger again (resets timer)
-        let _cmd = debouncer.trigger::<()>(Duration::from_millis(50), ());
+        debouncer.mark_trigger(Duration::from_millis(50));
 
-        // Wait partial time again
-        thread::sleep(Duration::from_millis(30));
+        // Advance partial time again
+        clock.advance(Duration::from_millis(30));
         assert!(!debouncer.should_fire()); // Still not yet (timer was reset)
 
-        // Wait remaining time
-        thread::sleep(Duration::from_millis(25));
+        // Advance remaining time
+        clock.advance(Duration::from_millis(25));
         assert!(debouncer.should_fire()); // Now it fires
     }
 
