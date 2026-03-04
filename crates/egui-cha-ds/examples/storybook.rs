@@ -5,12 +5,12 @@
 use egui_cha::prelude::*;
 use egui_cha_ds::prelude::*;
 #[cfg(feature = "dock")]
-use egui_cha_ds::{dock_layout, DockArea, DockEvent, DockTree};
+use egui_cha_ds::{dock_layout, DockArea, DockTree};
 use egui_cha_ds::{ConfirmResult, ToastContainer, ToastId};
 #[cfg(feature = "snarl")]
 use egui_cha_ds::{
-    InPin, LayoutPane, NodeGraph, NodeGraphArea, NodeGraphEvent, NodeId, NodeLayout,
-    NodeLayoutArea, OutPin, PinInfo, Snarl, SnarlViewer,
+    InPin, LayoutPane, NodeGraph, NodeGraphArea, NodeId, NodeLayout, NodeLayoutArea, OutPin,
+    PinInfo, Snarl, SnarlViewer,
 };
 use std::cell::RefCell;
 use std::time::Duration;
@@ -156,8 +156,8 @@ struct Model {
     keyboard_notes: Vec<ActiveNote>,
 
     // MIDI Monitor demo
-    midi_messages: Vec<MidiMessage>,
-    midi_cc_values: Vec<CcValue>,
+    _midi_messages: Vec<MidiMessage>,
+    _midi_cc_values: Vec<CcValue>,
 
     // Piano Roll demo
     piano_notes: Vec<MidiNote>,
@@ -234,6 +234,7 @@ enum DemoAction {
 
 /// Demo pane for dock showcase
 #[derive(Clone, Debug, PartialEq, Default)]
+#[allow(dead_code)]
 enum DemoPane {
     #[default]
     Browser,
@@ -420,7 +421,6 @@ enum Msg {
     StartRetry,
     RetrySuccess,
     RetryFailed(String, u32),
-    RetryAttempt,
 
     // Sub::interval demo
     ToggleInterval,
@@ -477,14 +477,6 @@ enum Msg {
     // ErrorConsole demo
     ErrorConsolePush(ErrorLevel),
     ErrorConsoleMsg(ErrorConsoleMsg),
-
-    // Dock
-    #[cfg(feature = "dock")]
-    DockEvent(DockEvent<DemoPane>),
-
-    // NodeGraph
-    #[cfg(feature = "snarl")]
-    NodeGraphEvent(NodeGraphEvent<DemoNode>),
 
     // NodeLayout
     ToggleNodeLayoutLock,
@@ -625,9 +617,6 @@ const VISUAL_ATOMS: &[&str] = &[
     "MediaBrowser",
     "OutputRouter",
 ];
-
-// Plot atoms (feature-gated)
-const PLOT_ATOMS: &[&str] = &["Plot"];
 
 // Swarm components - Multi-agent visualization
 const SWARM_COMPONENTS: &[&str] = &[
@@ -1110,8 +1099,8 @@ impl App for StorybookApp {
                             }
                         }
                     },
-                    |msg: &'static str| Msg::RetrySuccess,
-                    |err, attempts| Msg::RetryFailed(err, attempts),
+                    |_msg: &'static str| Msg::RetrySuccess,
+                    Msg::RetryFailed,
                 );
             }
             Msg::RetrySuccess => {
@@ -1119,9 +1108,6 @@ impl App for StorybookApp {
             }
             Msg::RetryFailed(err, attempts) => {
                 model.retry_status = Some(format!("Failed after {} attempts: {}", attempts, err));
-            }
-            Msg::RetryAttempt => {
-                model.retry_attempt += 1;
             }
 
             // Sub::interval
@@ -1344,31 +1330,6 @@ impl App for StorybookApp {
                 ErrorConsoleMsg::Dismiss(i) => model.error_console.dismiss(i),
                 ErrorConsoleMsg::DismissAll => model.error_console.clear(),
             },
-
-            #[cfg(feature = "dock")]
-            Msg::DockEvent(event) => {
-                // Handle dock events (tab closed, add clicked, etc.)
-                match event {
-                    DockEvent::TabClosed(_tab) => {
-                        // Tab was closed - could add it back or handle
-                    }
-                    DockEvent::AddClicked {
-                        surface: _,
-                        node: _,
-                    } => {
-                        // Add button clicked - could add a new tab
-                        model.dock.borrow_mut().push(DemoPane::Console);
-                    }
-                    DockEvent::FocusChanged => {
-                        // Focus changed
-                    }
-                }
-            }
-
-            #[cfg(feature = "snarl")]
-            Msg::NodeGraphEvent(event) => {
-                model.node_graph_last_event = Some(format!("{:?}", event));
-            }
 
             Msg::ToggleNodeLayoutLock => {
                 model.node_layout_lock_level = model.node_layout_lock_level.cycle();
@@ -2487,7 +2448,7 @@ fn render_audio_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             let samples: Vec<f32> = (0..128)
                 .map(|i| {
                     let t = i as f32 / 128.0 * std::f32::consts::PI * 4.0 + time * 2.0;
-                    (t.sin() * 0.6 + (t * 2.0).sin() * 0.3 + (t * 3.0).sin() * 0.1)
+                    t.sin() * 0.6 + (t * 2.0).sin() * 0.3 + (t * 3.0).sin() * 0.1
                 })
                 .collect();
 
@@ -5087,6 +5048,7 @@ NodeLayoutArea::new(&mut layout, |ui, pane| {
                     "☐ Show Menu Bar"
                 };
                 Button::new(menu_label).on_click(ctx, Msg::ToggleNodeLayoutMenuBar);
+                Button::outline("Toggle Lock").on_click(ctx, Msg::ToggleNodeLayoutLock);
                 ctx.ui
                     .label("(Lock and Arrange controls are in the menu bar)");
             });
@@ -5133,9 +5095,9 @@ NodeLayoutArea::new(&mut layout, |ui, pane| {
                                 );
                                 ui.add_space(4.0);
                                 ui.horizontal(|ui| {
-                                    if ui.button("⏮").clicked() {}
-                                    if ui.button("▶").clicked() {}
-                                    if ui.button("⏭").clicked() {}
+                                    ui.button("⏮").clicked();
+                                    ui.button("▶").clicked();
+                                    ui.button("⏭").clicked();
                                 });
                             }
                             "effects" => {
@@ -5155,8 +5117,8 @@ NodeLayoutArea::new(&mut layout, |ui, pane| {
                                 });
                                 ui.add_space(4.0);
                                 ui.horizontal(|ui| {
-                                    if ui.button("+ Add").clicked() {}
-                                    if ui.button("Reset").clicked() {}
+                                    ui.button("+ Add").clicked();
+                                    ui.button("Reset").clicked();
                                 });
                             }
                             "layers" => {
@@ -5169,8 +5131,8 @@ NodeLayoutArea::new(&mut layout, |ui, pane| {
                                         ui.with_layout(
                                             egui::Layout::right_to_left(egui::Align::Center),
                                             |ui| {
-                                                ui.small_button("🗑");
-                                                ui.small_button("👁");
+                                                let _ = ui.small_button("🗑");
+                                                let _ = ui.small_button("👁");
                                             },
                                         );
                                     });
@@ -6280,6 +6242,15 @@ fn render_framework(model: &Model, ctx: &mut ViewCtx<Msg>) {
                     ));
                 }
                 Button::secondary("Reset All to Defaults").on_click(ctx, Msg::BindingsResetAll);
+                Button::ghost("Toggle Rebind Mode").on_click(ctx, Msg::BindingsToggleRebindMode);
+            });
+
+            ctx.horizontal(|ctx| {
+                Button::outline("Reset Increment")
+                    .on_click(ctx, Msg::BindingsReset(DemoAction::Increment));
+                Button::outline("Reset Decrement")
+                    .on_click(ctx, Msg::BindingsReset(DemoAction::Decrement));
+                Button::outline("Reset Save").on_click(ctx, Msg::BindingsReset(DemoAction::Save));
             });
 
             ctx.ui.add_space(16.0);

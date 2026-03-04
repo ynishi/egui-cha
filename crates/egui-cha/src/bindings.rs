@@ -440,6 +440,7 @@ mod tests {
     use super::*;
 
     #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+    #[allow(dead_code)]
     enum TestAction {
         Save,
         Undo,
