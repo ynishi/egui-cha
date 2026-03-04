@@ -19,7 +19,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            cargo-flags: "--exclude counter --exclude vj-mock"
+            cargo-flags: ""
           - os: macos-latest
             cargo-flags: "--all-features"
     steps:
@@ -57,7 +57,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            cargo-flags: "--exclude counter --exclude vj-mock"
+            cargo-flags: ""
           - os: macos-latest
             cargo-flags: "--all-features"
     steps:
