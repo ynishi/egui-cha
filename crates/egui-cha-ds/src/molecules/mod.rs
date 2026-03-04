@@ -73,6 +73,8 @@ mod table;
 mod tabs;
 // #[cfg(feature = "tiles")]
 // mod tiles;  // TODO: egui 0.31 compat
+#[cfg(feature = "codedash")]
+pub mod codedash;
 #[cfg(feature = "dock")]
 mod dock;
 pub mod layout_helpers;
