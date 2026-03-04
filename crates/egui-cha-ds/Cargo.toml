@@ -58,3 +58,7 @@ raw-window-handle = { workspace = true, optional = true }
 egui-cha = { workspace = true, features = ["eframe"] }
 eframe.workspace = true
 tracing-subscriber = "0.3"
+
+[[example]]
+name = "vibrancy_demo"
+required-features = ["vibrancy"]

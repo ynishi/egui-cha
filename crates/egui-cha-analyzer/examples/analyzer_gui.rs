@@ -210,7 +210,7 @@ impl App for CounterApp {
                 ctx.ui.add_space(4.0);
 
                 // Tabs using DS Tabs component
-                Tabs::new(&["TEA Flows", "Mermaid", "Raw Data"]).show_with(
+                Tabs::new(&["TEA Flows", "UI Flows", "Mermaid", "Raw Data"]).show_with(
                     ctx,
                     tab_to_index(&model.active_tab),
                     |idx| Msg::SetTab(index_to_tab(idx)),
@@ -242,15 +242,17 @@ impl App for CounterApp {
 fn tab_to_index(tab: &Tab) -> usize {
     match tab {
         Tab::TeaFlows => 0,
-        Tab::Mermaid => 1,
-        Tab::UiFlows | Tab::RawData => 2,
+        Tab::UiFlows => 1,
+        Tab::Mermaid => 2,
+        Tab::RawData => 3,
     }
 }
 
 fn index_to_tab(idx: usize) -> Tab {
     match idx {
         0 => Tab::TeaFlows,
-        1 => Tab::Mermaid,
+        1 => Tab::UiFlows,
+        2 => Tab::Mermaid,
         _ => Tab::RawData,
     }
 }

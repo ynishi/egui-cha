@@ -25,9 +25,10 @@ use std::time::Duration;
 /// Subscriptions are declared each frame based on model state.
 /// The runtime manages starting/stopping subscriptions as they
 /// appear or disappear from the returned `Sub`.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub enum Sub<Msg> {
     /// No subscription
+    #[default]
     None,
 
     /// Multiple subscriptions
@@ -46,12 +47,6 @@ pub enum Sub<Msg> {
         /// Message to emit
         msg: Msg,
     },
-}
-
-impl<Msg> Default for Sub<Msg> {
-    fn default() -> Self {
-        Sub::None
-    }
 }
 
 impl<Msg: Clone> Sub<Msg> {

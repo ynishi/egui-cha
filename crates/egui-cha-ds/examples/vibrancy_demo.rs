@@ -228,9 +228,9 @@ impl eframe::App for VibrancyDemoApp {
                                 ui.add_space(8.0);
 
                                 ui.horizontal(|ui| {
-                                    if ui.button("Button 1").clicked() {}
-                                    if ui.button("Button 2").clicked() {}
-                                    if ui.button("Button 3").clicked() {}
+                                    ui.button("Button 1").clicked();
+                                    ui.button("Button 2").clicked();
+                                    ui.button("Button 3").clicked();
                                 });
                             });
 

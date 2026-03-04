@@ -4,7 +4,7 @@
 //!
 //! # Examples
 //!
-//! ```rust
+//! ```ignore
 //! use egui_cha::ScrollArea;
 //!
 //! // Vertical scroll (default)

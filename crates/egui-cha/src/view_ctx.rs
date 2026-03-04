@@ -7,6 +7,9 @@ use egui::Ui;
 use crate::bindings::{ActionBindings, InputBinding};
 use crate::drag_drop::{DragSourceResponse, DropZoneResponse};
 
+/// A closure that renders content within a column using [`ViewCtx`].
+type ColumnFn<'a, Msg> = Box<dyn FnOnce(&mut ViewCtx<'_, Msg>) + 'a>;
+
 /// Context passed to view functions, enabling message emission from any depth
 ///
 /// # Example
@@ -398,7 +401,7 @@ impl<'a, Msg> ViewCtx<'a, Msg> {
     ///     Box::new(|ctx| { ctx.ui.label("Col 5"); }),
     /// ]);
     /// ```
-    pub fn columns(&mut self, columns: Vec<Box<dyn FnOnce(&mut ViewCtx<'_, Msg>) + '_>>) {
+    pub fn columns(&mut self, columns: Vec<ColumnFn<'_, Msg>>) {
         let n = columns.len();
         if n == 0 {
             return;
@@ -422,10 +425,7 @@ impl<'a, Msg> ViewCtx<'a, Msg> {
     }
 
     /// Internal helper for N-column layout
-    fn columns_n<const N: usize>(
-        &mut self,
-        columns: [Box<dyn FnOnce(&mut ViewCtx<'_, Msg>) + '_>; N],
-    ) {
+    fn columns_n<const N: usize>(&mut self, columns: [ColumnFn<'_, Msg>; N]) {
         let mut all_msgs: Vec<Vec<Msg>> = (0..N).map(|_| Vec::new()).collect();
         let mut columns: Vec<_> = columns.into_iter().map(Some).collect();
 

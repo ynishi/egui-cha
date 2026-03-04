@@ -7,8 +7,10 @@ use std::pin::Pin;
 ///
 /// Commands are declarative descriptions of side effects. The runtime
 /// executes them and feeds resulting messages back into the update loop.
+#[derive(Default)]
 pub enum Cmd<Msg> {
     /// No side effect
+    #[default]
     None,
 
     /// Multiple commands to execute
@@ -69,12 +71,6 @@ impl<Msg> Cmd<Msg> {
             }
             Cmd::Msg(msg) => Cmd::Msg(f(msg)),
         }
-    }
-}
-
-impl<Msg> Default for Cmd<Msg> {
-    fn default() -> Self {
-        Cmd::None
     }
 }
 
