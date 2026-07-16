@@ -25,6 +25,7 @@
 //! ```
 
 use crate::atoms::icons;
+use crate::theme::Theme;
 use egui::text::{LayoutJob, TextFormat};
 use egui::{Color32, FontId, RichText, Stroke, Ui};
 use egui_cha::ViewCtx;
@@ -85,8 +86,8 @@ impl SemanticButton {
 
     /// Show the button (returns true if clicked)
     pub fn show(self, ui: &mut Ui) -> bool {
-        let is_dark = ui.ctx().style().visuals.dark_mode;
-        let (fill, text_color, stroke) = self.variant_style(is_dark);
+        let theme = Theme::current(ui.ctx());
+        let (fill, text_color, stroke) = self.variant_style(&theme);
 
         let button = match self.style {
             ButtonStyle::Icon => {
@@ -150,61 +151,13 @@ impl SemanticButton {
         ui.add(button).clicked()
     }
 
-    /// Get style colors for variant
-    fn variant_style(&self, is_dark: bool) -> (Color32, Color32, Option<Stroke>) {
+    /// Get style colors for variant from theme
+    fn variant_style(&self, theme: &Theme) -> (Color32, Color32, Option<Stroke>) {
         match self.variant {
-            SemanticVariant::Primary => {
-                let bg = if is_dark {
-                    Color32::from_rgb(96, 165, 250)
-                } else {
-                    Color32::from_rgb(59, 130, 246)
-                };
-                let fg = if is_dark {
-                    Color32::from_rgb(17, 24, 39)
-                } else {
-                    Color32::WHITE
-                };
-                (bg, fg, None)
-            }
-            SemanticVariant::Secondary => {
-                let bg = if is_dark {
-                    Color32::from_rgb(55, 65, 81)
-                } else {
-                    Color32::from_rgb(107, 114, 128)
-                };
-                let fg = if is_dark {
-                    Color32::from_rgb(249, 250, 251)
-                } else {
-                    Color32::WHITE
-                };
-                (bg, fg, None)
-            }
-            SemanticVariant::Danger => {
-                let bg = if is_dark {
-                    Color32::from_rgb(248, 113, 113)
-                } else {
-                    Color32::from_rgb(239, 68, 68)
-                };
-                let fg = if is_dark {
-                    Color32::from_rgb(17, 24, 39)
-                } else {
-                    Color32::WHITE
-                };
-                (bg, fg, None)
-            }
-            SemanticVariant::Success => {
-                let bg = if is_dark {
-                    Color32::from_rgb(74, 222, 128)
-                } else {
-                    Color32::from_rgb(34, 197, 94)
-                };
-                let fg = if is_dark {
-                    Color32::from_rgb(17, 24, 39)
-                } else {
-                    Color32::WHITE
-                };
-                (bg, fg, None)
-            }
+            SemanticVariant::Primary => (theme.primary, theme.primary_text, None),
+            SemanticVariant::Secondary => (theme.secondary, theme.secondary_text, None),
+            SemanticVariant::Danger => (theme.state_danger, theme.state_danger_text, None),
+            SemanticVariant::Success => (theme.state_success, theme.state_success_text, None),
         }
     }
 }

@@ -26,6 +26,15 @@ are released in lock-step and share the same version number.
 - **egui-cha-macros**: `cha!` now rejects unknown layout properties (e.g. a
   typo like `Col(spacig: 8.0)`) with a spanned compile error; previously they
   were silently ignored. DSL parse errors carry contextual messages.
+- **egui-cha-ds**: `semantics::button`, `Navbar`, `Tabs`, `Toggle`, `Link`,
+  and `Modal` now read their colors from `Theme::current` tokens instead of
+  hardcoded dark-mode branches, so custom themes propagate. Visual deltas:
+  semantic Secondary buttons in dark mode now match `Button::secondary`;
+  light-mode Toggle off-track and Modal background shift one shade to the
+  nearest token.
+- **egui-cha-ds**: `GlassFrame::show` honors `Theme::glass_tint` when the
+  frame has no explicit tint (previously only `GlassFrame::from_theme` wired
+  it).
 
 ### Documentation
 - Fix installation snippet in README (`egui-cha = "0.1"` → `"0.6"`).

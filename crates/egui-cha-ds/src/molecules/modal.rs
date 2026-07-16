@@ -45,7 +45,6 @@ impl<'a> Modal<'a> {
         }
 
         let theme = Theme::current(ui.ctx());
-        let is_dark = ui.ctx().style().visuals.dark_mode;
         let mut close_requested = false;
 
         // Backdrop - use theme's overlay_dim
@@ -66,18 +65,9 @@ impl<'a> Modal<'a> {
                 }
             });
 
-        // Modal window
-        let bg_color = if is_dark {
-            Color32::from_rgb(31, 41, 55)
-        } else {
-            Color32::WHITE
-        };
-
-        let border_color = if is_dark {
-            Color32::from_rgb(55, 65, 81)
-        } else {
-            Color32::from_rgb(229, 231, 235)
-        };
+        // Modal window - elevated surface on top of the backdrop
+        let bg_color = theme.bg_secondary;
+        let border_color = theme.border;
 
         Area::new(Id::new("modal_content"))
             .anchor(Align2::CENTER_CENTER, Vec2::ZERO)

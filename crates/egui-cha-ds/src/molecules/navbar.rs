@@ -1,6 +1,7 @@
 //! Navbar molecule - Navigation bar with router integration
 
 use crate::atoms::icons;
+use crate::theme::{Theme, ThemeVariant};
 use egui::{Color32, RichText};
 use egui_cha::router::{Router, RouterMsg};
 use egui_cha::ViewCtx;
@@ -14,21 +15,23 @@ struct NavbarColors {
 }
 
 impl NavbarColors {
-    fn from_dark_mode(is_dark: bool) -> Self {
-        if is_dark {
-            Self {
-                bg: Color32::from_rgb(17, 24, 39),               // bg_primary dark
-                text_active: Color32::from_rgb(249, 250, 251),   // text_primary dark
-                text_inactive: Color32::from_rgb(156, 163, 175), // text_muted
-                button_active_bg: Color32::from_rgb(55, 65, 81), // bg_tertiary dark
-            }
-        } else {
-            Self {
-                bg: Color32::from_rgb(31, 41, 55), // dark bar on light theme
+    fn from_theme(theme: &Theme) -> Self {
+        match theme.variant {
+            ThemeVariant::Dark => Self {
+                bg: theme.bg_primary,
+                text_active: theme.text_primary,
+                text_inactive: theme.text_muted,
+                button_active_bg: theme.bg_tertiary,
+            },
+            // The bar keeps a deliberately dark look on the light theme, so
+            // light-theme text tokens (dark on light) would be unreadable
+            // here; the bar colors stay fixed.
+            ThemeVariant::Light => Self {
+                bg: Color32::from_rgb(31, 41, 55),
                 text_active: Color32::WHITE,
-                text_inactive: Color32::from_rgb(156, 163, 175),
+                text_inactive: theme.text_muted,
                 button_active_bg: Color32::from_rgb(55, 65, 81),
-            }
+            },
         }
     }
 }
@@ -67,8 +70,8 @@ impl<'a> Navbar<'a> {
     ) where
         P: Clone + PartialEq,
     {
-        let is_dark = ctx.ui.ctx().style().visuals.dark_mode;
-        let colors = NavbarColors::from_dark_mode(is_dark);
+        let theme = Theme::current(ctx.ui.ctx());
+        let colors = NavbarColors::from_theme(&theme);
 
         egui::Frame::new()
             .fill(colors.bg)
@@ -124,24 +127,6 @@ impl<'a> Default for Navbar<'a> {
     }
 }
 
-/// Get primary color for active nav items based on theme
-fn nav_active_color(is_dark: bool) -> Color32 {
-    if is_dark {
-        Color32::from_rgb(96, 165, 250) // primary dark
-    } else {
-        Color32::from_rgb(59, 130, 246) // primary light
-    }
-}
-
-/// Get text color for active nav items based on theme
-fn nav_active_text_color(is_dark: bool) -> Color32 {
-    if is_dark {
-        Color32::from_rgb(17, 24, 39) // dark text on light button
-    } else {
-        Color32::WHITE
-    }
-}
-
 /// Simple horizontal nav bar (functional style)
 pub fn navbar<P, Msg>(
     ctx: &mut ViewCtx<'_, Msg>,
@@ -151,9 +136,9 @@ pub fn navbar<P, Msg>(
 ) where
     P: Clone + PartialEq,
 {
-    let is_dark = ctx.ui.ctx().style().visuals.dark_mode;
-    let active_bg = nav_active_color(is_dark);
-    let active_text = nav_active_text_color(is_dark);
+    let theme = Theme::current(ctx.ui.ctx());
+    let active_bg = theme.primary;
+    let active_text = theme.primary_text;
 
     let mut nav_action: Option<RouterMsg<P>> = None;
 
@@ -199,9 +184,9 @@ pub fn sidebar<P, Msg>(
 ) where
     P: Clone + PartialEq,
 {
-    let is_dark = ctx.ui.ctx().style().visuals.dark_mode;
-    let active_bg = nav_active_color(is_dark);
-    let active_text = nav_active_text_color(is_dark);
+    let theme = Theme::current(ctx.ui.ctx());
+    let active_bg = theme.primary;
+    let active_text = theme.primary_text;
 
     let mut nav_action: Option<RouterMsg<P>> = None;
 

@@ -1,6 +1,7 @@
 //! Tabs molecule
 
-use egui::{Color32, RichText, Ui};
+use crate::theme::Theme;
+use egui::{RichText, Ui};
 use egui_cha::ViewCtx;
 
 /// Tab bar component
@@ -34,25 +35,11 @@ impl<'a> Tabs<'a> {
 
     /// Render tabs and return clicked index if any
     fn render(self, ui: &mut Ui, active: usize) -> Option<usize> {
-        let is_dark = ui.ctx().style().visuals.dark_mode;
+        let theme = Theme::current(ui.ctx());
 
-        let active_color = if is_dark {
-            Color32::from_rgb(96, 165, 250)
-        } else {
-            Color32::from_rgb(59, 130, 246)
-        };
-
-        let inactive_color = if is_dark {
-            Color32::from_rgb(156, 163, 175)
-        } else {
-            Color32::from_rgb(107, 114, 128)
-        };
-
-        let border_color = if is_dark {
-            Color32::from_rgb(55, 65, 81)
-        } else {
-            Color32::from_rgb(229, 231, 235)
-        };
+        let active_color = theme.primary;
+        let inactive_color = theme.secondary;
+        let border_color = theme.border;
 
         let mut clicked_idx: Option<usize> = None;
 

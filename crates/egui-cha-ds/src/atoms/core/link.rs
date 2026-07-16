@@ -1,6 +1,7 @@
 //! Link/Hyperlink atom
 
-use egui::{Color32, RichText, Ui};
+use crate::theme::Theme;
+use egui::{RichText, Ui};
 use egui_cha::ViewCtx;
 
 /// A hyperlink component
@@ -25,12 +26,7 @@ impl<'a> Link<'a> {
 
     /// Show as external hyperlink (opens in browser)
     pub fn show(self, ui: &mut Ui) -> bool {
-        let is_dark = ui.ctx().style().visuals.dark_mode;
-        let color = if is_dark {
-            Color32::from_rgb(96, 165, 250)
-        } else {
-            Color32::from_rgb(59, 130, 246)
-        };
+        let color = Theme::current(ui.ctx()).primary;
 
         if let Some(url) = self.url {
             ui.hyperlink_to(RichText::new(self.text).color(color), url)
@@ -43,12 +39,7 @@ impl<'a> Link<'a> {
 
     /// Show link and emit Msg on click (for internal navigation)
     pub fn on_click<Msg>(self, ctx: &mut ViewCtx<'_, Msg>, msg: Msg) -> bool {
-        let is_dark = ctx.ui.ctx().style().visuals.dark_mode;
-        let color = if is_dark {
-            Color32::from_rgb(96, 165, 250)
-        } else {
-            Color32::from_rgb(59, 130, 246)
-        };
+        let color = Theme::current(ctx.ui.ctx()).primary;
 
         let response = ctx.ui.link(RichText::new(self.text).color(color));
         if response.clicked() {

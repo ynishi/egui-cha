@@ -1,5 +1,6 @@
 //! Toggle/Switch atom
 
+use crate::theme::Theme;
 use egui::{Color32, Response, Sense, Ui, Vec2};
 use egui_cha::ViewCtx;
 
@@ -62,7 +63,7 @@ impl<'a> Toggle<'a> {
     }
 
     fn render(&self, ui: &mut Ui, on: bool) -> Response {
-        let is_dark = ui.ctx().style().visuals.dark_mode;
+        let theme = Theme::current(ui.ctx());
 
         ui.horizontal(|ui| {
             // Draw toggle switch
@@ -73,17 +74,7 @@ impl<'a> Toggle<'a> {
                 let painter = ui.painter();
 
                 // Background
-                let bg_color = if on {
-                    if is_dark {
-                        Color32::from_rgb(96, 165, 250) // primary
-                    } else {
-                        Color32::from_rgb(59, 130, 246)
-                    }
-                } else if is_dark {
-                    Color32::from_rgb(55, 65, 81)
-                } else {
-                    Color32::from_rgb(209, 213, 219)
-                };
+                let bg_color = if on { theme.primary } else { theme.border };
 
                 let bg_color = if self.disabled {
                     bg_color.gamma_multiply(0.5)

@@ -525,8 +525,10 @@ impl GlassFrame {
             let [r, g, b, _] = tint.to_array();
             Color32::from_rgba_unmultiplied(r, g, b, (self.opacity * 255.0) as u8)
         } else {
-            // Use theme background with opacity
-            let [r, g, b, _] = theme.bg_primary.to_array();
+            // No explicit tint: honor the theme's glass tint, falling back
+            // to the theme background.
+            let base = theme.glass_tint.unwrap_or(theme.bg_primary);
+            let [r, g, b, _] = base.to_array();
             Color32::from_rgba_unmultiplied(r, g, b, (self.opacity * 255.0) as u8)
         };
 
