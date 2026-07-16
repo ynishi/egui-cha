@@ -90,7 +90,7 @@ pub fn run<A: App>(config: RunConfig) -> eframe::Result<()> {
     eframe::run_native(
         &config.title,
         options,
-        Box::new(move |cc| Ok(Box::new(TeaRuntime::<A>::new(cc, repaint_mode)))),
+        Box::new(move |cc| Ok(Box::new(TeaRuntime::<A>::new(cc, repaint_mode)?))),
     )
 }
 
@@ -153,7 +153,7 @@ pub fn setup_icon_fonts(ctx: &egui::Context) {
 }
 
 impl<A: App> TeaRuntime<A> {
-    fn new(cc: &eframe::CreationContext<'_>, repaint_mode: RepaintMode) -> Self {
+    fn new(cc: &eframe::CreationContext<'_>, repaint_mode: RepaintMode) -> std::io::Result<Self> {
         // Set up fonts
         setup_icon_fonts(&cc.egui_ctx);
 
@@ -161,7 +161,7 @@ impl<A: App> TeaRuntime<A> {
         let (msg_sender, msg_receiver) = mpsc::channel();
         let (err_sender, err_receiver) = mpsc::channel();
 
-        let tokio_runtime = TokioRuntime::new().expect("Failed to create tokio runtime");
+        let tokio_runtime = TokioRuntime::new()?;
 
         let runtime = Self {
             model,
@@ -178,7 +178,7 @@ impl<A: App> TeaRuntime<A> {
         // Execute initial command
         runtime.execute_cmd(init_cmd);
 
-        runtime
+        Ok(runtime)
     }
 
     fn execute_cmd(&self, cmd: Cmd<A::Msg>) {
@@ -226,16 +226,33 @@ impl<A: App> TeaRuntime<A> {
     }
 
     fn process_pending_messages(&mut self) {
-        // Collect messages from channel
-        while let Ok(msg) = self.msg_receiver.try_recv() {
-            self.pending_msgs.push(msg);
+        // Upper bound on update passes per frame. A `Cmd::Msg` chain is
+        // drained within a single frame, but an app whose `update` emits a
+        // new message on every pass must not livelock the UI thread.
+        const MAX_UPDATE_PASSES: usize = 16;
+
+        for _ in 0..MAX_UPDATE_PASSES {
+            // Collect messages from channel
+            while let Ok(msg) = self.msg_receiver.try_recv() {
+                self.pending_msgs.push(msg);
+            }
+
+            if self.pending_msgs.is_empty() {
+                return;
+            }
+
+            // Process all pending messages
+            let msgs = std::mem::take(&mut self.pending_msgs);
+            for msg in msgs {
+                let cmd = A::update(&mut self.model, msg);
+                self.execute_cmd(cmd);
+            }
         }
 
-        // Process all pending messages
-        let msgs = std::mem::take(&mut self.pending_msgs);
-        for msg in msgs {
-            let cmd = A::update(&mut self.model, msg);
-            self.execute_cmd(cmd);
+        // Pass budget exhausted: move whatever is left in the channel into
+        // pending_msgs so the repaint check schedules the next frame.
+        while let Ok(msg) = self.msg_receiver.try_recv() {
+            self.pending_msgs.push(msg);
         }
     }
 

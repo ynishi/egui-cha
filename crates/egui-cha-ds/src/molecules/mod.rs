@@ -58,8 +58,6 @@ mod card;
 mod chat;
 mod command_palette;
 mod dashboard_layout;
-// #[cfg(feature = "dock")]
-// mod dock;  // TODO: waiting for egui 0.31 compatible egui_dock
 mod error_console;
 mod form;
 mod heatmap_grid;
@@ -72,7 +70,7 @@ mod search_bar;
 mod table;
 mod tabs;
 // #[cfg(feature = "tiles")]
-// mod tiles;  // TODO: egui 0.31 compat
+// mod tiles;  // TODO: implement tiles molecule (egui_tiles is declared in workspace but unused)
 #[cfg(feature = "codedash")]
 pub mod codedash;
 #[cfg(feature = "dock")]
@@ -109,7 +107,7 @@ pub use table::DataColumnWidth;
 pub use table::{DataTable, Table};
 pub use tabs::{TabPanel, Tabs};
 // #[cfg(feature = "tiles")]
-// pub use tiles::{...};  // TODO: egui 0.31 compat
+// pub use tiles::{...};  // TODO: implement tiles molecule
 pub use node_layout::{
     ArrangeStrategy, LayoutPane, LockLevel, NodeLayout, NodeLayoutArea, NodeLayoutEvent,
 };

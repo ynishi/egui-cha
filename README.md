@@ -166,7 +166,7 @@ Theme includes:
 - **Border Radius**: sm, md, lg
 - **Typography**: font_size_xs (10px) through font_size_3xl (30px)
 
-#### Atoms (13 components)
+#### Atoms (selection)
 | Component | Description |
 |-----------|-------------|
 | `Button` | Primary, Secondary, Outline, Ghost, Danger, Warning, Success, Info |
@@ -184,7 +184,7 @@ Theme includes:
 | `Tooltip` | Themed tooltips via `ResponseExt` trait |
 | `ContextMenu` | Right-click menu via `ContextMenuExt` trait |
 
-#### Molecules (9 components)
+#### Molecules (selection)
 | Component | Description |
 |-----------|-------------|
 | `Card` | Container with optional title |
@@ -337,7 +337,12 @@ fn test_async_command() {
 
 ## License
 
-MIT
+Licensed under either of
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
+
+at your option.
 
 ## Credits
 
