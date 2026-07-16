@@ -158,9 +158,22 @@ struct ConditionContainer {
 impl Parse for ChaInput {
     fn parse(input: ParseStream) -> Result<Self> {
         // Parse: ctx, { ... }
-        let ctx: Ident = input.parse()?;
-        input.parse::<Token![,]>()?;
+        let ctx: Ident = input.parse().map_err(|e| {
+            syn::Error::new(
+                e.span(),
+                "cha! expects a ViewCtx identifier first: `cha!(ctx, { ... })`",
+            )
+        })?;
+        input.parse::<Token![,]>().map_err(|e| {
+            syn::Error::new(
+                e.span(),
+                "expected `,` between the ViewCtx identifier and the layout body: `cha!(ctx, { ... })`",
+            )
+        })?;
 
+        if !input.peek(syn::token::Brace) {
+            return Err(input.error("expected a braced layout body: `cha!(ctx, { ... })`"));
+        }
         let content;
         braced!(content in input);
         let body = LayoutBody::parse(&content)?;
@@ -187,7 +200,12 @@ impl LayoutNode {
         // Check for @ (icon shorthand)
         if input.peek(Token![@]) {
             input.parse::<Token![@]>()?;
-            let name: Ident = input.parse()?;
+            let name: Ident = input.parse().map_err(|e| {
+                syn::Error::new(
+                    e.span(),
+                    "expected an icon name after `@`, e.g. `@house` or `@gear(20.0)`",
+                )
+            })?;
 
             // Optional size in parentheses
             let size = if input.peek(syn::token::Paren) {
@@ -212,6 +230,7 @@ impl LayoutNode {
                     // Actually consume the identifier
                     let _: Ident = input.parse()?;
                     let container = parse_container(input)?;
+                    validate_props(&container.props, &["spacing", "padding"], &name)?;
 
                     return Ok(match name.as_str() {
                         "Col" => LayoutNode::Col(container),
@@ -229,6 +248,11 @@ impl LayoutNode {
                         _ => unreachable!(),
                     };
                     let container = parse_container(input)?;
+                    validate_props(
+                        &container.props,
+                        &["max_height", "max_width", "min_height", "min_width", "id"],
+                        &name,
+                    )?;
                     return Ok(LayoutNode::Scroll(ScrollContainer {
                         direction,
                         props: container.props,
@@ -238,6 +262,7 @@ impl LayoutNode {
                 "Card" => {
                     let _: Ident = input.parse()?;
                     let (title, props, children) = parse_card(input)?;
+                    validate_props(&props, &["padding"], &name)?;
                     return Ok(LayoutNode::Card(CardContainer {
                         title,
                         props,
@@ -247,7 +272,7 @@ impl LayoutNode {
                 // Control flow: If(condition) { ... }
                 "If" => {
                     let _: Ident = input.parse()?;
-                    let (condition, children) = parse_condition_block(input)?;
+                    let (condition, children) = parse_condition_block(input, "If")?;
                     return Ok(LayoutNode::If(IfNode {
                         condition,
                         children,
@@ -276,7 +301,7 @@ impl LayoutNode {
                 // Control flow: Enabled(condition) { ... }
                 "Enabled" => {
                     let _: Ident = input.parse()?;
-                    let (condition, children) = parse_condition_block(input)?;
+                    let (condition, children) = parse_condition_block(input, "Enabled")?;
                     return Ok(LayoutNode::Enabled(ConditionContainer {
                         condition,
                         children,
@@ -285,7 +310,7 @@ impl LayoutNode {
                 // Control flow: Visible(condition) { ... }
                 "Visible" => {
                     let _: Ident = input.parse()?;
-                    let (condition, children) = parse_condition_block(input)?;
+                    let (condition, children) = parse_condition_block(input, "Visible")?;
                     return Ok(LayoutNode::Visible(ConditionContainer {
                         condition,
                         children,
@@ -328,9 +353,21 @@ fn parse_props(input: ParseStream) -> Result<Vec<LayoutProp>> {
     let mut props = Vec::new();
 
     while !input.is_empty() {
-        let key: Ident = input.parse()?;
-        input.parse::<Token![:]>()?;
-        let value: Expr = input.parse()?;
+        let key: Ident = input.parse().map_err(|e| {
+            syn::Error::new(e.span(), "expected a property name, e.g. `(spacing: 8.0)`")
+        })?;
+        input.parse::<Token![:]>().map_err(|e| {
+            syn::Error::new(
+                e.span(),
+                format!("expected `:` after property `{key}`, e.g. `({key}: value)`"),
+            )
+        })?;
+        let value: Expr = input.parse().map_err(|e| {
+            syn::Error::new(
+                e.span(),
+                format!("expected a value expression for property `{key}`"),
+            )
+        })?;
         props.push(LayoutProp { key, value });
 
         if input.peek(Token![,]) {
@@ -339,6 +376,28 @@ fn parse_props(input: ParseStream) -> Result<Vec<LayoutProp>> {
     }
 
     Ok(props)
+}
+
+/// Reject property keys that the node does not understand.
+///
+/// Unknown keys used to be silently ignored, which turned typos like
+/// `Col(spacig: 8.0)` into no-ops. A spanned error points at the key.
+fn validate_props(props: &[LayoutProp], allowed: &[&str], node: &str) -> Result<()> {
+    for prop in props {
+        let key = prop.key.to_string();
+        if !allowed.contains(&key.as_str()) {
+            let supported = allowed
+                .iter()
+                .map(|a| format!("`{a}`"))
+                .collect::<Vec<_>>()
+                .join(", ");
+            return Err(syn::Error::new_spanned(
+                &prop.key,
+                format!("unknown property `{key}` for `{node}`; supported: {supported}"),
+            ));
+        }
+    }
+    Ok(())
 }
 
 /// Parse Card: Card("title") { ... } or Card { ... }
@@ -393,11 +452,21 @@ fn parse_card(input: ParseStream) -> Result<(Option<Expr>, Vec<LayoutProp>, Vec<
 }
 
 /// Parse condition block: (condition) { ... }
-fn parse_condition_block(input: ParseStream) -> Result<(Expr, Vec<LayoutNode>)> {
+fn parse_condition_block(input: ParseStream, keyword: &str) -> Result<(Expr, Vec<LayoutNode>)> {
     // Parse condition in parentheses
+    if !input.peek(syn::token::Paren) {
+        return Err(input.error(format!(
+            "`{keyword}` expects a parenthesized condition: `{keyword}(condition) {{ ... }}`"
+        )));
+    }
     let content;
     parenthesized!(content in input);
-    let condition: Expr = content.parse()?;
+    let condition: Expr = content.parse().map_err(|e| {
+        syn::Error::new(
+            e.span(),
+            format!("`{keyword}` expects a boolean condition expression"),
+        )
+    })?;
 
     // Parse children in braces
     let mut children = Vec::new();
@@ -415,9 +484,16 @@ fn parse_condition_block(input: ParseStream) -> Result<(Expr, Vec<LayoutNode>)> 
 /// Parse IfElse: (condition) { ... } Else { ... }
 fn parse_if_else(input: ParseStream) -> Result<(Expr, Vec<LayoutNode>, Vec<LayoutNode>)> {
     // Parse condition in parentheses
+    if !input.peek(syn::token::Paren) {
+        return Err(input.error(
+            "`IfElse` expects a parenthesized condition: `IfElse(condition) { ... } Else { ... }`",
+        ));
+    }
     let content;
     parenthesized!(content in input);
-    let condition: Expr = content.parse()?;
+    let condition: Expr = content.parse().map_err(|e| {
+        syn::Error::new(e.span(), "`IfElse` expects a boolean condition expression")
+    })?;
 
     // Parse if-children in braces
     let mut if_children = Vec::new();
@@ -452,17 +528,32 @@ fn parse_if_else(input: ParseStream) -> Result<(Expr, Vec<LayoutNode>, Vec<Layou
 /// Parse For: (pattern in iter) { ... }
 fn parse_for(input: ParseStream) -> Result<(syn::Pat, Expr, Vec<LayoutNode>)> {
     // Parse (pattern in iter)
+    if !input.peek(syn::token::Paren) {
+        return Err(input.error("`For` expects `For(pattern in iterator) { ... }`"));
+    }
     let content;
     parenthesized!(content in input);
 
     // Parse pattern (e.g., `item`, `(key, value)`)
-    let pattern = syn::Pat::parse_single(&content)?;
+    let pattern = syn::Pat::parse_single(&content).map_err(|e| {
+        syn::Error::new(
+            e.span(),
+            "`For` expects a binding pattern before `in`, e.g. `For(item in &model.items)`",
+        )
+    })?;
 
     // Parse `in` keyword
-    content.parse::<Token![in]>()?;
+    content.parse::<Token![in]>().map_err(|e| {
+        syn::Error::new(
+            e.span(),
+            "`For` expects the `in` keyword: `For(pattern in iterator)`",
+        )
+    })?;
 
     // Parse iterator expression
-    let iter: Expr = content.parse()?;
+    let iter: Expr = content.parse().map_err(|e| {
+        syn::Error::new(e.span(), "`For` expects an iterator expression after `in`")
+    })?;
 
     // Parse children in braces
     let mut children = Vec::new();
@@ -987,5 +1078,114 @@ mod tests {
         assert!(code.contains("show_if"));
         assert!(code.contains("for"));
         assert!(code.contains("Card"));
+    }
+
+    // ============================================================
+    // Error diagnostics
+    // ============================================================
+
+    fn parse_err(input: TokenStream2) -> String {
+        match syn::parse2::<ChaInput>(input) {
+            Ok(_) => panic!("expected a parse error"),
+            Err(e) => e.to_string(),
+        }
+    }
+
+    #[test]
+    fn missing_comma_after_ctx_reports_expected_syntax() {
+        let err = parse_err(quote! {
+            ctx {
+                ctx.ui.label("Hello")
+            }
+        });
+        assert!(err.contains("expected `,`"), "unexpected message: {err}");
+    }
+
+    #[test]
+    fn unknown_container_prop_is_rejected_with_supported_list() {
+        let err = parse_err(quote! {
+            ctx, {
+                Col(spacig: 8.0) {
+                    ctx.ui.label("Hello")
+                }
+            }
+        });
+        assert!(
+            err.contains("unknown property `spacig` for `Col`"),
+            "unexpected message: {err}"
+        );
+        assert!(err.contains("`spacing`"), "unexpected message: {err}");
+    }
+
+    #[test]
+    fn unknown_scroll_prop_is_rejected_with_supported_list() {
+        let err = parse_err(quote! {
+            ctx, {
+                Scroll(height: 300.0) {
+                    ctx.ui.label("Scrollable")
+                }
+            }
+        });
+        assert!(
+            err.contains("unknown property `height` for `Scroll`"),
+            "unexpected message: {err}"
+        );
+        assert!(err.contains("`max_height`"), "unexpected message: {err}");
+    }
+
+    #[test]
+    fn unknown_card_prop_is_rejected_with_supported_list() {
+        let err = parse_err(quote! {
+            ctx, {
+                Card("Title", margin: 8.0) {
+                    ctx.ui.label("Content")
+                }
+            }
+        });
+        assert!(
+            err.contains("unknown property `margin` for `Card`"),
+            "unexpected message: {err}"
+        );
+        assert!(err.contains("`padding`"), "unexpected message: {err}");
+    }
+
+    #[test]
+    fn if_without_condition_reports_expected_syntax() {
+        let err = parse_err(quote! {
+            ctx, {
+                If {
+                    ctx.ui.label("Admin")
+                }
+            }
+        });
+        assert!(
+            err.contains("`If` expects a parenthesized condition"),
+            "unexpected message: {err}"
+        );
+    }
+
+    #[test]
+    fn for_without_in_keyword_reports_expected_syntax() {
+        let err = parse_err(quote! {
+            ctx, {
+                For(item, &model.items) {
+                    ctx.ui.label(&item.name)
+                }
+            }
+        });
+        assert!(err.contains("`in` keyword"), "unexpected message: {err}");
+    }
+
+    #[test]
+    fn icon_without_name_reports_expected_icon() {
+        let err = parse_err(quote! {
+            ctx, {
+                @
+            }
+        });
+        assert!(
+            err.contains("icon name after `@`"),
+            "unexpected message: {err}"
+        );
     }
 }

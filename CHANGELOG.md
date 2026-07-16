@@ -10,12 +10,29 @@ are released in lock-step and share the same version number.
 
 ## [Unreleased]
 
+### Fixed
+- **egui-cha**: Reactive repaint mode now wakes the UI thread when an async
+  task completes or an interval ticks; previously the message sat in the
+  channel until the next user input.
+- **egui-cha**: idle apps with active intervals no longer repaint at full
+  framerate in Reactive mode.
+- **egui-cha**: `Cmd::Msg` chains are drained within a single frame (bounded
+  at 16 update passes) instead of advancing one message per frame.
+- **egui-cha**: tokio runtime creation failure is propagated as an error from
+  `run` instead of panicking.
+- Clippy `collapsible_match` warning in `vj-mock` example.
+
+### Changed
+- **egui-cha-macros**: `cha!` now rejects unknown layout properties (e.g. a
+  typo like `Col(spacig: 8.0)`) with a spanned compile error; previously they
+  were silently ignored. DSL parse errors carry contextual messages.
+
 ### Documentation
 - Fix installation snippet in README (`egui-cha = "0.1"` → `"0.6"`).
+- README: dual-license section (MIT OR Apache-2.0); component tables marked
+  as a selection instead of stale counts.
+- Removed stale dock/tiles TODO comments in `egui-cha-ds` molecules.
 - Add this CHANGELOG.
-
-### Fixed
-- Clippy `collapsible_match` warning in `vj-mock` example.
 
 ## [0.6.0] - 2026-03-05
 
