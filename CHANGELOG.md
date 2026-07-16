@@ -10,6 +10,13 @@ are released in lock-step and share the same version number.
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-07-16
+
+### Fixed
+- **egui-cha-ds**: annotate float literals as `_f32` to satisfy the new
+  `f32: From<f64>` type-inference lint (rust-lang/rust#154024), which had
+  turned into a hard error on the latest stable toolchain and broke CI.
+
 ## [0.7.0] - 2026-07-16
 
 ### Added
