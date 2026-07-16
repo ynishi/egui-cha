@@ -67,8 +67,8 @@ Or add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-egui-cha = "0.6"
-egui-cha-ds = "0.6"
+egui-cha = "0.7"
+egui-cha-ds = "0.7"
 ```
 
 ## Quick Start

@@ -10,6 +10,8 @@ are released in lock-step and share the same version number.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-07-16
+
 ### Added
 - **egui-cha-ds**: `WorkspaceCanvas::debug_overlay(bool)` draws a layout
   debug overlay (canvas / available / pane rects with coordinates); the
