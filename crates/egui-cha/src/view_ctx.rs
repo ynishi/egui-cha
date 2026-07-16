@@ -1,11 +1,4 @@
 //! ViewCtx - The bridge between view and message emission
-//
-// egui 0.34 deprecated `SidePanel` / `TopBottomPanel` / `CentralPanel::show(ctx, _)`
-// in favour of the new `Panel` API and `show_inside(&mut Ui, _)`. Migrating the
-// multi-view helpers below requires an App-layer redesign (fn ui only receives
-// &mut Ui, not &Context), which is scheduled for v0.9.0 alongside the egui 0.35
-// bump. Suppress the deprecation warnings module-wide until then.
-#![allow(deprecated)]
 
 use std::hash::Hash;
 
@@ -196,7 +189,7 @@ impl<'a, Msg> ViewCtx<'a, Msg> {
     /// Scroll area with custom id (avoids ID clashes)
     pub fn scroll_area_id<R>(
         &mut self,
-        id: impl std::hash::Hash,
+        id: impl std::hash::Hash + std::fmt::Debug,
         f: impl FnOnce(&mut ViewCtx<'_, Msg>) -> R,
     ) -> R {
         self.scroll_area_with(|area| area.id_salt(id), f)
@@ -234,7 +227,7 @@ impl<'a, Msg> ViewCtx<'a, Msg> {
 
     /// Two-panel layout with left sidebar
     ///
-    /// Uses egui::SidePanel internally for clean layout.
+    /// Uses egui::Panel internally for clean layout.
     ///
     /// # Example
     /// ```ignore
@@ -260,18 +253,15 @@ impl<'a, Msg> ViewCtx<'a, Msg> {
     ) {
         let mut sidebar_msgs = Vec::new();
         let mut main_msgs = Vec::new();
-        let egui_ctx = self.ui.ctx().clone();
 
         // Left sidebar
-        egui::SidePanel::left(id)
-            .exact_width(width)
-            .show(&egui_ctx, |ui| {
-                let mut ctx = ViewCtx::new(ui, &mut sidebar_msgs);
-                sidebar(&mut ctx);
-            });
+        egui::Panel::left(id).exact_size(width).show(self.ui, |ui| {
+            let mut ctx = ViewCtx::new(ui, &mut sidebar_msgs);
+            sidebar(&mut ctx);
+        });
 
         // Main panel
-        egui::CentralPanel::default().show(&egui_ctx, |ui| {
+        egui::CentralPanel::default().show(self.ui, |ui| {
             let mut ctx = ViewCtx::new(ui, &mut main_msgs);
             main(&mut ctx);
         });
@@ -290,18 +280,17 @@ impl<'a, Msg> ViewCtx<'a, Msg> {
     ) {
         let mut sidebar_msgs = Vec::new();
         let mut main_msgs = Vec::new();
-        let egui_ctx = self.ui.ctx().clone();
 
         // Right sidebar
-        egui::SidePanel::right(id)
-            .exact_width(width)
-            .show(&egui_ctx, |ui| {
+        egui::Panel::right(id)
+            .exact_size(width)
+            .show(self.ui, |ui| {
                 let mut ctx = ViewCtx::new(ui, &mut sidebar_msgs);
                 sidebar(&mut ctx);
             });
 
         // Main panel
-        egui::CentralPanel::default().show(&egui_ctx, |ui| {
+        egui::CentralPanel::default().show(self.ui, |ui| {
             let mut ctx = ViewCtx::new(ui, &mut main_msgs);
             main(&mut ctx);
         });
@@ -319,16 +308,15 @@ impl<'a, Msg> ViewCtx<'a, Msg> {
     ) {
         let mut top_msgs = Vec::new();
         let mut main_msgs = Vec::new();
-        let egui_ctx = self.ui.ctx().clone();
 
         // Top panel
-        egui::TopBottomPanel::top(id).show(&egui_ctx, |ui| {
+        egui::Panel::top(id).show(self.ui, |ui| {
             let mut ctx = ViewCtx::new(ui, &mut top_msgs);
             top(&mut ctx);
         });
 
         // Main panel
-        egui::CentralPanel::default().show(&egui_ctx, |ui| {
+        egui::CentralPanel::default().show(self.ui, |ui| {
             let mut ctx = ViewCtx::new(ui, &mut main_msgs);
             main(&mut ctx);
         });

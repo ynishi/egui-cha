@@ -285,7 +285,7 @@ impl<Msg: Clone> CommandPalette<Msg> {
                 egui::Frame::popup(ui.style())
                     .fill(theme.bg_primary)
                     .stroke(egui::Stroke::new(theme.border_width, theme.border))
-                    .rounding(theme.radius_md)
+                    .corner_radius(theme.radius_md)
                     .shadow(egui::Shadow {
                         spread: 8,
                         blur: 16,
@@ -416,7 +416,7 @@ impl<Msg: Clone> CommandPalette<Msg> {
                 egui::Frame::popup(ui.style())
                     .fill(theme.bg_primary)
                     .stroke(egui::Stroke::new(theme.border_width, theme.border))
-                    .rounding(theme.radius_md)
+                    .corner_radius(theme.radius_md)
                     .show(ui, |ui| {
                         ui.set_width(self.width);
                         ui.set_min_height(actual_height);

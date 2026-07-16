@@ -547,10 +547,12 @@ fn render_action_button<Msg>(
     // Show tooltip with optional custom delay
     if let Some(delay) = tooltip_delay {
         let ctx = ui.ctx().clone();
-        let old_delay = ctx.style().interaction.tooltip_delay;
-        ctx.style_mut(|s| s.interaction.tooltip_delay = delay);
+        // egui 0.35 per-theme accessor; apply to both dark and light for
+        // theme-agnostic override.
+        let old_delay = ctx.style_of(ctx.theme()).interaction.tooltip_delay;
+        ctx.all_styles_mut(|s| s.interaction.tooltip_delay = delay);
         let result = response.on_hover_text(tooltip_text);
-        ctx.style_mut(|s| s.interaction.tooltip_delay = old_delay);
+        ctx.all_styles_mut(|s| s.interaction.tooltip_delay = old_delay);
         result
     } else {
         response.on_hover_text(tooltip_text)

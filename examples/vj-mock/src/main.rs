@@ -1,7 +1,3 @@
-// Uses egui 0.34-deprecated `SidePanel` / `Panel::show(ctx)` / `Panel::min_width`
-// helpers; the mock will be rewritten alongside the egui 0.35 bump in v0.9.0.
-#![allow(deprecated)]
-
 //! VJ Software Mock - Live & Lab UI
 //!
 //! A mock VJ software UI showcasing egui-cha-ds VJ/DAW atoms:
@@ -612,10 +608,10 @@ impl App for VjApp {
 
         // Right Side Panel - Lab Area
         let mut lab_msgs: Vec<Msg> = Vec::new();
-        egui::SidePanel::right("lab_panel")
-            .min_width(420.0)
+        egui::Panel::right("lab_panel")
+            .min_size(420.0)
             .resizable(true)
-            .show(ctx.ui.ctx(), |ui| {
+            .show(ctx.ui, |ui| {
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     render_lab_area(model, ui, &mut lab_msgs);
                 });
@@ -626,7 +622,7 @@ impl App for VjApp {
 
         // Main Central Panel - Live Area
         let mut live_msgs: Vec<Msg> = Vec::new();
-        egui::CentralPanel::default().show(ctx.ui.ctx(), |ui| {
+        egui::CentralPanel::default().show(ctx.ui, |ui| {
             egui::ScrollArea::vertical().show(ui, |ui| {
                 render_live_area_ui(model, ui, &mut live_msgs);
             });

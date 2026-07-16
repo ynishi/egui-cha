@@ -2,10 +2,6 @@
 //!
 //! Run with: cargo run -p egui-cha-ds --example vibrancy_demo --features vibrancy
 
-// The `GlassFrame` API still uses egui 0.34-deprecated Panel accessors internally;
-// the demo will be rewritten alongside the egui 0.35 bump in v0.9.0.
-#![allow(deprecated)]
-
 use eframe::egui;
 use egui_cha_ds::titlebar::{TitleBar, TitleBarButtonStyle, TitleBarStyle};
 use egui_cha_ds::vibrancy::{available_effects, is_vibrancy_supported, GlassFrame, VibrancyEffect};

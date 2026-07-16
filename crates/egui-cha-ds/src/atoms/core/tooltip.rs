@@ -37,9 +37,10 @@ impl ResponseExt for Response {
         let ctx = self.ctx.clone();
         let text = text.into();
 
-        // Set custom delay before showing tooltip
-        let old_delay = ctx.style().interaction.tooltip_delay;
-        ctx.style_mut(|style| {
+        // Set custom delay before showing tooltip (egui 0.35: per-theme accessor;
+        // apply to both dark and light so the override is theme-agnostic).
+        let old_delay = ctx.style_of(ctx.theme()).interaction.tooltip_delay;
+        ctx.all_styles_mut(|style| {
             style.interaction.tooltip_delay = delay_secs;
         });
 
@@ -49,7 +50,7 @@ impl ResponseExt for Response {
         });
 
         // Restore original delay
-        ctx.style_mut(|style| {
+        ctx.all_styles_mut(|style| {
             style.interaction.tooltip_delay = old_delay;
         });
 

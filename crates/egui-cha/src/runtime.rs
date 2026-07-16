@@ -1,10 +1,4 @@
 //! Runtime - Integration with eframe
-//
-// egui 0.34 deprecated `Context::run` in favour of `Context::run_ui`. Migrating
-// the internal test helpers requires reshaping the frame-driven assertions, which
-// is scheduled for v0.9.0 alongside the egui 0.35 bump. Suppress the deprecation
-// warnings module-wide until then.
-#![allow(deprecated)]
 
 use crate::{
     error::{FrameworkError, Severity},
@@ -419,7 +413,7 @@ mod tests {
     fn drained_context() -> egui::Context {
         let ctx = egui::Context::default();
         for _ in 0..8 {
-            let _ = ctx.run(egui::RawInput::default(), |_| {});
+            let _ = ctx.run_ui(egui::RawInput::default(), |_| {});
             if !ctx.has_requested_repaint() {
                 break;
             }

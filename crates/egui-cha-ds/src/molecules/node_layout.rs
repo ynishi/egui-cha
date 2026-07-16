@@ -1393,8 +1393,9 @@ where
         // Inset rect for better vertical centering
         let inner_rect = rect.shrink2(Vec2::new(theme.spacing_sm, 2.0));
 
-        // Use allocate_ui_at_rect to properly handle input
-        ui.allocate_ui_at_rect(inner_rect, |child_ui| {
+        // Use scope_builder + UiBuilder::max_rect to properly handle input
+        // (egui 0.35 replaced allocate_ui_at_rect with the UiBuilder pattern).
+        ui.scope_builder(egui::UiBuilder::new().max_rect(inner_rect), |child_ui| {
             child_ui.horizontal_centered(|child_ui| {
                 child_ui.style_mut().spacing.item_spacing = Vec2::new(4.0, 0.0);
 

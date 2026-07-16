@@ -161,7 +161,7 @@ impl<'a> TitleBar<'a> {
     }
 
     /// Set a unique ID for this titlebar (required when multiple titlebars in same UI)
-    pub fn id(mut self, id: impl std::hash::Hash) -> Self {
+    pub fn id(mut self, id: impl std::hash::Hash + std::fmt::Debug) -> Self {
         self.id = Some(egui::Id::new(id));
         self
     }
@@ -337,10 +337,11 @@ impl<'a> TitleBar<'a> {
         };
 
         if content_rect.width() > 20.0 {
-            let mut content_ui = ui.child_ui(
-                content_rect,
-                egui::Layout::left_to_right(egui::Align::Center),
-                None,
+            // egui 0.35 replaced Ui::child_ui with the UiBuilder pattern.
+            let mut content_ui = ui.new_child(
+                egui::UiBuilder::new()
+                    .max_rect(content_rect)
+                    .layout(egui::Layout::left_to_right(egui::Align::Center)),
             );
             add_contents(&mut content_ui);
         }

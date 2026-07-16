@@ -348,7 +348,7 @@ impl<'a> Chat<'a> {
                         ui.add_space(ui.available_width() - max_bubble_width);
                     }
 
-                    egui::Frame::none()
+                    egui::Frame::NONE
                         .fill(bubble_color)
                         .inner_margin(theme.spacing_sm)
                         .corner_radius(theme.radius_md)
@@ -404,7 +404,7 @@ impl<'a> Chat<'a> {
         ui.horizontal(|ui| {
             // Text input with custom frame
             let input_width = (ui.available_width() - 80.0).max(100.0);
-            let input_response = egui::Frame::none()
+            let input_response = egui::Frame::NONE
                 .stroke(egui::Stroke::new(1.0_f32, theme.border))
                 .corner_radius(theme.radius_sm)
                 .fill(theme.bg_primary)

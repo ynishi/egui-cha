@@ -114,7 +114,7 @@ impl ScrollArea {
     }
 
     /// Set a custom ID to avoid ID clashes
-    pub fn id_salt(mut self, id: impl std::hash::Hash) -> Self {
+    pub fn id_salt(mut self, id: impl std::hash::Hash + std::fmt::Debug) -> Self {
         self.id_salt = Some(egui::Id::new(id));
         self
     }

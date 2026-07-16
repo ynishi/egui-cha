@@ -368,63 +368,65 @@ impl Theme {
         // Store theme for component access via Theme::current()
         ctx.data_mut(|d| d.insert_temp(Id::new(Self::STORAGE_ID), self.clone()));
 
-        let mut style = (*ctx.style()).clone();
-        let visuals = &mut style.visuals;
+        // egui 0.35 replaced Context::style/set_style with per-theme accessors;
+        // apply the same override to both dark and light styles for parity with
+        // the previous single-global-style behavior.
+        ctx.all_styles_mut(|style| {
+            let visuals = &mut style.visuals;
 
-        // Dark mode flag
-        visuals.dark_mode = self.variant == ThemeVariant::Dark;
+            // Dark mode flag
+            visuals.dark_mode = self.variant == ThemeVariant::Dark;
 
-        // Background colors
-        visuals.panel_fill = self.bg_primary;
-        visuals.window_fill = self.bg_primary;
-        visuals.extreme_bg_color = self.bg_secondary;
-        visuals.faint_bg_color = self.bg_secondary;
-        visuals.code_bg_color = self.bg_tertiary;
+            // Background colors
+            visuals.panel_fill = self.bg_primary;
+            visuals.window_fill = self.bg_primary;
+            visuals.extreme_bg_color = self.bg_secondary;
+            visuals.faint_bg_color = self.bg_secondary;
+            visuals.code_bg_color = self.bg_tertiary;
 
-        // Text colors
-        visuals.override_text_color = Some(self.text_primary);
-        visuals.hyperlink_color = self.primary;
-        visuals.warn_fg_color = self.state_warning;
-        visuals.error_fg_color = self.state_danger;
+            // Text colors
+            visuals.override_text_color = Some(self.text_primary);
+            visuals.hyperlink_color = self.primary;
+            visuals.warn_fg_color = self.state_warning;
+            visuals.error_fg_color = self.state_danger;
 
-        // Widget styles - noninteractive (labels, separators)
-        visuals.widgets.noninteractive.bg_fill = self.bg_secondary;
-        visuals.widgets.noninteractive.weak_bg_fill = self.bg_secondary;
-        visuals.widgets.noninteractive.bg_stroke.color = self.border;
-        visuals.widgets.noninteractive.fg_stroke.color = self.text_primary;
+            // Widget styles - noninteractive (labels, separators)
+            visuals.widgets.noninteractive.bg_fill = self.bg_secondary;
+            visuals.widgets.noninteractive.weak_bg_fill = self.bg_secondary;
+            visuals.widgets.noninteractive.bg_stroke.color = self.border;
+            visuals.widgets.noninteractive.fg_stroke.color = self.text_primary;
 
-        // Widget styles - inactive (buttons at rest)
-        visuals.widgets.inactive.bg_fill = self.bg_tertiary;
-        visuals.widgets.inactive.weak_bg_fill = self.bg_tertiary;
-        visuals.widgets.inactive.bg_stroke.color = self.border;
-        visuals.widgets.inactive.fg_stroke.color = self.text_primary;
+            // Widget styles - inactive (buttons at rest)
+            visuals.widgets.inactive.bg_fill = self.bg_tertiary;
+            visuals.widgets.inactive.weak_bg_fill = self.bg_tertiary;
+            visuals.widgets.inactive.bg_stroke.color = self.border;
+            visuals.widgets.inactive.fg_stroke.color = self.text_primary;
 
-        // Widget styles - hovered
-        visuals.widgets.hovered.bg_fill = self.primary_hover;
-        visuals.widgets.hovered.weak_bg_fill = self.primary_hover;
-        visuals.widgets.hovered.bg_stroke.color = self.primary;
-        visuals.widgets.hovered.fg_stroke.color = self.primary_text;
+            // Widget styles - hovered
+            visuals.widgets.hovered.bg_fill = self.primary_hover;
+            visuals.widgets.hovered.weak_bg_fill = self.primary_hover;
+            visuals.widgets.hovered.bg_stroke.color = self.primary;
+            visuals.widgets.hovered.fg_stroke.color = self.primary_text;
 
-        // Widget styles - active (being clicked)
-        visuals.widgets.active.bg_fill = self.primary;
-        visuals.widgets.active.weak_bg_fill = self.primary;
-        visuals.widgets.active.bg_stroke.color = self.primary;
-        visuals.widgets.active.fg_stroke.color = self.primary_text;
+            // Widget styles - active (being clicked)
+            visuals.widgets.active.bg_fill = self.primary;
+            visuals.widgets.active.weak_bg_fill = self.primary;
+            visuals.widgets.active.bg_stroke.color = self.primary;
+            visuals.widgets.active.fg_stroke.color = self.primary_text;
 
-        // Widget styles - open (dropdown open, etc)
-        visuals.widgets.open.bg_fill = self.bg_tertiary;
-        visuals.widgets.open.weak_bg_fill = self.bg_tertiary;
-        visuals.widgets.open.bg_stroke.color = self.primary;
-        visuals.widgets.open.fg_stroke.color = self.text_primary;
+            // Widget styles - open (dropdown open, etc)
+            visuals.widgets.open.bg_fill = self.bg_tertiary;
+            visuals.widgets.open.weak_bg_fill = self.bg_tertiary;
+            visuals.widgets.open.bg_stroke.color = self.primary;
+            visuals.widgets.open.fg_stroke.color = self.text_primary;
 
-        // Selection
-        visuals.selection.bg_fill = self.primary.linear_multiply(0.3);
-        visuals.selection.stroke.color = self.primary;
+            // Selection
+            visuals.selection.bg_fill = self.primary.linear_multiply(0.3);
+            visuals.selection.stroke.color = self.primary;
 
-        // Window stroke color (not width)
-        visuals.window_stroke.color = self.border;
-
-        ctx.set_style(style);
+            // Window stroke color (not width)
+            visuals.window_stroke.color = self.border;
+        });
     }
 
     /// Apply theme to egui context and store for component access
@@ -432,127 +434,129 @@ impl Theme {
         // Store theme for component access via Theme::current()
         ctx.data_mut(|d| d.insert_temp(Id::new(Self::STORAGE_ID), self.clone()));
 
-        let mut style = (*ctx.style()).clone();
-        let visuals = &mut style.visuals;
+        // egui 0.35 replaced Context::style/set_style with per-theme accessors;
+        // apply the same override to both dark and light styles for parity with
+        // the previous single-global-style behavior.
+        ctx.all_styles_mut(|style| {
+            let visuals = &mut style.visuals;
 
-        // Dark mode flag
-        visuals.dark_mode = self.variant == ThemeVariant::Dark;
+            // Dark mode flag
+            visuals.dark_mode = self.variant == ThemeVariant::Dark;
 
-        // Background colors
-        visuals.panel_fill = self.bg_primary;
-        visuals.window_fill = self.bg_primary;
-        visuals.extreme_bg_color = self.bg_secondary;
-        visuals.faint_bg_color = self.bg_secondary;
-        visuals.code_bg_color = self.bg_tertiary;
+            // Background colors
+            visuals.panel_fill = self.bg_primary;
+            visuals.window_fill = self.bg_primary;
+            visuals.extreme_bg_color = self.bg_secondary;
+            visuals.faint_bg_color = self.bg_secondary;
+            visuals.code_bg_color = self.bg_tertiary;
 
-        // Text colors
-        visuals.override_text_color = Some(self.text_primary);
-        visuals.hyperlink_color = self.primary;
-        visuals.warn_fg_color = self.state_warning;
-        visuals.error_fg_color = self.state_danger;
+            // Text colors
+            visuals.override_text_color = Some(self.text_primary);
+            visuals.hyperlink_color = self.primary;
+            visuals.warn_fg_color = self.state_warning;
+            visuals.error_fg_color = self.state_danger;
 
-        // Widget styles - noninteractive (labels, separators)
-        visuals.widgets.noninteractive.bg_fill = self.bg_secondary;
-        visuals.widgets.noninteractive.weak_bg_fill = self.bg_secondary;
-        visuals.widgets.noninteractive.bg_stroke.color = self.border;
-        visuals.widgets.noninteractive.fg_stroke.color = self.text_primary;
+            // Widget styles - noninteractive (labels, separators)
+            visuals.widgets.noninteractive.bg_fill = self.bg_secondary;
+            visuals.widgets.noninteractive.weak_bg_fill = self.bg_secondary;
+            visuals.widgets.noninteractive.bg_stroke.color = self.border;
+            visuals.widgets.noninteractive.fg_stroke.color = self.text_primary;
 
-        // Widget styles - inactive (buttons at rest)
-        visuals.widgets.inactive.bg_fill = self.bg_tertiary;
-        visuals.widgets.inactive.weak_bg_fill = self.bg_tertiary;
-        visuals.widgets.inactive.bg_stroke.color = self.border;
-        visuals.widgets.inactive.fg_stroke.color = self.text_primary;
+            // Widget styles - inactive (buttons at rest)
+            visuals.widgets.inactive.bg_fill = self.bg_tertiary;
+            visuals.widgets.inactive.weak_bg_fill = self.bg_tertiary;
+            visuals.widgets.inactive.bg_stroke.color = self.border;
+            visuals.widgets.inactive.fg_stroke.color = self.text_primary;
 
-        // Widget styles - hovered
-        visuals.widgets.hovered.bg_fill = self.primary_hover;
-        visuals.widgets.hovered.weak_bg_fill = self.primary_hover;
-        visuals.widgets.hovered.bg_stroke.color = self.primary;
-        visuals.widgets.hovered.fg_stroke.color = self.primary_text;
+            // Widget styles - hovered
+            visuals.widgets.hovered.bg_fill = self.primary_hover;
+            visuals.widgets.hovered.weak_bg_fill = self.primary_hover;
+            visuals.widgets.hovered.bg_stroke.color = self.primary;
+            visuals.widgets.hovered.fg_stroke.color = self.primary_text;
 
-        // Widget styles - active (being clicked)
-        visuals.widgets.active.bg_fill = self.primary;
-        visuals.widgets.active.weak_bg_fill = self.primary;
-        visuals.widgets.active.bg_stroke.color = self.primary;
-        visuals.widgets.active.fg_stroke.color = self.primary_text;
+            // Widget styles - active (being clicked)
+            visuals.widgets.active.bg_fill = self.primary;
+            visuals.widgets.active.weak_bg_fill = self.primary;
+            visuals.widgets.active.bg_stroke.color = self.primary;
+            visuals.widgets.active.fg_stroke.color = self.primary_text;
 
-        // Widget styles - open (dropdown open, etc)
-        visuals.widgets.open.bg_fill = self.bg_tertiary;
-        visuals.widgets.open.weak_bg_fill = self.bg_tertiary;
-        visuals.widgets.open.bg_stroke.color = self.primary;
-        visuals.widgets.open.fg_stroke.color = self.text_primary;
+            // Widget styles - open (dropdown open, etc)
+            visuals.widgets.open.bg_fill = self.bg_tertiary;
+            visuals.widgets.open.weak_bg_fill = self.bg_tertiary;
+            visuals.widgets.open.bg_stroke.color = self.primary;
+            visuals.widgets.open.fg_stroke.color = self.text_primary;
 
-        // Selection
-        visuals.selection.bg_fill = self.primary.linear_multiply(0.3);
-        visuals.selection.stroke.color = self.primary;
+            // Selection
+            visuals.selection.bg_fill = self.primary.linear_multiply(0.3);
+            visuals.selection.stroke.color = self.primary;
 
-        // Stroke widths - Apply to all widget states
-        visuals.widgets.noninteractive.bg_stroke.width = self.border_width;
-        visuals.widgets.noninteractive.fg_stroke.width = self.stroke_width;
-        visuals.widgets.inactive.bg_stroke.width = self.border_width;
-        visuals.widgets.inactive.fg_stroke.width = self.stroke_width;
-        visuals.widgets.hovered.bg_stroke.width = self.border_width;
-        visuals.widgets.hovered.fg_stroke.width = self.stroke_width;
-        visuals.widgets.active.bg_stroke.width = self.border_width;
-        visuals.widgets.active.fg_stroke.width = self.stroke_width;
-        visuals.widgets.open.bg_stroke.width = self.border_width;
-        visuals.widgets.open.fg_stroke.width = self.stroke_width;
-        visuals.selection.stroke.width = self.stroke_width;
+            // Stroke widths - Apply to all widget states
+            visuals.widgets.noninteractive.bg_stroke.width = self.border_width;
+            visuals.widgets.noninteractive.fg_stroke.width = self.stroke_width;
+            visuals.widgets.inactive.bg_stroke.width = self.border_width;
+            visuals.widgets.inactive.fg_stroke.width = self.stroke_width;
+            visuals.widgets.hovered.bg_stroke.width = self.border_width;
+            visuals.widgets.hovered.fg_stroke.width = self.stroke_width;
+            visuals.widgets.active.bg_stroke.width = self.border_width;
+            visuals.widgets.active.fg_stroke.width = self.stroke_width;
+            visuals.widgets.open.bg_stroke.width = self.border_width;
+            visuals.widgets.open.fg_stroke.width = self.stroke_width;
+            visuals.selection.stroke.width = self.stroke_width;
 
-        // Window
-        visuals.window_stroke.color = self.border;
-        visuals.window_stroke.width = self.border_width;
+            // Window
+            visuals.window_stroke.color = self.border;
+            visuals.window_stroke.width = self.border_width;
 
-        // Shadow - configurable via shadow_blur
-        match self.shadow_blur {
-            None => {
-                // Lightweight: no shadow
-                visuals.window_shadow = egui::Shadow::NONE;
-                visuals.popup_shadow = egui::Shadow::NONE;
+            // Shadow - configurable via shadow_blur
+            match self.shadow_blur {
+                None => {
+                    // Lightweight: no shadow
+                    visuals.window_shadow = egui::Shadow::NONE;
+                    visuals.popup_shadow = egui::Shadow::NONE;
+                }
+                Some(blur) => {
+                    // Subtle fixed shadow
+                    let alpha = if self.variant == ThemeVariant::Dark {
+                        60
+                    } else {
+                        30
+                    };
+                    visuals.window_shadow = egui::Shadow {
+                        offset: [0, 2],
+                        blur: blur as u8,
+                        spread: 0,
+                        color: Color32::from_black_alpha(alpha),
+                    };
+                    visuals.popup_shadow = visuals.window_shadow;
+                }
             }
-            Some(blur) => {
-                // Subtle fixed shadow
-                let alpha = if self.variant == ThemeVariant::Dark {
-                    60
-                } else {
-                    30
-                };
-                visuals.window_shadow = egui::Shadow {
-                    offset: [0, 2],
-                    blur: blur as u8,
-                    spread: 0,
-                    color: Color32::from_black_alpha(alpha),
-                };
-                visuals.popup_shadow = visuals.window_shadow;
-            }
-        }
 
-        // Typography - Configure text styles
-        style
-            .text_styles
-            .insert(TextStyle::Small, FontId::proportional(self.font_size_sm));
-        style
-            .text_styles
-            .insert(TextStyle::Body, FontId::proportional(self.font_size_md));
-        style
-            .text_styles
-            .insert(TextStyle::Button, FontId::proportional(self.font_size_md));
-        style
-            .text_styles
-            .insert(TextStyle::Heading, FontId::proportional(self.font_size_xl));
-        style
-            .text_styles
-            .insert(TextStyle::Monospace, FontId::monospace(self.font_size_md));
+            // Typography - Configure text styles
+            style
+                .text_styles
+                .insert(TextStyle::Small, FontId::proportional(self.font_size_sm));
+            style
+                .text_styles
+                .insert(TextStyle::Body, FontId::proportional(self.font_size_md));
+            style
+                .text_styles
+                .insert(TextStyle::Button, FontId::proportional(self.font_size_md));
+            style
+                .text_styles
+                .insert(TextStyle::Heading, FontId::proportional(self.font_size_xl));
+            style
+                .text_styles
+                .insert(TextStyle::Monospace, FontId::monospace(self.font_size_md));
 
-        // Spacing - Apply theme spacing to egui
-        style.spacing.item_spacing = egui::vec2(self.spacing_sm, self.spacing_sm);
-        style.spacing.window_margin = egui::Margin::same(self.spacing_md as i8);
-        style.spacing.button_padding = egui::vec2(self.spacing_sm, self.spacing_xs);
-        style.spacing.menu_margin = egui::Margin::same(self.spacing_sm as i8);
-        style.spacing.indent = self.spacing_md;
-        style.spacing.icon_spacing = self.spacing_xs;
-        style.spacing.icon_width = self.spacing_md;
-
-        ctx.set_style(style);
+            // Spacing - Apply theme spacing to egui
+            style.spacing.item_spacing = egui::vec2(self.spacing_sm, self.spacing_sm);
+            style.spacing.window_margin = egui::Margin::same(self.spacing_md as i8);
+            style.spacing.button_padding = egui::vec2(self.spacing_sm, self.spacing_xs);
+            style.spacing.menu_margin = egui::Margin::same(self.spacing_sm as i8);
+            style.spacing.indent = self.spacing_md;
+            style.spacing.icon_spacing = self.spacing_xs;
+            style.spacing.icon_width = self.spacing_md;
+        });
     }
 
     /// Apply a scale factor to all spacing values
