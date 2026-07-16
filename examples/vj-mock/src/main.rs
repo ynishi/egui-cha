@@ -549,10 +549,8 @@ impl App for VjApp {
                         e.enabled = !e.enabled;
                     }
                 }
-                RackEvent::Remove(idx) => {
-                    if idx < model.effects.len() {
-                        model.effects.remove(idx);
-                    }
+                RackEvent::Remove(idx) if idx < model.effects.len() => {
+                    model.effects.remove(idx);
                 }
                 _ => {}
             },
