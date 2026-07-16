@@ -137,7 +137,7 @@ impl<'a, Msg: Clone> Form<'a, Msg> {
                 let mut edit = egui::TextEdit::singleline(&mut current)
                     .hint_text(field.placeholder)
                     .text_color(theme.text_primary)
-                    .frame(false);
+                    .frame(egui::Frame::NONE);
 
                 if field.password {
                     edit = edit.password(true);

@@ -59,7 +59,7 @@ impl<'a> Input<'a> {
         let mut edit = egui::TextEdit::singleline(&mut current)
             .hint_text(self.placeholder)
             .text_color(theme.text_primary)
-            .frame(false);
+            .frame(egui::Frame::NONE);
 
         if self.password {
             edit = edit.password(true);
@@ -103,7 +103,7 @@ impl<'a> Input<'a> {
         let mut edit = egui::TextEdit::singleline(value)
             .hint_text(self.placeholder)
             .text_color(theme.text_primary)
-            .frame(false);
+            .frame(egui::Frame::NONE);
 
         if self.password {
             edit = edit.password(true);

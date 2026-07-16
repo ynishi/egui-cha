@@ -418,7 +418,7 @@ impl<'a> Chat<'a> {
                             .hint_text(self.placeholder)
                             .desired_width((input_width - 20.0).max(50.0))
                             .desired_rows(1)
-                            .frame(false),
+                            .frame(egui::Frame::NONE),
                     )
                 });
             let response = input_response.inner;

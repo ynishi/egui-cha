@@ -302,7 +302,7 @@ impl<Msg: Clone> CommandPalette<Msg> {
                             egui::TextEdit::singleline(&mut state.query)
                                 .hint_text(&self.placeholder)
                                 .desired_width(f32::INFINITY)
-                                .frame(false)
+                                .frame(egui::Frame::NONE)
                                 .font(egui::TextStyle::Body)
                                 .margin(egui::vec2(theme.spacing_sm, 0.0)),
                         );
@@ -426,7 +426,7 @@ impl<Msg: Clone> CommandPalette<Msg> {
                             egui::TextEdit::singleline(&mut state.query)
                                 .hint_text(&self.placeholder)
                                 .desired_width(f32::INFINITY)
-                                .frame(false)
+                                .frame(egui::Frame::NONE)
                                 .margin(egui::vec2(theme.spacing_sm, 0.0)),
                         );
                         response.request_focus();

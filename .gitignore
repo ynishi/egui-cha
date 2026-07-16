@@ -18,3 +18,7 @@ Thumbs.db
 *.pdb
 
 /workspace/
+workspace
+.worktrees
+.claude
+.mcp.json

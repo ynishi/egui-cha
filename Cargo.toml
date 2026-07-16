@@ -10,29 +10,33 @@ members = [
 ]
 
 [workspace.package]
-version = "0.7.2"
+version = "0.8.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 rust-version = "1.75"
 repository = "https://github.com/ynishi/egui-cha"
 homepage = "https://github.com/ynishi/egui-cha"
+documentation = "https://docs.rs/egui-cha"
+description = "TEA (The Elm Architecture) framework for egui with a built-in design system"
+authors = ["Yutaka Nishimura"]
+readme = "README.md"
 keywords = ["egui", "gui", "elm", "tea", "immediate-mode"]
 categories = ["gui", "rendering::graphics-api"]
 
 [workspace.dependencies]
 # Internal
-egui-cha = { version = "0.7.2", path = "crates/egui-cha", features = ["eframe"] }
-egui-cha-ds = { version = "0.7.2", path = "crates/egui-cha-ds" }
-egui-cha-macros = { version = "0.7.2", path = "crates/egui-cha-macros" }
+egui-cha = { version = "0.8.0", path = "crates/egui-cha", features = ["eframe"] }
+egui-cha-ds = { version = "0.8.0", path = "crates/egui-cha-ds" }
+egui-cha-macros = { version = "0.8.0", path = "crates/egui-cha-macros" }
 
 # Egui ecosystem
-egui = { version = "0.33", features = ["serde"] }
-egui_dock = "0.18"
-egui_extras = "0.33"
-egui_plot = "0.34"
-egui-snarl = "0.9"
-egui_tiles = "0.14"
-eframe = { version = "0.33", default-features = false, features = ["default_fonts", "glow", "persistence", "x11", "wayland"] }
+egui = { version = "0.34", features = ["serde"] }
+egui_dock = "0.19"
+egui_extras = "0.34"
+egui_plot = "0.35"
+egui-snarl = "0.10"
+egui_tiles = "0.15"
+eframe = { version = "0.34", default-features = false, features = ["default_fonts", "glow", "persistence", "x11", "wayland"] }
 
 # Async runtime
 tokio = { version = "1", features = ["rt-multi-thread", "sync", "time"] }

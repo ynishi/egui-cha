@@ -37,7 +37,7 @@ use egui::Ui;
 use egui_cha::ViewCtx;
 
 // Re-export core types for advanced usage
-pub use egui_dock::{NodeIndex, SurfaceIndex};
+pub use egui_dock::{NodeIndex, NodePath, SurfaceIndex};
 
 /// Events emitted by DockArea
 #[derive(Debug, Clone)]
@@ -129,9 +129,9 @@ impl<Tab> DockTree<Tab> {
 impl<Tab: PartialEq> DockTree<Tab> {
     /// Find and remove a tab by reference
     pub fn close(&mut self, tab: &Tab) -> Option<Tab> {
-        self.inner.find_tab(tab).map(|(surface, node, tab_idx)| {
-            self.inner.remove_tab((surface, node, tab_idx)).unwrap()
-        })
+        self.inner
+            .find_tab(tab)
+            .map(|path| self.inner.remove_tab(path).unwrap())
     }
 }
 
@@ -366,8 +366,11 @@ where
         egui_dock::widgets::tab_viewer::OnCloseResponse::Close
     }
 
-    fn on_add(&mut self, surface: SurfaceIndex, node: NodeIndex) {
-        self.events.push(DockEvent::AddClicked { surface, node });
+    fn on_add(&mut self, node_path: NodePath) {
+        self.events.push(DockEvent::AddClicked {
+            surface: node_path.surface,
+            node: node_path.node,
+        });
     }
 
     fn allowed_in_windows(&self, _tab: &mut Self::Tab) -> bool {

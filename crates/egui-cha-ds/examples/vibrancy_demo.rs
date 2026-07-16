@@ -68,40 +68,42 @@ impl eframe::App for VibrancyDemoApp {
         [0.0, 0.0, 0.0, 0.0]
     }
 
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         // Track if theme needs to be updated (handled after UI to avoid borrow conflicts)
         let mut theme_changed = false;
 
         // Clone theme for use in closures (avoids borrow issues)
         let theme = self.theme.clone();
 
-        // Main panel with transparent background
-        egui::CentralPanel::default()
-            .frame(egui::Frame::NONE)
-            .show(ctx, |ui| {
-                // Titlebar with frosted glass background
-                GlassFrame::frosted()
-                    .corner_radius(0.0)
-                    .margin(0.0)
-                    .show(ui, |ui| {
-                        let titlebar_style = match self.titlebar_style {
-                            0 => TitleBarButtonStyle::TrafficLights,
-                            1 => TitleBarButtonStyle::WindowsIcons,
-                            _ => TitleBarButtonStyle::Minimal,
-                        };
+        // Cache ctx for viewport commands and post-UI theme apply
+        let ctx = ui.ctx().clone();
 
-                        let mut style = TitleBarStyle::transparent_from_theme(&theme);
-                        style.button_style = titlebar_style;
+        // Main content (bare Ui; eframe App::ui gives us a Ui without margin/background,
+        // equivalent to the previous CentralPanel with Frame::NONE)
+        {
+            // Titlebar with frosted glass background
+            GlassFrame::frosted()
+                .corner_radius(0.0)
+                .margin(0.0)
+                .show(ui, |ui| {
+                    let titlebar_style = match self.titlebar_style {
+                        0 => TitleBarButtonStyle::TrafficLights,
+                        1 => TitleBarButtonStyle::WindowsIcons,
+                        _ => TitleBarButtonStyle::Minimal,
+                    };
 
-                        let response = TitleBar::new("Vibrancy Demo")
-                            .id("main_titlebar")
-                            .style(style)
-                            .show(ui);
+                    let mut style = TitleBarStyle::transparent_from_theme(&theme);
+                    style.button_style = titlebar_style;
 
-                        if response.close_clicked {
-                            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-                        }
-                    });
+                    let response = TitleBar::new("Vibrancy Demo")
+                        .id("main_titlebar")
+                        .style(style)
+                        .show(ui);
+
+                    if response.close_clicked {
+                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                    }
+                });
 
                 ui.add_space(8.0);
 
@@ -242,7 +244,7 @@ impl eframe::App for VibrancyDemoApp {
                     });
                     ui.add_space(16.0);
                 });
-            });
+        }
 
         // Update theme after UI (avoids borrow conflicts)
         if theme_changed {
@@ -252,7 +254,7 @@ impl eframe::App for VibrancyDemoApp {
                 Theme::light()
             };
             // Apply colors only (no typography/spacing changes)
-            self.theme.apply_colors_only(ctx);
+            self.theme.apply_colors_only(&ctx);
         }
     }
 }

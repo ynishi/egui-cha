@@ -340,7 +340,7 @@ impl<A: App> TeaRuntime<A> {
 }
 
 impl<A: App> eframe::App for TeaRuntime<A> {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn logic(&mut self, _ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Process any pending messages from commands
         self.process_pending_messages();
 
@@ -350,19 +350,23 @@ impl<A: App> eframe::App for TeaRuntime<A> {
         // Process subscriptions (start/stop intervals based on model state)
         let sub = A::subscriptions(&self.model);
         self.process_subscriptions(sub);
+    }
 
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         // Collect messages from view
         let mut view_msgs = Vec::new();
 
-        egui::CentralPanel::default().show(ctx, |ui| {
+        {
             let mut view_ctx = ViewCtx::new(ui, &mut view_msgs);
             A::view(&self.model, &mut view_ctx);
-        });
+        }
 
         // Queue view messages for next frame
         self.pending_msgs.extend(view_msgs);
 
-        // Handle repaint based on mode
+        // Handle repaint based on mode. Runs after view so pending_msgs
+        // reflects newly emitted messages from this frame's view.
+        let ctx = ui.ctx();
         match self.repaint_mode {
             RepaintMode::Reactive => {
                 // Repaint immediately when messages are already queued.
