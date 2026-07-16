@@ -4892,7 +4892,7 @@ DockArea::new(&mut model.dock)
 
             egui::Frame::default()
                 .stroke(egui::Stroke::new(
-                    1.0,
+                    1.0_f32,
                     ctx.ui.visuals().widgets.noninteractive.bg_stroke.color,
                 ))
                 .inner_margin(4.0)
@@ -5014,7 +5014,7 @@ NodeGraphArea::new(&mut model.graph)
 
             egui::Frame::default()
                 .stroke(egui::Stroke::new(
-                    1.0,
+                    1.0_f32,
                     ctx.ui.visuals().widgets.noninteractive.bg_stroke.color,
                 ))
                 .inner_margin(4.0)
@@ -5100,7 +5100,7 @@ NodeLayoutArea::new(&mut layout, |ui, pane| {
 
             egui::Frame::default()
                 .stroke(egui::Stroke::new(
-                    1.0,
+                    1.0_f32,
                     ctx.ui.visuals().widgets.noninteractive.bg_stroke.color,
                 ))
                 .inner_margin(4.0)
@@ -5245,7 +5245,7 @@ NodeLayoutArea::new(&mut layout, |ui, pane| {
             let theme = Theme::current(ctx.ui.ctx());
             // Create a fixed-size frame for the demo
             egui::Frame::new()
-                .stroke(egui::Stroke::new(1.0, theme.border))
+                .stroke(egui::Stroke::new(1.0_f32, theme.border))
                 .corner_radius(theme.radius_md)
                 .show(ctx.ui, |ui| {
                     // Constrain height for the demo
@@ -7113,7 +7113,7 @@ let theme = BrandTheme.to_theme();"#;
 
             egui::Frame::new()
                 .fill(theme.bg_primary)
-                .stroke(egui::Stroke::new(1.0, theme.border))
+                .stroke(egui::Stroke::new(1.0_f32, theme.border))
                 .inner_margin(12.0)
                 .corner_radius(8.0)
                 .show(ui, |ui| {
@@ -7137,7 +7137,7 @@ let theme = BrandTheme.to_theme();"#;
                         ui.painter().rect_stroke(
                             rect,
                             4.0,
-                            egui::Stroke::new(1.0, theme.border),
+                            egui::Stroke::new(1.0_f32, theme.border),
                             egui::StrokeKind::Inside,
                         );
 
