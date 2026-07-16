@@ -10,6 +10,13 @@ are released in lock-step and share the same version number.
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-07-17
+
+### Fixed
+- **egui-cha-ds**: annotate the remaining `f32` literals in the storybook
+  example (six sites missed by 0.7.1) so the `float_literal_f32_fallback`
+  lint no longer breaks CI clippy/test.
+
 ## [0.7.1] - 2026-07-16
 
 ### Fixed
