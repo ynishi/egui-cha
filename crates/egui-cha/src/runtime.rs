@@ -1,4 +1,10 @@
 //! Runtime - Integration with eframe
+//
+// egui 0.34 deprecated `Context::run` in favour of `Context::run_ui`. Migrating
+// the internal test helpers requires reshaping the frame-driven assertions, which
+// is scheduled for v0.9.0 alongside the egui 0.35 bump. Suppress the deprecation
+// warnings module-wide until then.
+#![allow(deprecated)]
 
 use crate::{
     error::{FrameworkError, Severity},

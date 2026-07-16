@@ -1,3 +1,7 @@
+// Uses egui 0.34-deprecated `SidePanel` / `Panel::show(ctx)` / `Panel::min_width`
+// helpers; the mock will be rewritten alongside the egui 0.35 bump in v0.9.0.
+#![allow(deprecated)]
+
 //! VJ Software Mock - Live & Lab UI
 //!
 //! A mock VJ software UI showcasing egui-cha-ds VJ/DAW atoms:

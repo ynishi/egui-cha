@@ -1,4 +1,11 @@
 //! ViewCtx - The bridge between view and message emission
+//
+// egui 0.34 deprecated `SidePanel` / `TopBottomPanel` / `CentralPanel::show(ctx, _)`
+// in favour of the new `Panel` API and `show_inside(&mut Ui, _)`. Migrating the
+// multi-view helpers below requires an App-layer redesign (fn ui only receives
+// &mut Ui, not &Context), which is scheduled for v0.9.0 alongside the egui 0.35
+// bump. Suppress the deprecation warnings module-wide until then.
+#![allow(deprecated)]
 
 use std::hash::Hash;
 
