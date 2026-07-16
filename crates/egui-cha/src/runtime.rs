@@ -108,6 +108,9 @@ struct TeaRuntime<A: App> {
     active_intervals: HashMap<&'static str, IntervalHandle>,
     /// Repaint mode
     repaint_mode: RepaintMode,
+    /// Egui context handle, used to wake the UI thread when a background
+    /// task or interval delivers a message while the app is idle.
+    egui_ctx: egui::Context,
 }
 
 /// Handle for a running interval
@@ -157,6 +160,14 @@ impl<A: App> TeaRuntime<A> {
         // Set up fonts
         setup_icon_fonts(&cc.egui_ctx);
 
+        Self::with_ctx(cc.egui_ctx.clone(), repaint_mode)
+    }
+
+    /// Construct the runtime around an existing egui context.
+    ///
+    /// Split out of [`Self::new`] so tests can drive the runtime without an
+    /// `eframe::CreationContext`.
+    fn with_ctx(egui_ctx: egui::Context, repaint_mode: RepaintMode) -> std::io::Result<Self> {
         let (model, init_cmd) = A::init();
         let (msg_sender, msg_receiver) = mpsc::channel();
         let (err_sender, err_receiver) = mpsc::channel();
@@ -173,6 +184,7 @@ impl<A: App> TeaRuntime<A> {
             tokio_runtime,
             active_intervals: HashMap::new(),
             repaint_mode,
+            egui_ctx,
         };
 
         // Execute initial command
@@ -192,6 +204,7 @@ impl<A: App> TeaRuntime<A> {
             Cmd::Task(future) => {
                 let msg_sender = self.msg_sender.clone();
                 let err_sender = self.err_sender.clone();
+                let egui_ctx = self.egui_ctx.clone();
 
                 self.tokio_runtime.spawn(async move {
                     // Catch panics in async tasks
@@ -217,6 +230,10 @@ impl<A: App> TeaRuntime<A> {
                             let _ = err_sender.send(err);
                         }
                     }
+
+                    // Wake the UI thread so the message is processed even if
+                    // the app is idle (Reactive repaint mode).
+                    egui_ctx.request_repaint();
                 });
             }
             Cmd::Msg(msg) => {
@@ -293,6 +310,7 @@ impl<A: App> TeaRuntime<A> {
     /// Start a new interval
     fn start_interval(&mut self, id: &'static str, duration: Duration, msg: A::Msg) {
         let sender = self.msg_sender.clone();
+        let egui_ctx = self.egui_ctx.clone();
 
         let handle = self.tokio_runtime.spawn(async move {
             let mut interval = tokio::time::interval(duration);
@@ -304,6 +322,9 @@ impl<A: App> TeaRuntime<A> {
                 if sender.send(msg.clone()).is_err() {
                     break; // Channel closed, stop interval
                 }
+                // Wake the UI thread so the tick is processed even if the
+                // app is idle (Reactive repaint mode).
+                egui_ctx.request_repaint();
             }
         });
 
@@ -344,8 +365,12 @@ impl<A: App> eframe::App for TeaRuntime<A> {
         // Handle repaint based on mode
         match self.repaint_mode {
             RepaintMode::Reactive => {
-                // Only repaint if there are pending messages or active intervals
-                if !self.pending_msgs.is_empty() || !self.active_intervals.is_empty() {
+                // Repaint immediately when messages are already queued.
+                // Async tasks and interval ticks wake the UI thread
+                // themselves via `Context::request_repaint`, so an idle app
+                // with active intervals no longer busy-loops at full
+                // framerate.
+                if !self.pending_msgs.is_empty() {
                     ctx.request_repaint();
                 }
             }
@@ -359,5 +384,173 @@ impl<A: App> eframe::App for TeaRuntime<A> {
                 ctx.request_repaint();
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Instant;
+
+    /// Poll `cond` until it holds or the timeout expires.
+    fn wait_until(timeout: Duration, cond: impl Fn() -> bool) -> bool {
+        let deadline = Instant::now() + timeout;
+        while Instant::now() < deadline {
+            if cond() {
+                return true;
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        cond()
+    }
+
+    /// A fresh context starts with a repaint already requested; run a few
+    /// empty frames to consume it so tests observe a clean edge.
+    fn drained_context() -> egui::Context {
+        let ctx = egui::Context::default();
+        for _ in 0..8 {
+            let _ = ctx.run(egui::RawInput::default(), |_| {});
+            if !ctx.has_requested_repaint() {
+                break;
+            }
+        }
+        assert!(
+            !ctx.has_requested_repaint(),
+            "context still has a pending repaint after warm-up frames"
+        );
+        ctx
+    }
+
+    struct ChainApp;
+
+    #[derive(Clone, Debug, PartialEq)]
+    enum ChainMsg {
+        Start,
+        Middle,
+        End,
+    }
+
+    impl App for ChainApp {
+        type Model = Vec<&'static str>;
+        type Msg = ChainMsg;
+
+        fn init() -> (Self::Model, Cmd<Self::Msg>) {
+            (Vec::new(), Cmd::none())
+        }
+
+        fn update(model: &mut Self::Model, msg: Self::Msg) -> Cmd<Self::Msg> {
+            match msg {
+                ChainMsg::Start => {
+                    model.push("start");
+                    Cmd::msg(ChainMsg::Middle)
+                }
+                ChainMsg::Middle => {
+                    model.push("middle");
+                    Cmd::msg(ChainMsg::End)
+                }
+                ChainMsg::End => {
+                    model.push("end");
+                    Cmd::none()
+                }
+            }
+        }
+
+        fn view(_model: &Self::Model, _ctx: &mut ViewCtx<Self::Msg>) {}
+    }
+
+    #[test]
+    fn cmd_msg_chain_is_drained_within_a_single_frame() {
+        let mut runtime =
+            TeaRuntime::<ChainApp>::with_ctx(egui::Context::default(), RepaintMode::Reactive)
+                .expect("failed to create runtime");
+
+        runtime.pending_msgs.push(ChainMsg::Start);
+        runtime.process_pending_messages();
+
+        assert_eq!(runtime.model, vec!["start", "middle", "end"]);
+        assert!(runtime.pending_msgs.is_empty());
+    }
+
+    struct SelfFeedingApp;
+
+    impl App for SelfFeedingApp {
+        type Model = u32;
+        type Msg = ();
+
+        fn init() -> (Self::Model, Cmd<Self::Msg>) {
+            (0, Cmd::none())
+        }
+
+        fn update(model: &mut Self::Model, _msg: Self::Msg) -> Cmd<Self::Msg> {
+            *model += 1;
+            Cmd::msg(())
+        }
+
+        fn view(_model: &Self::Model, _ctx: &mut ViewCtx<Self::Msg>) {}
+    }
+
+    #[test]
+    fn self_feeding_update_does_not_livelock_a_frame() {
+        let mut runtime =
+            TeaRuntime::<SelfFeedingApp>::with_ctx(egui::Context::default(), RepaintMode::Reactive)
+                .expect("failed to create runtime");
+
+        runtime.pending_msgs.push(());
+        runtime.process_pending_messages();
+
+        // A bounded number of passes ran, and the leftover message is queued
+        // for the next frame instead of spinning forever.
+        assert!(runtime.model >= 1);
+        assert!(!runtime.pending_msgs.is_empty());
+    }
+
+    struct NoopApp;
+
+    impl App for NoopApp {
+        type Model = ();
+        type Msg = ();
+
+        fn init() -> (Self::Model, Cmd<Self::Msg>) {
+            ((), Cmd::none())
+        }
+
+        fn update(_model: &mut Self::Model, _msg: Self::Msg) -> Cmd<Self::Msg> {
+            Cmd::none()
+        }
+
+        fn view(_model: &Self::Model, _ctx: &mut ViewCtx<Self::Msg>) {}
+    }
+
+    #[test]
+    fn task_completion_requests_repaint() {
+        let ctx = drained_context();
+        let runtime = TeaRuntime::<NoopApp>::with_ctx(ctx.clone(), RepaintMode::Reactive)
+            .expect("failed to create runtime");
+
+        runtime.execute_cmd(Cmd::task(async {}));
+
+        // The task sends its message and then wakes the UI thread.
+        assert!(
+            wait_until(Duration::from_secs(5), || ctx.has_requested_repaint()),
+            "task completion did not request a repaint"
+        );
+        assert!(runtime.msg_receiver.try_recv().is_ok());
+    }
+
+    #[test]
+    fn interval_tick_requests_repaint() {
+        let ctx = drained_context();
+        let mut runtime = TeaRuntime::<NoopApp>::with_ctx(ctx.clone(), RepaintMode::Reactive)
+            .expect("failed to create runtime");
+
+        runtime.start_interval("test", Duration::from_millis(10), ());
+
+        // The first tick is skipped; the next one sends and wakes the UI.
+        assert!(
+            wait_until(Duration::from_secs(5), || ctx.has_requested_repaint()),
+            "interval tick did not request a repaint"
+        );
+        assert!(runtime.msg_receiver.try_recv().is_ok());
+        runtime.stop_interval("test");
     }
 }
