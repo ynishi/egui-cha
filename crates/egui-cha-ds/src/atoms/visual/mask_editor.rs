@@ -394,7 +394,7 @@ impl<'a> MaskEditor<'a> {
 
         // Grid
         if self.show_grid {
-            let grid_stroke = Stroke::new(0.5, theme.border.gamma_multiply(0.5));
+            let grid_stroke = Stroke::new(0.5_f32, theme.border.gamma_multiply(0.5));
             let divisions = 4;
 
             for i in 1..divisions {
@@ -426,14 +426,14 @@ impl<'a> MaskEditor<'a> {
                     Pos2::new(center.x, canvas_rect.min.y),
                     Pos2::new(center.x, canvas_rect.max.y),
                 ],
-                Stroke::new(0.5, theme.border),
+                Stroke::new(0.5_f32, theme.border),
             );
             painter.line_segment(
                 [
                     Pos2::new(canvas_rect.min.x, center.y),
                     Pos2::new(canvas_rect.max.x, center.y),
                 ],
-                Stroke::new(0.5, theme.border),
+                Stroke::new(0.5_f32, theme.border),
             );
         }
 
@@ -443,7 +443,7 @@ impl<'a> MaskEditor<'a> {
         } else {
             Color32::from_rgba_unmultiplied(100, 200, 255, 100)
         };
-        let mask_stroke = Stroke::new(2.0, theme.primary);
+        let mask_stroke = Stroke::new(2.0_f32, theme.primary);
 
         match self.mask.shape {
             MaskShape::Rectangle => {
@@ -536,7 +536,7 @@ impl<'a> MaskEditor<'a> {
             painter.circle_stroke(
                 info.screen_pos,
                 handle_size,
-                Stroke::new(if is_selected { 2.0 } else { 1.0 }, theme.primary),
+                Stroke::new(if is_selected { 2.0_f32 } else { 1.0_f32 }, theme.primary),
             );
 
             // Point index label

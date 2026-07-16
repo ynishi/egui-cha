@@ -405,7 +405,7 @@ impl<'a> Chat<'a> {
             // Text input with custom frame
             let input_width = (ui.available_width() - 80.0).max(100.0);
             let input_response = egui::Frame::none()
-                .stroke(egui::Stroke::new(1.0, theme.border))
+                .stroke(egui::Stroke::new(1.0_f32, theme.border))
                 .corner_radius(theme.radius_sm)
                 .fill(theme.bg_primary)
                 .inner_margin(egui::Margin::symmetric(

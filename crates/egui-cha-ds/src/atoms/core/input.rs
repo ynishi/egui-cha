@@ -71,7 +71,7 @@ impl<'a> Input<'a> {
 
         // Custom frame with theme styling
         egui::Frame::new()
-            .stroke(egui::Stroke::new(1.0, theme.border))
+            .stroke(egui::Stroke::new(1.0_f32, theme.border))
             .corner_radius(theme.radius_sm)
             .fill(theme.bg_primary)
             .inner_margin(egui::Margin::symmetric(8, 6))
@@ -115,7 +115,7 @@ impl<'a> Input<'a> {
 
         // Custom frame with theme styling
         egui::Frame::new()
-            .stroke(egui::Stroke::new(1.0, theme.border))
+            .stroke(egui::Stroke::new(1.0_f32, theme.border))
             .corner_radius(theme.radius_sm)
             .fill(theme.bg_primary)
             .inner_margin(egui::Margin::symmetric(8, 6))

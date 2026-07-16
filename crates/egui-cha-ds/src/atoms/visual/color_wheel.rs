@@ -380,7 +380,7 @@ impl ColorWheel {
         painter.circle_stroke(
             indicator_pos,
             self.ring_width / 2.0 - 2.0,
-            Stroke::new(2.0, Color32::WHITE),
+            Stroke::new(2.0_f32, Color32::WHITE),
         );
 
         // Draw SV area
@@ -421,7 +421,7 @@ impl ColorWheel {
                 painter.add(egui::Shape::mesh(mesh));
                 painter.add(egui::Shape::closed_line(
                     vec![v0, v1, v2],
-                    Stroke::new(1.0, theme.border),
+                    Stroke::new(1.0_f32, theme.border),
                 ));
 
                 if sv_response {
@@ -436,8 +436,8 @@ impl ColorWheel {
 
                 let sv_pos = sv_to_triangle_point(hsva.s, hsva.v, v0, v1, v2);
                 painter.circle_filled(sv_pos, 6.0, hsva.to_color32());
-                painter.circle_stroke(sv_pos, 6.0, Stroke::new(2.0, Color32::WHITE));
-                painter.circle_stroke(sv_pos, 7.0, Stroke::new(1.0, Color32::BLACK));
+                painter.circle_stroke(sv_pos, 6.0, Stroke::new(2.0_f32, Color32::WHITE));
+                painter.circle_stroke(sv_pos, 7.0, Stroke::new(1.0_f32, Color32::BLACK));
             }
             WheelStyle::Square => {
                 let half_size = inner_radius * 0.7;
@@ -462,7 +462,7 @@ impl ColorWheel {
                 painter.rect_stroke(
                     sq_rect,
                     0.0,
-                    Stroke::new(1.0, theme.border),
+                    Stroke::new(1.0_f32, theme.border),
                     egui::StrokeKind::Inside,
                 );
 
@@ -481,8 +481,8 @@ impl ColorWheel {
                     sq_rect.min.y + (1.0 - hsva.v) * sq_rect.height(),
                 );
                 painter.circle_filled(sv_pos, 6.0, hsva.to_color32());
-                painter.circle_stroke(sv_pos, 6.0, Stroke::new(2.0, Color32::WHITE));
-                painter.circle_stroke(sv_pos, 7.0, Stroke::new(1.0, Color32::BLACK));
+                painter.circle_stroke(sv_pos, 6.0, Stroke::new(2.0_f32, Color32::WHITE));
+                painter.circle_stroke(sv_pos, 7.0, Stroke::new(1.0_f32, Color32::BLACK));
             }
         }
 
@@ -557,7 +557,7 @@ impl ColorWheel {
             painter.circle_stroke(
                 Pos2::new(alpha_x, alpha_rect.center().y),
                 theme.spacing_sm,
-                Stroke::new(1.0, theme.border),
+                Stroke::new(1.0_f32, theme.border),
             );
 
             if alpha_active {

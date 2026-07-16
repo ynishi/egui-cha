@@ -387,7 +387,7 @@ impl<'a> OutputRouter<'a> {
         painter.rect_filled(matrix_rect, theme.radius_sm, theme.bg_primary);
 
         // Grid lines
-        let grid_stroke = Stroke::new(0.5, theme.border.gamma_multiply(0.3));
+        let grid_stroke = Stroke::new(0.5_f32, theme.border.gamma_multiply(0.3));
         for (i, _) in self.sources.iter().enumerate() {
             let y = matrix_rect.min.y + node_size / 2.0 + i as f32 * source_spacing;
             painter.line_segment(
@@ -418,12 +418,12 @@ impl<'a> OutputRouter<'a> {
                 // Horizontal line from source to node
                 painter.line_segment(
                     [src.node_pos, Pos2::new(info.pos.x, src.node_pos.y)],
-                    Stroke::new(2.0, theme.primary.gamma_multiply(0.5)),
+                    Stroke::new(2.0_f32, theme.primary.gamma_multiply(0.5)),
                 );
                 // Vertical line from node to output
                 painter.line_segment(
                     [info.pos, out.node_pos],
-                    Stroke::new(2.0, theme.primary.gamma_multiply(0.5)),
+                    Stroke::new(2.0_f32, theme.primary.gamma_multiply(0.5)),
                 );
             }
         }
@@ -472,7 +472,7 @@ impl<'a> OutputRouter<'a> {
             painter.circle_stroke(
                 info.node_pos,
                 node_size / 2.0,
-                Stroke::new(1.0, theme.border),
+                Stroke::new(1.0_f32, theme.border),
             );
         }
 
@@ -551,7 +551,7 @@ impl<'a> OutputRouter<'a> {
             painter.circle_stroke(
                 info.node_pos,
                 node_size / 2.0,
-                Stroke::new(1.0, theme.border),
+                Stroke::new(1.0_f32, theme.border),
             );
         }
 
@@ -570,7 +570,7 @@ impl<'a> OutputRouter<'a> {
                 painter.circle_stroke(
                     info.pos,
                     node_size / 2.0 - 1.0,
-                    Stroke::new(1.5, theme.primary),
+                    Stroke::new(1.5_f32, theme.primary),
                 );
             }
         }

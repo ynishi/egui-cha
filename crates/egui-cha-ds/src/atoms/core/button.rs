@@ -135,7 +135,7 @@ impl<'a> Button<'a> {
             ButtonVariant::Outline => (
                 Color32::TRANSPARENT,
                 theme.text_primary,
-                Some(Stroke::new(1.0, theme.border)),
+                Some(Stroke::new(1.0_f32, theme.border)),
             ),
             ButtonVariant::Ghost => (Color32::TRANSPARENT, theme.text_secondary, None),
             ButtonVariant::Danger => (theme.state_danger, theme.state_danger_text, None),

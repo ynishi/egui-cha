@@ -354,7 +354,7 @@ impl TransformGizmo {
         }
 
         // Draw diagonal guides
-        let guide_stroke = Stroke::new(0.5, secondary_color.gamma_multiply(0.3));
+        let guide_stroke = Stroke::new(0.5_f32, secondary_color.gamma_multiply(0.3));
         painter.line_segment([corners[0], corners[2]], guide_stroke);
         painter.line_segment([corners[1], corners[3]], guide_stroke);
 
@@ -377,7 +377,7 @@ impl TransformGizmo {
                 painter.circle_stroke(
                     info.pos,
                     self.handle_size * 0.75,
-                    Stroke::new(1.0, theme.bg_primary),
+                    Stroke::new(1.0_f32, theme.bg_primary),
                 );
 
                 // Rotation arc
@@ -392,7 +392,7 @@ impl TransformGizmo {
                         info.pos + Vec2::new(angle2.cos() * arc_radius, angle2.sin() * arc_radius);
                     painter.line_segment(
                         [p1, p2],
-                        Stroke::new(0.5, rotation_color.gamma_multiply(0.5)),
+                        Stroke::new(0.5_f32, rotation_color.gamma_multiply(0.5)),
                     );
                 }
             }
@@ -484,20 +484,24 @@ impl TransformGizmo {
         if self.show_pivot && transform.pivot != Vec2::ZERO {
             let pivot_pos = center + transform.pivot;
             let pivot_size = self.handle_size * 0.5;
-            painter.circle_stroke(pivot_pos, pivot_size, Stroke::new(1.0, theme.state_warning));
+            painter.circle_stroke(
+                pivot_pos,
+                pivot_size,
+                Stroke::new(1.0_f32, theme.state_warning),
+            );
             painter.line_segment(
                 [
                     pivot_pos - Vec2::new(pivot_size, 0.0),
                     pivot_pos + Vec2::new(pivot_size, 0.0),
                 ],
-                Stroke::new(1.0, theme.state_warning),
+                Stroke::new(1.0_f32, theme.state_warning),
             );
             painter.line_segment(
                 [
                     pivot_pos - Vec2::new(0.0, pivot_size),
                     pivot_pos + Vec2::new(0.0, pivot_size),
                 ],
-                Stroke::new(1.0, theme.state_warning),
+                Stroke::new(1.0_f32, theme.state_warning),
             );
         }
 

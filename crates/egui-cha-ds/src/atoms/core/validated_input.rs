@@ -123,7 +123,7 @@ impl<'a> ValidatedInput<'a> {
 
         // Custom frame with validation color
         egui::Frame::new()
-            .stroke(egui::Stroke::new(1.0, border_color))
+            .stroke(egui::Stroke::new(1.0_f32, border_color))
             .corner_radius(theme.radius_sm)
             .fill(theme.bg_primary)
             .inner_margin(egui::Margin::symmetric(8, 6))
@@ -195,7 +195,7 @@ impl<'a> ValidatedInput<'a> {
 
         // Custom frame with validation color
         egui::Frame::new()
-            .stroke(egui::Stroke::new(1.0, border_color))
+            .stroke(egui::Stroke::new(1.0_f32, border_color))
             .corner_radius(theme.radius_sm)
             .fill(theme.bg_primary)
             .inner_margin(egui::Margin::symmetric(8, 6))

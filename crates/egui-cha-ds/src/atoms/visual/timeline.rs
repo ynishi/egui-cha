@@ -318,14 +318,14 @@ impl<'a> Timeline<'a> {
                     egui::pos2(start_x, track_rect.min.y),
                     egui::pos2(start_x, track_rect.max.y),
                 ],
-                Stroke::new(2.0, theme.primary),
+                Stroke::new(2.0_f32, theme.primary),
             );
             painter.line_segment(
                 [
                     egui::pos2(end_x, track_rect.min.y),
                     egui::pos2(end_x, track_rect.max.y),
                 ],
-                Stroke::new(2.0, theme.primary),
+                Stroke::new(2.0_f32, theme.primary),
             );
         }
 
@@ -360,7 +360,7 @@ impl<'a> Timeline<'a> {
                         egui::pos2(x, track_rect.max.y - tick_height),
                         egui::pos2(x, track_rect.max.y),
                     ],
-                    Stroke::new(1.0, tick_color),
+                    Stroke::new(1.0_f32, tick_color),
                 );
             }
         }
@@ -376,7 +376,7 @@ impl<'a> Timeline<'a> {
                     egui::pos2(marker_x, track_rect.min.y),
                     egui::pos2(marker_x, track_rect.max.y),
                 ],
-                Stroke::new(2.0, marker_color),
+                Stroke::new(2.0_f32, marker_color),
             );
 
             // Marker triangle at top
@@ -402,7 +402,7 @@ impl<'a> Timeline<'a> {
                 egui::pos2(playhead_x, track_rect.min.y),
                 egui::pos2(playhead_x, track_rect.max.y),
             ],
-            Stroke::new(2.0, theme.state_success),
+            Stroke::new(2.0_f32, theme.state_success),
         );
 
         // Playhead triangle at top

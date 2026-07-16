@@ -66,7 +66,7 @@ impl<'a> Tabs<'a> {
         ui.painter().hline(
             ui.available_rect_before_wrap().x_range(),
             ui.cursor().top(),
-            egui::Stroke::new(1.0, border_color),
+            egui::Stroke::new(1.0_f32, border_color),
         );
 
         clicked_idx

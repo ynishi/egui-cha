@@ -383,32 +383,32 @@ impl<'a> TitleBar<'a> {
                             // X icon
                             painter.line_segment(
                                 [center - Vec2::splat(size), center + Vec2::splat(size)],
-                                egui::Stroke::new(1.5, icon_color),
+                                egui::Stroke::new(1.5_f32, icon_color),
                             );
                             painter.line_segment(
                                 [
                                     center + Vec2::new(-size, size),
                                     center + Vec2::new(size, -size),
                                 ],
-                                egui::Stroke::new(1.5, icon_color),
+                                egui::Stroke::new(1.5_f32, icon_color),
                             );
                         }
                         TitleBarButton::Minimize => {
                             // - icon
                             painter.line_segment(
                                 [center - Vec2::new(size, 0.0), center + Vec2::new(size, 0.0)],
-                                egui::Stroke::new(1.5, icon_color),
+                                egui::Stroke::new(1.5_f32, icon_color),
                             );
                         }
                         TitleBarButton::Maximize => {
                             // + or expand icon
                             painter.line_segment(
                                 [center - Vec2::new(size, 0.0), center + Vec2::new(size, 0.0)],
-                                egui::Stroke::new(1.5, icon_color),
+                                egui::Stroke::new(1.5_f32, icon_color),
                             );
                             painter.line_segment(
                                 [center - Vec2::new(0.0, size), center + Vec2::new(0.0, size)],
-                                egui::Stroke::new(1.5, icon_color),
+                                egui::Stroke::new(1.5_f32, icon_color),
                             );
                         }
                     }
@@ -442,27 +442,27 @@ impl<'a> TitleBar<'a> {
                     TitleBarButton::Close => {
                         painter.line_segment(
                             [center - Vec2::splat(size), center + Vec2::splat(size)],
-                            egui::Stroke::new(1.0, icon_color),
+                            egui::Stroke::new(1.0_f32, icon_color),
                         );
                         painter.line_segment(
                             [
                                 center + Vec2::new(-size, size),
                                 center + Vec2::new(size, -size),
                             ],
-                            egui::Stroke::new(1.0, icon_color),
+                            egui::Stroke::new(1.0_f32, icon_color),
                         );
                     }
                     TitleBarButton::Minimize => {
                         painter.line_segment(
                             [center - Vec2::new(size, 0.0), center + Vec2::new(size, 0.0)],
-                            egui::Stroke::new(1.0, icon_color),
+                            egui::Stroke::new(1.0_f32, icon_color),
                         );
                     }
                     TitleBarButton::Maximize => {
                         painter.rect_stroke(
                             Rect::from_center_size(center, Vec2::splat(size * 2.0)),
                             0.0,
-                            egui::Stroke::new(1.0, icon_color),
+                            egui::Stroke::new(1.0_f32, icon_color),
                             egui::StrokeKind::Inside,
                         );
                     }

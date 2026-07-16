@@ -230,7 +230,7 @@ impl LevelMeter {
         painter.rect_stroke(
             meter_rect,
             2.0,
-            Stroke::new(1.0, theme.border),
+            Stroke::new(1.0_f32, theme.border),
             egui::StrokeKind::Outside,
         );
 
@@ -310,7 +310,7 @@ impl LevelMeter {
                         painter.hline(
                             rect.min.x..=rect.max.x,
                             peak_y,
-                            Stroke::new(2.0, peak_color),
+                            Stroke::new(2.0_f32, peak_color),
                         );
                     }
                 }
@@ -348,7 +348,7 @@ impl LevelMeter {
                         painter.vline(
                             peak_x,
                             rect.min.y..=rect.max.y,
-                            Stroke::new(2.0, peak_color),
+                            Stroke::new(2.0_f32, peak_color),
                         );
                     }
                 }
@@ -373,7 +373,7 @@ impl LevelMeter {
             painter.hline(
                 rect.min.x + 16.0..=rect.min.x + 22.0,
                 y,
-                Stroke::new(1.0, theme.text_secondary),
+                Stroke::new(1.0_f32, theme.text_secondary),
             );
 
             // Draw label

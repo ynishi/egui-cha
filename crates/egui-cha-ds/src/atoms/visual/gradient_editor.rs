@@ -414,7 +414,7 @@ impl<'a> GradientEditor<'a> {
             };
             painter.add(egui::Shape::closed_line(
                 vec![tri_top, tri_left, tri_right],
-                Stroke::new(if is_selected { 2.0 } else { 1.0 }, outline_color),
+                Stroke::new(if is_selected { 2.0_f32 } else { 1.0_f32 }, outline_color),
             ));
 
             // Color swatch below triangle
@@ -426,7 +426,7 @@ impl<'a> GradientEditor<'a> {
             painter.rect_stroke(
                 swatch_rect,
                 theme.radius_sm,
-                Stroke::new(1.0, outline_color),
+                Stroke::new(1.0_f32, outline_color),
                 egui::StrokeKind::Outside,
             );
 
@@ -454,7 +454,7 @@ impl<'a> GradientEditor<'a> {
                         Pos2::new(x1 + stop_handle_size / 2.0, line_y),
                         Pos2::new(x2 - stop_handle_size / 2.0, line_y),
                     ],
-                    Stroke::new(1.0, theme.border),
+                    Stroke::new(1.0_f32, theme.border),
                 );
             }
         }

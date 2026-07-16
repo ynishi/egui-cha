@@ -392,7 +392,7 @@ impl<'a> StepSeq<'a> {
                     egui::pos2(line_x, grid_start_y - 2.0),
                     egui::pos2(line_x, grid_start_y + grid_height + 2.0),
                 ],
-                Stroke::new(2.0, theme.state_success),
+                Stroke::new(2.0_f32, theme.state_success),
             );
         }
 

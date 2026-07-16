@@ -543,7 +543,7 @@ impl<'a> EffectRack<'a> {
                         + spacing / 2.0;
                     painter.line_segment(
                         [egui::pos2(x, y1), egui::pos2(x, y2)],
-                        Stroke::new(3.0, chain_color),
+                        Stroke::new(3.0_f32, chain_color),
                     );
                 }
                 RackOrientation::Horizontal => {
@@ -554,7 +554,7 @@ impl<'a> EffectRack<'a> {
                         + spacing / 2.0;
                     painter.line_segment(
                         [egui::pos2(x1, y), egui::pos2(x2, y)],
-                        Stroke::new(3.0, chain_color),
+                        Stroke::new(3.0_f32, chain_color),
                     );
                 }
             }
@@ -581,7 +581,7 @@ impl<'a> EffectRack<'a> {
             painter.circle_stroke(
                 info.toggle_rect.center(),
                 toggle_size / 2.0 - 2.0,
-                Stroke::new(1.0, theme.border),
+                Stroke::new(1.0_f32, theme.border),
             );
 
             // Effect name
@@ -680,7 +680,7 @@ impl<'a> EffectRack<'a> {
                 painter.rect_stroke(
                     info.effect_rect,
                     theme.radius_sm,
-                    Stroke::new(2.0, theme.primary),
+                    Stroke::new(2.0_f32, theme.primary),
                     egui::StrokeKind::Inside,
                 );
             } else {
@@ -707,7 +707,7 @@ impl<'a> EffectRack<'a> {
                 painter.rect_stroke(
                     info.effect_rect,
                     theme.radius_sm,
-                    Stroke::new(2.0, theme.primary),
+                    Stroke::new(2.0_f32, theme.primary),
                     egui::StrokeKind::Inside,
                 );
             }
@@ -715,7 +715,7 @@ impl<'a> EffectRack<'a> {
             // Drop indicator line
             if let Some(drop_idx) = drag_state.drop_target {
                 let draw_line = |start: Pos2, end: Pos2| {
-                    painter.line_segment([start, end], Stroke::new(3.0, theme.primary));
+                    painter.line_segment([start, end], Stroke::new(3.0_f32, theme.primary));
                 };
 
                 match self.orientation {
@@ -789,14 +789,14 @@ impl<'a> EffectRack<'a> {
                 egui::pos2(center.x - half_size, center.y),
                 egui::pos2(center.x + half_size, center.y),
             ],
-            Stroke::new(2.0, plus_color),
+            Stroke::new(2.0_f32, plus_color),
         );
         painter.line_segment(
             [
                 egui::pos2(center.x, center.y - half_size),
                 egui::pos2(center.x, center.y + half_size),
             ],
-            Stroke::new(2.0, plus_color),
+            Stroke::new(2.0_f32, plus_color),
         );
 
         // Border

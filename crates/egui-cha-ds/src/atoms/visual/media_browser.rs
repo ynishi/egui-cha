@@ -606,7 +606,7 @@ impl<'a> MediaBrowser<'a> {
                 painter.rect_stroke(
                     info.rect,
                     theme.radius_sm,
-                    Stroke::new(2.0, theme.primary),
+                    Stroke::new(2.0_f32, theme.primary),
                     egui::StrokeKind::Inside,
                 );
             }

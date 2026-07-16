@@ -1387,7 +1387,7 @@ where
         painter.hline(
             rect.x_range(),
             rect.max.y,
-            egui::Stroke::new(1.0, theme.border),
+            egui::Stroke::new(1.0_f32, theme.border),
         );
 
         // Inset rect for better vertical centering

@@ -84,10 +84,12 @@ impl<'a> LinePlot<'a> {
             .map(|(i, &y)| [i as f64, y])
             .collect();
 
-        let mut line = Line::new(self.id, plot_points).color(line_color).width(1.5);
+        let mut line = Line::new(self.id, plot_points)
+            .color(line_color)
+            .width(1.5_f32);
 
         if self.fill {
-            line = line.fill(0.0);
+            line = line.fill(0.0_f32);
         }
 
         Plot::new(self.id)
@@ -154,8 +156,8 @@ impl<'a> EnvelopePlot<'a> {
 
         let line = Line::new(self.id, plot_points)
             .color(line_color)
-            .width(2.0)
-            .fill(0.0);
+            .width(2.0_f32)
+            .fill(0.0_f32);
 
         Plot::new(self.id)
             .height(self.size.y)
@@ -230,7 +232,9 @@ impl<'a> AutomationPlot<'a> {
 
         let plot_points: PlotPoints = self.points.iter().map(|&(x, y)| [x, y]).collect();
 
-        let line = Line::new(self.id, plot_points).color(line_color).width(1.5);
+        let line = Line::new(self.id, plot_points)
+            .color(line_color)
+            .width(1.5_f32);
 
         Plot::new(self.id)
             .height(self.size.y)
@@ -249,7 +253,7 @@ impl<'a> AutomationPlot<'a> {
                 if self.show_points {
                     let point_data: PlotPoints = self.points.iter().map(|&(x, y)| [x, y]).collect();
                     let points = egui_plot::Points::new(format!("{}_points", self.id), point_data)
-                        .radius(4.0)
+                        .radius(4.0_f32)
                         .color(line_color);
                     plot_ui.points(points);
                 }
@@ -322,8 +326,8 @@ impl<'a> FrequencyPlot<'a> {
 
         let line = Line::new(self.id, plot_points)
             .color(line_color)
-            .width(2.0)
-            .fill(0.0);
+            .width(2.0_f32)
+            .fill(0.0_f32);
 
         // Draw 0dB reference line
         let zero_line = Line::new(
@@ -331,7 +335,7 @@ impl<'a> FrequencyPlot<'a> {
             PlotPoints::from_iter([[1.0_f64.log10(), 0.0], [20000.0_f64.log10(), 0.0]]),
         )
         .color(theme.border)
-        .width(1.0);
+        .width(1.0_f32);
 
         Plot::new(self.id)
             .height(self.size.y)
@@ -541,7 +545,7 @@ impl<'a> Sparkline<'a> {
 
         let mut line = Line::new("sparkline", plot_points)
             .color(line_color)
-            .width(1.5);
+            .width(1.5_f32);
 
         if self.fill {
             line = line.fill(min_y as f32);
@@ -585,14 +589,14 @@ impl<'a> Sparkline<'a> {
                     "sparkline_min",
                     PlotPoints::from_iter([[min_idx as f64, *min_val as f64]]),
                 )
-                .radius(3.0)
+                .radius(3.0_f32)
                 .color(theme.state_danger);
 
                 let max_point = egui_plot::Points::new(
                     "sparkline_max",
                     PlotPoints::from_iter([[max_idx as f64, *max_val as f64]]),
                 )
-                .radius(3.0)
+                .radius(3.0_f32)
                 .color(theme.state_success);
 
                 plot_ui.points(min_point);

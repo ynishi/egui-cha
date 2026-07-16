@@ -297,7 +297,7 @@ impl<'a> MidiKeyboard<'a> {
             painter.rect_stroke(
                 key.rect,
                 2.0,
-                Stroke::new(1.0, theme.border),
+                Stroke::new(1.0_f32, theme.border),
                 egui::StrokeKind::Inside,
             );
 

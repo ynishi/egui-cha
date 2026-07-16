@@ -252,7 +252,7 @@ impl StatusIndicator {
                         ui.painter().circle_stroke(
                             center,
                             radius * 0.8,
-                            egui::Stroke::new(1.0, theme.border),
+                            egui::Stroke::new(1.0_f32, theme.border),
                         );
                     }
                 }
@@ -286,7 +286,7 @@ impl StatusIndicator {
                     ui.painter().circle_stroke(
                         center,
                         radius * 0.8,
-                        egui::Stroke::new(1.0, theme.border),
+                        egui::Stroke::new(1.0_f32, theme.border),
                     );
                 }
             }

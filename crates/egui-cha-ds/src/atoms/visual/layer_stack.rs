@@ -494,7 +494,7 @@ impl<'a> LayerStack<'a> {
                 painter.rect_stroke(
                     thumb_rect,
                     theme.radius_sm,
-                    Stroke::new(0.5, theme.border),
+                    Stroke::new(0.5_f32, theme.border),
                     egui::StrokeKind::Inside,
                 );
             }
@@ -580,7 +580,7 @@ impl<'a> LayerStack<'a> {
                         Pos2::new(info.rect.min.x + theme.spacing_sm, info.rect.max.y),
                         Pos2::new(info.rect.max.x - theme.spacing_sm, info.rect.max.y),
                     ],
-                    Stroke::new(0.5, theme.border),
+                    Stroke::new(0.5_f32, theme.border),
                 );
             }
 
@@ -599,7 +599,7 @@ impl<'a> LayerStack<'a> {
                 painter.rect_stroke(
                     info.rect,
                     theme.radius_sm,
-                    Stroke::new(2.0, theme.primary),
+                    Stroke::new(2.0_f32, theme.primary),
                     egui::StrokeKind::Inside,
                 );
             }
@@ -613,7 +613,7 @@ impl<'a> LayerStack<'a> {
                             Pos2::new(info.rect.min.x, info.rect.min.y),
                             Pos2::new(info.rect.max.x, info.rect.min.y),
                         ],
-                        Stroke::new(3.0, theme.primary),
+                        Stroke::new(3.0_f32, theme.primary),
                     );
                 } else if drop_idx == info.idx + 1 && info.idx == self.layers.len() - 1 {
                     // Draw line below last row
@@ -622,7 +622,7 @@ impl<'a> LayerStack<'a> {
                             Pos2::new(info.rect.min.x, info.rect.max.y),
                             Pos2::new(info.rect.max.x, info.rect.max.y),
                         ],
-                        Stroke::new(3.0, theme.primary),
+                        Stroke::new(3.0_f32, theme.primary),
                     );
                 }
             }

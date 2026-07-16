@@ -353,7 +353,7 @@ impl<'a> EnvelopeEditor<'a> {
                         egui::pos2(graph_rect.min.x, y),
                         egui::pos2(graph_rect.max.x, y),
                     ],
-                    Stroke::new(1.0, grid_color),
+                    Stroke::new(1.0_f32, grid_color),
                 );
             }
             // Vertical lines at ADSR points
@@ -364,7 +364,7 @@ impl<'a> EnvelopeEditor<'a> {
                         egui::pos2(x, graph_rect.min.y),
                         egui::pos2(x, graph_rect.max.y),
                     ],
-                    Stroke::new(1.0, grid_color),
+                    Stroke::new(1.0_f32, grid_color),
                 );
             }
         }
@@ -403,7 +403,7 @@ impl<'a> EnvelopeEditor<'a> {
 
         // Draw envelope line
         for window in points.windows(2) {
-            painter.line_segment([window[0], window[1]], Stroke::new(2.0, env_color));
+            painter.line_segment([window[0], window[1]], Stroke::new(2.0_f32, env_color));
         }
 
         // Draw handles
@@ -419,7 +419,11 @@ impl<'a> EnvelopeEditor<'a> {
             };
 
             painter.circle_filled(center, handle_size / 2.0, handle_color);
-            painter.circle_stroke(center, handle_size / 2.0, Stroke::new(1.0, theme.border));
+            painter.circle_stroke(
+                center,
+                handle_size / 2.0,
+                Stroke::new(1.0_f32, theme.border),
+            );
         }
 
         // Labels

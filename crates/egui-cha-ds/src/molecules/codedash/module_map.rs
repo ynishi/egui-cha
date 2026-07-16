@@ -311,7 +311,7 @@ impl<'a> ModuleMap<'a> {
             let b = &state.nodes[edge.target_idx];
             let p1 = Pos2::new(center.x + a.pos.x * zoom, center.y + a.pos.y * zoom);
             let p2 = Pos2::new(center.x + b.pos.x * zoom, center.y + b.pos.y * zoom);
-            painter.line_segment([p1, p2], egui::Stroke::new(1.2, edge_color));
+            painter.line_segment([p1, p2], egui::Stroke::new(1.2_f32, edge_color));
         }
 
         // Draw nodes

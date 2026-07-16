@@ -388,7 +388,7 @@ impl<'a> PianoRoll<'a> {
             // Key separator
             painter.line_segment(
                 [egui::pos2(key_rect.min.x, y), egui::pos2(key_rect.max.x, y)],
-                Stroke::new(0.5, theme.border),
+                Stroke::new(0.5_f32, theme.border),
             );
         }
 
@@ -422,7 +422,7 @@ impl<'a> PianoRoll<'a> {
                     egui::pos2(grid_rect.max.x, y),
                 ],
                 Stroke::new(
-                    0.5,
+                    0.5_f32,
                     Color32::from_rgba_unmultiplied(
                         theme.border.r(),
                         theme.border.g(),
@@ -443,11 +443,11 @@ impl<'a> PianoRoll<'a> {
             let is_beat = i % (self.snap_division / self.beats_per_bar) == 0;
 
             let (stroke_width, alpha) = if is_bar {
-                (1.5, 120)
+                (1.5_f32, 120)
             } else if is_beat {
-                (1.0, 60)
+                (1.0_f32, 60)
             } else {
-                (0.5, 25)
+                (0.5_f32, 25)
             };
 
             painter.line_segment(
@@ -500,7 +500,7 @@ impl<'a> PianoRoll<'a> {
                 painter.rect_stroke(
                     info.rect,
                     2.0,
-                    Stroke::new(2.0, theme.primary),
+                    Stroke::new(2.0_f32, theme.primary),
                     egui::StrokeKind::Outside,
                 );
             }
@@ -514,7 +514,7 @@ impl<'a> PianoRoll<'a> {
                     egui::pos2(playhead_x, grid_rect.min.y),
                     egui::pos2(playhead_x, grid_rect.max.y),
                 ],
-                Stroke::new(2.0, theme.state_success),
+                Stroke::new(2.0_f32, theme.state_success),
             );
 
             // Playhead triangle
@@ -537,7 +537,7 @@ impl<'a> PianoRoll<'a> {
                 egui::pos2(key_rect.max.x, rect.min.y),
                 egui::pos2(key_rect.max.x, rect.max.y),
             ],
-            Stroke::new(1.0, theme.border),
+            Stroke::new(1.0_f32, theme.border),
         );
 
         event

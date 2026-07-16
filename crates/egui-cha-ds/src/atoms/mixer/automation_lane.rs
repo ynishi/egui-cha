@@ -347,10 +347,10 @@ impl<'a> AutomationLane<'a> {
                     graph_rect.min.x + graph_rect.width() * i as f32 / self.grid_divisions as f32;
                 let is_major = i % 4 == 0;
                 let stroke = if is_major {
-                    Stroke::new(1.0, grid_color)
+                    Stroke::new(1.0_f32, grid_color)
                 } else {
                     Stroke::new(
-                        0.5,
+                        0.5_f32,
                         Color32::from_rgba_unmultiplied(
                             grid_color.r(),
                             grid_color.g(),
@@ -376,7 +376,7 @@ impl<'a> AutomationLane<'a> {
                         egui::pos2(graph_rect.min.x, y),
                         egui::pos2(graph_rect.max.x, y),
                     ],
-                    Stroke::new(0.5, grid_color),
+                    Stroke::new(0.5_f32, grid_color),
                 );
             }
         }
@@ -471,7 +471,7 @@ impl<'a> AutomationLane<'a> {
                 painter.circle_stroke(
                     info.center,
                     handle_size / 2.0,
-                    Stroke::new(1.0, theme.border),
+                    Stroke::new(1.0_f32, theme.border),
                 );
 
                 // Curve type indicator
@@ -503,7 +503,7 @@ impl<'a> AutomationLane<'a> {
                     egui::pos2(playhead_x, graph_rect.min.y),
                     egui::pos2(playhead_x, graph_rect.max.y),
                 ],
-                Stroke::new(2.0, theme.state_success),
+                Stroke::new(2.0_f32, theme.state_success),
             );
 
             // Playhead triangle
@@ -580,11 +580,11 @@ impl<'a> AutomationLane<'a> {
             AutomationCurve::Step => {
                 // Horizontal then vertical
                 let mid_pos = egui::pos2(to_pos.x, from_pos.y);
-                painter.line_segment([from_pos, mid_pos], Stroke::new(2.0, color));
-                painter.line_segment([mid_pos, to_pos], Stroke::new(2.0, color));
+                painter.line_segment([from_pos, mid_pos], Stroke::new(2.0_f32, color));
+                painter.line_segment([mid_pos, to_pos], Stroke::new(2.0_f32, color));
             }
             AutomationCurve::Linear => {
-                painter.line_segment([from_pos, to_pos], Stroke::new(2.0, color));
+                painter.line_segment([from_pos, to_pos], Stroke::new(2.0_f32, color));
             }
             AutomationCurve::Smooth
             | AutomationCurve::Exponential

@@ -292,9 +292,9 @@ impl<'a> SamplePad<'a> {
 
             // Draw border
             let border_width = if pad.is_active || pad.is_selected {
-                2.0
+                2.0_f32
             } else {
-                1.0
+                1.0_f32
             };
             painter.rect_stroke(
                 pad.rect,

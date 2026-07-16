@@ -75,7 +75,7 @@ impl<'a> Modal<'a> {
             .show(ui.ctx(), |ui| {
                 Frame::new()
                     .fill(bg_color)
-                    .stroke(egui::Stroke::new(1.0, border_color))
+                    .stroke(egui::Stroke::new(1.0_f32, border_color))
                     .corner_radius(theme.radius_md)
                     .inner_margin(egui::Margin::same(theme.spacing_md as i8))
                     .show(ui, |ui| {

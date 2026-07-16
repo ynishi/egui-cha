@@ -367,7 +367,7 @@ impl<'a> ChannelStrip<'a> {
                     egui::pos2(pan_center, pan_rect.min.y + 4.0),
                     egui::pos2(pan_center, pan_rect.max.y - 4.0),
                 ],
-                Stroke::new(1.0, theme.text_muted),
+                Stroke::new(1.0_f32, theme.text_muted),
             );
 
             // Pan position indicator
@@ -450,7 +450,7 @@ impl<'a> ChannelStrip<'a> {
                 egui::pos2(thumb_rect.min.x + 4.0, thumb_rect.center().y),
                 egui::pos2(thumb_rect.max.x - 4.0, thumb_rect.center().y),
             ],
-            Stroke::new(1.0, theme.bg_primary),
+            Stroke::new(1.0_f32, theme.bg_primary),
         );
 
         // Volume display
@@ -524,7 +524,7 @@ impl<'a> ChannelStrip<'a> {
                     egui::pos2(rect.min.x, peak_y),
                     egui::pos2(rect.max.x, peak_y),
                 ],
-                Stroke::new(1.0, Color32::WHITE),
+                Stroke::new(1.0_f32, Color32::WHITE),
             );
         }
     }

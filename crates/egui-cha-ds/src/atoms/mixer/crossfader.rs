@@ -313,7 +313,7 @@ impl<'a> CrossFader<'a> {
                     egui::pos2(center_x, track_rect.min.y),
                     egui::pos2(center_x, track_rect.max.y),
                 ],
-                Stroke::new(1.0, theme.text_muted),
+                Stroke::new(1.0_f32, theme.text_muted),
             );
         }
 
@@ -340,7 +340,7 @@ impl<'a> CrossFader<'a> {
                     egui::pos2(line_x, thumb_rect.min.y + 4.0),
                     egui::pos2(line_x, thumb_rect.max.y - 4.0),
                 ],
-                Stroke::new(1.0, theme.bg_primary),
+                Stroke::new(1.0_f32, theme.bg_primary),
             );
         }
 

@@ -261,7 +261,7 @@ impl<'a> Oscilloscope<'a> {
             )
         };
 
-        let stroke = Stroke::new(0.5, grid_color);
+        let stroke = Stroke::new(0.5_f32, grid_color);
 
         // Vertical lines
         for i in 1..self.grid_divisions {
@@ -291,7 +291,7 @@ impl<'a> Oscilloscope<'a> {
         painter.hline(
             rect.min.x..=rect.max.x,
             center_y,
-            Stroke::new(0.5, center_color),
+            Stroke::new(0.5_f32, center_color),
         );
     }
 

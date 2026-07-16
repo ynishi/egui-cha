@@ -357,7 +357,7 @@ impl BeatIndicator {
                         ui.painter().circle_stroke(
                             rect.center(),
                             radius,
-                            Stroke::new(1.0, theme.border),
+                            Stroke::new(1.0_f32, theme.border),
                         );
                     }
                 }

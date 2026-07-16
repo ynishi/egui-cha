@@ -448,7 +448,7 @@ impl<'a> BeatSync<'a> {
                 let x = bar_rect.min.x + t * bar_rect.width();
                 painter.line_segment(
                     [Pos2::new(x, bar_rect.min.y), Pos2::new(x, bar_rect.max.y)],
-                    Stroke::new(1.0, theme.border),
+                    Stroke::new(1.0_f32, theme.border),
                 );
             }
 

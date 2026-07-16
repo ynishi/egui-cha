@@ -266,7 +266,7 @@ impl<'a> Preview<'a> {
             painter.rect_stroke(
                 icon_rect,
                 theme.radius_sm * 0.5,
-                Stroke::new(2.0, theme.text_muted),
+                Stroke::new(2.0_f32, theme.text_muted),
                 egui::StrokeKind::Inside,
             );
 
@@ -376,14 +376,14 @@ impl<'a> Preview<'a> {
                             egui::pos2(icon_center.x - size, icon_center.y - size),
                             egui::pos2(icon_center.x + size, icon_center.y + size),
                         ],
-                        Stroke::new(3.0, theme.state_danger),
+                        Stroke::new(3.0_f32, theme.state_danger),
                     );
                     painter.line_segment(
                         [
                             egui::pos2(icon_center.x + size, icon_center.y - size),
                             egui::pos2(icon_center.x - size, icon_center.y + size),
                         ],
-                        Stroke::new(3.0, theme.state_danger),
+                        Stroke::new(3.0_f32, theme.state_danger),
                     );
                 }
                 PreviewState::Live => {

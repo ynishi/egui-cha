@@ -322,7 +322,7 @@ impl<'a> DashboardLayout<'a> {
             ui.painter().hline(
                 top_bar_rect.x_range(),
                 top_bar_rect.max.y,
-                egui::Stroke::new(1.0, theme.border),
+                egui::Stroke::new(1.0_f32, theme.border),
             );
 
             // Create child UI for top bar content
@@ -395,7 +395,7 @@ impl<'a> DashboardLayout<'a> {
             ui.painter().vline(
                 sidebar_rect.max.x,
                 sidebar_rect.y_range(),
-                egui::Stroke::new(1.0, theme.border),
+                egui::Stroke::new(1.0_f32, theme.border),
             );
 
             if left_collapsed && config.collapsible {
@@ -453,7 +453,7 @@ impl<'a> DashboardLayout<'a> {
             ui.painter().vline(
                 sidebar_rect.min.x,
                 sidebar_rect.y_range(),
-                egui::Stroke::new(1.0, theme.border),
+                egui::Stroke::new(1.0_f32, theme.border),
             );
 
             if right_collapsed && config.collapsible {

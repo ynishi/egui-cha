@@ -536,7 +536,7 @@ impl GlassFrame {
         let stroke = if self.border {
             let border_alpha = (self.opacity * 0.3 * 255.0) as u8;
             egui::Stroke::new(
-                1.0,
+                1.0_f32,
                 Color32::from_rgba_unmultiplied(255, 255, 255, border_alpha),
             )
         } else {

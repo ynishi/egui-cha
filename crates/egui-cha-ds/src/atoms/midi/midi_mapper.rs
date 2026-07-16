@@ -561,7 +561,7 @@ impl<'a> MidiMapper<'a> {
                     Pos2::new(info.rect.min.x, info.rect.max.y),
                     Pos2::new(info.rect.max.x, info.rect.max.y),
                 ],
-                Stroke::new(0.5, theme.border.gamma_multiply(0.5)),
+                Stroke::new(0.5_f32, theme.border.gamma_multiply(0.5)),
             );
         }
 

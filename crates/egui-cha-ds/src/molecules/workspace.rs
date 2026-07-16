@@ -731,7 +731,7 @@ impl<'a> WorkspaceCanvas<'a> {
                                 Pos2::new(divider.position, divider.rect.min.y + self.gap),
                                 Pos2::new(divider.position, divider.rect.max.y - self.gap),
                             ],
-                            Stroke::new(2.0, divider_color),
+                            Stroke::new(2.0_f32, divider_color),
                         );
                     } else {
                         painter.line_segment(
@@ -739,7 +739,7 @@ impl<'a> WorkspaceCanvas<'a> {
                                 Pos2::new(divider.rect.min.x + self.gap, divider.position),
                                 Pos2::new(divider.rect.max.x - self.gap, divider.position),
                             ],
-                            Stroke::new(2.0, divider_color),
+                            Stroke::new(2.0_f32, divider_color),
                         );
                     }
                 }
@@ -762,7 +762,7 @@ impl<'a> WorkspaceCanvas<'a> {
             dbg.rect_stroke(
                 rect,
                 0.0,
-                Stroke::new(2.0, Color32::RED),
+                Stroke::new(2.0_f32, Color32::RED),
                 egui::StrokeKind::Middle,
             );
             dbg.text(
@@ -778,14 +778,14 @@ impl<'a> WorkspaceCanvas<'a> {
             dbg.rect_stroke(
                 available_rect,
                 0.0,
-                Stroke::new(1.0, Color32::YELLOW),
+                Stroke::new(1.0_f32, Color32::YELLOW),
                 egui::StrokeKind::Middle,
             );
             for (idx, r) in &pane_rects {
                 dbg.rect_stroke(
                     *r,
                     0.0,
-                    Stroke::new(1.0, Color32::GREEN),
+                    Stroke::new(1.0_f32, Color32::GREEN),
                     egui::StrokeKind::Middle,
                 );
                 dbg.text(
@@ -1261,7 +1261,7 @@ impl<'a> WorkspaceCanvas<'a> {
         theme: &Theme,
     ) {
         let guide_color = theme.primary.gamma_multiply(0.7);
-        let guide_stroke = Stroke::new(2.0, guide_color);
+        let guide_stroke = Stroke::new(2.0_f32, guide_color);
 
         match target {
             SnapTarget::CanvasEdge(edge) => {
@@ -1305,7 +1305,7 @@ impl<'a> WorkspaceCanvas<'a> {
             theme.border.b(),
             30,
         );
-        let grid_stroke = Stroke::new(0.5, grid_color);
+        let grid_stroke = Stroke::new(0.5_f32, grid_color);
 
         // Vertical lines
         let mut x = rect.min.x;

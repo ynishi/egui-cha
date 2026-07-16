@@ -299,7 +299,7 @@ where
                     ui.painter().rect_stroke(
                         cell_rect,
                         rounding,
-                        egui::Stroke::new(2.0, theme.primary),
+                        egui::Stroke::new(2.0_f32, theme.primary),
                         egui::StrokeKind::Inside,
                     );
                 }

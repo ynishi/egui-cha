@@ -258,7 +258,7 @@ impl<'a> Waveform<'a> {
             .width(self.line_width);
 
         if self.style == WaveformStyle::Filled {
-            line = line.fill(0.0);
+            line = line.fill(0.0_f32);
         }
 
         // Clone values needed in closure
@@ -296,7 +296,7 @@ impl<'a> Waveform<'a> {
                         PlotPoints::from_iter([[0.0, 0.0], [1.0, 0.0]]),
                     )
                     .color(center_line_color)
-                    .width(0.5);
+                    .width(0.5_f32);
                     plot_ui.line(center_line);
                 }
 
