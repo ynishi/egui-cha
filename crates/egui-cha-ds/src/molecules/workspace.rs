@@ -243,6 +243,7 @@ pub struct WorkspaceCanvas<'a> {
     title_bar_height: f32,
     show_close_buttons: bool,
     show_minimize_buttons: bool,
+    debug_overlay: bool,
 }
 
 impl<'a> WorkspaceCanvas<'a> {
@@ -259,6 +260,7 @@ impl<'a> WorkspaceCanvas<'a> {
             title_bar_height: 24.0,
             show_close_buttons: true,
             show_minimize_buttons: true,
+            debug_overlay: false,
         }
     }
 
@@ -316,6 +318,14 @@ impl<'a> WorkspaceCanvas<'a> {
         self
     }
 
+    /// Draw a layout-debug overlay: the canvas rect (red), the available
+    /// rect it was allocated from (yellow), and every pane rect (green),
+    /// each labeled with its coordinates.
+    pub fn debug_overlay(mut self, on: bool) -> Self {
+        self.debug_overlay = on;
+        self
+    }
+
     /// Show workspace and render pane contents
     pub fn show<F>(self, ui: &mut Ui, mut content: F) -> Vec<WorkspaceEvent>
     where
@@ -355,19 +365,45 @@ impl<'a> WorkspaceCanvas<'a> {
             .ctx()
             .data_mut(|d| d.get_temp(canvas_id).unwrap_or_default());
 
+        // In Free mode the canvas must be at least tall enough to contain
+        // every pane: inside scroll areas / frames the "available" height
+        // can be arbitrarily small, which would let content placed after
+        // the canvas overlap the panes.
+        let min_height = match self.layout_mode {
+            LayoutMode::Free => self
+                .panes
+                .iter()
+                .filter(|p| p.visible)
+                .map(|p| {
+                    let height = if p.minimized {
+                        self.title_bar_height
+                    } else {
+                        p.size.y
+                    };
+                    p.position.y + height + self.gap
+                })
+                .fold(0.0_f32, f32::max),
+            LayoutMode::Tile { .. } => 0.0,
+        };
+        let canvas_size = Vec2::new(
+            available_rect.width(),
+            available_rect.height().max(min_height),
+        );
+
         // Allocate the canvas area
-        let (rect, _response) = ui.allocate_exact_size(available_rect.size(), Sense::hover());
+        let (rect, _response) = ui.allocate_exact_size(canvas_size, Sense::hover());
 
         if !ui.is_rect_visible(rect) {
             return events;
         }
 
-        // Get visible panes sorted by order
+        // Get visible panes sorted by order. Minimized panes stay in the
+        // layout and render as a title bar only, so they can be restored.
         let mut visible_panes: Vec<_> = self
             .panes
             .iter()
             .enumerate()
-            .filter(|(_, p)| p.visible && !p.minimized)
+            .filter(|(_, p)| p.visible)
             .collect();
         visible_panes.sort_by_key(|(_, p)| p.order);
 
@@ -383,12 +419,26 @@ impl<'a> WorkspaceCanvas<'a> {
             LayoutMode::Free => visible_panes
                 .iter()
                 .map(|(idx, pane)| {
-                    // Position is relative to the canvas rect
-                    let pos = rect.min + pane.position.to_vec2();
+                    // Position is relative to the canvas rect; keep the pane
+                    // inside the canvas so it cannot overlap content that
+                    // follows the workspace in the parent layout.
+                    let position = clamp_to_canvas(pane.position, pane.size, rect);
+                    let pos = rect.min + position.to_vec2();
                     (*idx, Rect::from_min_size(pos, pane.size))
                 })
                 .collect(),
         };
+
+        // Minimized panes collapse to their title bar
+        let pane_rects: Vec<(usize, Rect)> = pane_rects
+            .into_iter()
+            .map(|(idx, mut r)| {
+                if self.panes[idx].minimized {
+                    r.max.y = r.min.y + self.title_bar_height;
+                }
+                (idx, r)
+            })
+            .collect();
 
         // Calculate dividers for Tile mode
         let dividers = if matches!(self.layout_mode, LayoutMode::Tile { .. }) && !self.locked {
@@ -504,13 +554,24 @@ impl<'a> WorkspaceCanvas<'a> {
                 None
             };
 
-            // Allocate interaction areas
-            let title_response = ui.allocate_rect(title_rect, Sense::click_and_drag());
-            let close_response = close_rect.map(|r| ui.allocate_rect(r, Sense::click()));
-            let minimize_response = minimize_rect.map(|r| ui.allocate_rect(r, Sense::click()));
+            // Register interaction areas. `interact` (not `allocate_rect`):
+            // allocate_rect advances the parent Ui cursor to each pane rect,
+            // which rewinds the cursor past the already-allocated canvas and
+            // makes content placed after the canvas flow into it.
+            let pane_id = ui.id().with(("ws-pane", &self.panes[*idx].id));
+            let title_response =
+                ui.interact(title_rect, pane_id.with("title"), Sense::click_and_drag());
+            let close_response =
+                close_rect.map(|r| ui.interact(r, pane_id.with("close"), Sense::click()));
+            let minimize_response =
+                minimize_rect.map(|r| ui.interact(r, pane_id.with("minimize"), Sense::click()));
 
-            // Check resize edge hover (only in Free mode and unlocked)
-            let resize_edge = if !self.locked && matches!(self.layout_mode, LayoutMode::Free) {
+            // Check resize edge hover (only in Free mode, unlocked, and not
+            // collapsed to a title bar)
+            let resize_edge = if !self.locked
+                && !self.panes[*idx].minimized
+                && matches!(self.layout_mode, LayoutMode::Free)
+            {
                 self.check_resize_edge(ui, *pane_rect)
             } else {
                 None
@@ -583,7 +644,7 @@ impl<'a> WorkspaceCanvas<'a> {
                     let delta = ui.input(|i| i.pointer.delta());
                     let new_pos = pane.position + delta;
 
-                    // Apply snapping
+                    // Apply snapping, then keep the pane inside the canvas
                     let (snapped_pos, snap_target) =
                         self.apply_snap(new_pos, pane.size, rect, &pane_rects, interaction.idx);
 
@@ -591,15 +652,16 @@ impl<'a> WorkspaceCanvas<'a> {
 
                     events.push(WorkspaceEvent::PaneMoved {
                         id: pane.id.clone(),
-                        position: snapped_pos,
+                        position: clamp_to_canvas(snapped_pos, pane.size, rect),
                     });
                 }
             }
         }
 
-        // Draw background and pane frames (BEFORE content)
+        // Draw background and pane frames (BEFORE content), clipped to the
+        // canvas so panes never paint over surrounding content
         {
-            let painter = ui.painter();
+            let painter = ui.painter_at(rect);
 
             // Draw background
             painter.rect_filled(rect, 0.0, theme.bg_primary);
@@ -607,20 +669,30 @@ impl<'a> WorkspaceCanvas<'a> {
             // Draw grid if enabled
             if self.show_grid {
                 if let Some(grid_size) = self.grid_size {
-                    self.draw_grid(painter, rect, grid_size, &theme);
+                    self.draw_grid(&painter, rect, grid_size, &theme);
                 }
             }
 
             // Draw pane frames (background and borders)
             for interaction in &interactions {
                 let pane = &self.panes[interaction.idx];
-                self.draw_pane(painter, interaction, pane, &theme, &drag_state, self.locked);
+                self.draw_pane(
+                    &painter,
+                    interaction,
+                    pane,
+                    &theme,
+                    &drag_state,
+                    self.locked,
+                );
             }
         }
 
         // Draw pane content (AFTER background and frames)
         for interaction in &interactions {
             let pane = &self.panes[interaction.idx];
+            if pane.minimized {
+                continue;
+            }
             let content_rect = Rect::from_min_max(
                 Pos2::new(
                     interaction.rect.min.x,
@@ -629,12 +701,15 @@ impl<'a> WorkspaceCanvas<'a> {
                 interaction.rect.max,
             );
             let mut child_ui = ui.new_child(egui::UiBuilder::new().max_rect(content_rect));
+            // Content must not paint outside its pane (or the canvas)
+            child_ui.set_clip_rect(content_rect.intersect(rect));
             content(&mut child_ui, pane);
         }
 
-        // Draw overlays (dividers, snap guides) AFTER content
+        // Draw overlays (dividers, snap guides) AFTER content, clipped to
+        // the canvas like the frames above
         {
-            let painter = ui.painter();
+            let painter = ui.painter_at(rect);
 
             // Draw dividers (Tile mode only)
             if !self.locked {
@@ -672,12 +747,54 @@ impl<'a> WorkspaceCanvas<'a> {
 
             // Draw snap guides
             if let Some(ref target) = drag_state.snap_target {
-                self.draw_snap_guide(painter, target, rect, &theme);
+                self.draw_snap_guide(&painter, target, rect, &theme);
             }
 
             // Draw lock indicator
             if self.locked {
-                self.draw_lock_indicator(painter, rect, &theme);
+                self.draw_lock_indicator(&painter, rect, &theme);
+            }
+        }
+
+        // Debug overlay (opt-in): canvas=red, avail=yellow, panes=green
+        if self.debug_overlay {
+            let dbg = ui.ctx().debug_painter();
+            dbg.rect_stroke(
+                rect,
+                0.0,
+                Stroke::new(2.0, Color32::RED),
+                egui::StrokeKind::Middle,
+            );
+            dbg.text(
+                rect.left_top(),
+                egui::Align2::LEFT_BOTTOM,
+                format!(
+                    "canvas {:?} avail {:?} min_h {:.0}",
+                    rect, available_rect, min_height
+                ),
+                egui::FontId::monospace(10.0),
+                Color32::RED,
+            );
+            dbg.rect_stroke(
+                available_rect,
+                0.0,
+                Stroke::new(1.0, Color32::YELLOW),
+                egui::StrokeKind::Middle,
+            );
+            for (idx, r) in &pane_rects {
+                dbg.rect_stroke(
+                    *r,
+                    0.0,
+                    Stroke::new(1.0, Color32::GREEN),
+                    egui::StrokeKind::Middle,
+                );
+                dbg.text(
+                    r.left_bottom(),
+                    egui::Align2::LEFT_TOP,
+                    format!("{} {:?}", self.panes[*idx].id, r),
+                    egui::FontId::monospace(9.0),
+                    Color32::GREEN,
+                );
             }
         }
 
@@ -1048,31 +1165,30 @@ impl<'a> WorkspaceCanvas<'a> {
         };
         painter.rect_filled(interaction.title_rect, theme.radius_md, title_bg);
 
+        // Lock icon if locked, drawn to the left of the title
+        let mut title_x = interaction.title_rect.min.x + theme.spacing_sm;
+        if locked {
+            let lock_rect = painter.text(
+                Pos2::new(
+                    interaction.title_rect.min.x + theme.spacing_xs,
+                    interaction.title_rect.center().y,
+                ),
+                egui::Align2::LEFT_CENTER,
+                "🔒",
+                egui::FontId::proportional(theme.font_size_xs),
+                theme.text_muted,
+            );
+            title_x = title_x.max(lock_rect.max.x + theme.spacing_xs);
+        }
+
         // Title text
         painter.text(
-            Pos2::new(
-                interaction.title_rect.min.x + theme.spacing_sm,
-                interaction.title_rect.center().y,
-            ),
+            Pos2::new(title_x, interaction.title_rect.center().y),
             egui::Align2::LEFT_CENTER,
             &pane.title,
             egui::FontId::proportional(theme.font_size_sm),
             theme.text_primary,
         );
-
-        // Lock icon if locked
-        if locked {
-            painter.text(
-                Pos2::new(
-                    interaction.title_rect.min.x + theme.spacing_xs,
-                    interaction.title_rect.min.y + theme.spacing_xs,
-                ),
-                egui::Align2::LEFT_TOP,
-                "🔒",
-                egui::FontId::proportional(theme.font_size_xs),
-                theme.text_muted,
-            );
-        }
 
         // Close button
         if let Some(close_rect) = interaction.close_rect {
@@ -1213,16 +1329,17 @@ impl<'a> WorkspaceCanvas<'a> {
     }
 
     fn draw_lock_indicator(&self, painter: &egui::Painter, rect: Rect, theme: &Theme) {
-        // Subtle lock indicator in corner
+        // Lock indicator in corner; dark pill + white text stays readable
+        // on both light and dark themes
         let indicator_rect = Rect::from_min_size(
-            Pos2::new(rect.max.x - 40.0, rect.min.y + 4.0),
-            Vec2::new(36.0, 20.0),
+            Pos2::new(rect.max.x - 56.0, rect.min.y + 4.0),
+            Vec2::new(52.0, 20.0),
         );
 
         painter.rect_filled(
             indicator_rect,
             theme.radius_sm,
-            Color32::from_rgba_unmultiplied(0, 0, 0, 100),
+            Color32::from_black_alpha(170),
         );
 
         painter.text(
@@ -1230,7 +1347,14 @@ impl<'a> WorkspaceCanvas<'a> {
             egui::Align2::CENTER_CENTER,
             "🔒 Lock",
             egui::FontId::proportional(theme.font_size_xs),
-            theme.text_muted,
+            Color32::WHITE,
         );
     }
+}
+
+/// Clamp a pane position (relative to the canvas) so the pane stays inside
+/// the canvas rect. A pane larger than the canvas pins to the top-left.
+fn clamp_to_canvas(position: Pos2, size: Vec2, canvas: Rect) -> Pos2 {
+    let max = (canvas.size() - size).max(Vec2::ZERO);
+    Pos2::new(position.x.clamp(0.0, max.x), position.y.clamp(0.0, max.y))
 }

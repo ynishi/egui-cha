@@ -184,6 +184,7 @@ struct Model {
     workspace_panes: Vec<WorkspacePane>,
     workspace_locked: bool,
     workspace_tile_mode: bool,
+    workspace_debug: bool,
 
     // Color wheel demo
     wheel_color: Hsva,
@@ -530,6 +531,7 @@ enum Msg {
     // WorkspaceCanvas
     WorkspaceEvent(WorkspaceEvent),
     ToggleWorkspaceLock,
+    ToggleWorkspaceDebug,
     SetWorkspaceLayoutMode(bool), // true = Tile, false = Free
 
     // Color Wheel
@@ -867,6 +869,7 @@ impl App for StorybookApp {
                 ],
                 workspace_locked: false,
                 workspace_tile_mode: true,
+                workspace_debug: false,
 
                 // Swarm demo
                 sparkline_buffer: {
@@ -1461,6 +1464,9 @@ impl App for StorybookApp {
             },
             Msg::ToggleWorkspaceLock => {
                 model.workspace_locked = !model.workspace_locked;
+            }
+            Msg::ToggleWorkspaceDebug => {
+                model.workspace_debug = !model.workspace_debug;
             }
             Msg::SetWorkspaceLayoutMode(tile) => {
                 model.workspace_tile_mode = tile;
@@ -3086,6 +3092,7 @@ fn render_visual_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             let mut set_tile = false;
             let mut set_free = false;
             let mut toggle_lock = false;
+            let mut toggle_debug = false;
 
             ctx.ui.horizontal(|ui| {
                 ui.label("Mode:");
@@ -3115,6 +3122,14 @@ fn render_visual_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
 
                 ui.add_space(16.0);
                 ui.label(format!("Panes: {}", model.workspace_panes.len()));
+
+                ui.add_space(16.0);
+                if ui
+                    .selectable_label(model.workspace_debug, "Debug")
+                    .clicked()
+                {
+                    toggle_debug = true;
+                }
             });
 
             if set_tile {
@@ -3126,7 +3141,14 @@ fn render_visual_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             if toggle_lock {
                 ctx.emit(Msg::ToggleWorkspaceLock);
             }
+            if toggle_debug {
+                ctx.emit(Msg::ToggleWorkspaceDebug);
+            }
 
+            ctx.ui.add_space(8.0);
+            ctx.ui.label("• Tile mode: Panes arranged in grid");
+            ctx.ui.label("• Free mode: Drag panes freely");
+            ctx.ui.label("• Lock: Prevent accidental editing");
             ctx.ui.add_space(8.0);
 
             let layout_mode = if model.workspace_tile_mode {
@@ -3142,6 +3164,7 @@ fn render_visual_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
                 .locked(model.workspace_locked)
                 .snap_threshold(8.0)
                 .gap(8.0)
+                .debug_overlay(model.workspace_debug)
                 .show(ctx.ui, |ui, pane| match pane.id.as_str() {
                     "preview" => {
                         ui.colored_label(egui::Color32::from_rgb(100, 200, 255), "Preview Area");
@@ -3167,11 +3190,6 @@ fn render_visual_atom(model: &Model, ctx: &mut ViewCtx<Msg>) {
             for event in events {
                 ctx.emit(Msg::WorkspaceEvent(event));
             }
-
-            ctx.ui.add_space(8.0);
-            ctx.ui.label("• Tile mode: Panes arranged in grid");
-            ctx.ui.label("• Free mode: Drag panes freely");
-            ctx.ui.label("• Lock: Prevent accidental editing");
         }
 
         "ClipGrid" => {
@@ -3929,13 +3947,13 @@ fn render_semantics(model: &Model, ctx: &mut ViewCtx<Msg>) {
             ctx.ui.add_space(8.0);
 
             Code::new(
-                "// Atoms: style only, label is your choice\nButton::primary(\"Save\").on_click(ctx, Msg::Save);\nButton::primary(\"保存\").on_click(ctx, Msg::Save);  // inconsistent!\n\n// Semantics: label & icon fixed by framework\nsemantics::save(ButtonStyle::Both).on_click(ctx, Msg::Save);  // Always \"Save\""
+                "// Atoms: style only, label is your choice\nButton::primary(\"Save\").on_click(ctx, Msg::Save);\nButton::primary(\"SAVE\").on_click(ctx, Msg::Save);  // inconsistent!\n\n// Semantics: label & icon fixed by framework\nsemantics::save(ButtonStyle::Both).on_click(ctx, Msg::Save);  // Always \"Save\""
             ).show(ctx.ui);
 
             ctx.ui.add_space(16.0);
             ctx.ui.strong("Why Semantics?");
             ctx.ui
-                .label("• Prevents label inconsistency (Save vs 保存 vs SAVE)");
+                .label("• Prevents label inconsistency (Save vs SAVE vs Save file)");
             ctx.ui
                 .label("• Icon + color automatically matched to action");
             ctx.ui

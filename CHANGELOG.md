@@ -10,7 +10,22 @@ are released in lock-step and share the same version number.
 
 ## [Unreleased]
 
+### Added
+- **egui-cha-ds**: `WorkspaceCanvas::debug_overlay(bool)` draws a layout
+  debug overlay (canvas / available / pane rects with coordinates); the
+  storybook gained a Debug toggle for it.
+
 ### Fixed
+- **egui-cha-ds**: `WorkspaceCanvas` no longer rewinds the parent Ui cursor
+  (pane title-bar interactions used `allocate_rect`), which made content
+  placed after the canvas flow back into it and overlap the panes.
+- **egui-cha-ds**: Free-mode panes are clamped to the canvas, painting is
+  clipped to it, and the canvas reserves at least the height of its panes
+  inside scroll areas.
+- **egui-cha-ds**: minimized `WorkspaceCanvas` panes collapse to their title
+  bar and can be restored, instead of disappearing with no way back.
+- **egui-cha-ds**: the pane lock icon no longer overlaps the title text, and
+  the canvas lock indicator is readable on light themes.
 - **egui-cha**: Reactive repaint mode now wakes the UI thread when an async
   task completes or an interval ticks; previously the message sat in the
   channel until the next user input.
