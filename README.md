@@ -68,8 +68,8 @@ Or add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-egui-cha = { version = "0.9", features = ["eframe"] }
-egui-cha-ds = "0.9"
+egui-cha = { version = "0.10", features = ["eframe"] }
+egui-cha-ds = "0.10"
 ```
 
 The `eframe` feature enables `egui_cha::run` / `RunConfig` (the native runtime) and re-exports the `eframe` crate as `egui_cha::eframe` (also available through the prelude), so you do not need to add `eframe` yourself. Use `egui_cha::eframe::NativeOptions` etc. if you need to call `eframe` directly.
