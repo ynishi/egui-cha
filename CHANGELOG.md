@@ -11,6 +11,20 @@ are released in lock-step and share the same version number.
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [0.10.0] - 2026-10-07
+
+### Added
 - **egui-cha**: re-export the `eframe` crate as `egui_cha::eframe` (and from
   the prelude) when the `eframe` feature is enabled, so applications no
   longer need a direct `eframe` dependency to write
@@ -186,7 +200,8 @@ System crate covering Atoms (Button, Input, Icon, ...), Molecules
 (Card, Modal, Tabs, Navbar, ErrorConsole, Toast, ...), a Router, and testing
 utilities.
 
-[Unreleased]: https://github.com/ynishi/egui-cha/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/ynishi/egui-cha/compare/egui-cha-v0.10.0...HEAD
+[0.10.0]: https://github.com/ynishi/egui-cha/compare/egui-cha-v0.9.0...egui-cha-v0.10.0
 [0.6.0]: https://github.com/ynishi/egui-cha/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/ynishi/egui-cha/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/ynishi/egui-cha/compare/v0.3.0...v0.4.0
