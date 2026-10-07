@@ -60,16 +60,20 @@ fn update(model: &mut Model, msg: Msg) -> Cmd<Msg> {
 ## Installation
 
 ```bash
-cargo add egui-cha egui-cha-ds
+cargo add egui-cha --features eframe
+cargo add egui-cha-ds eframe
 ```
 
 Or add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-egui-cha = "0.7"
-egui-cha-ds = "0.7"
+egui-cha = { version = "0.9", features = ["eframe"] }
+egui-cha-ds = "0.9"
+eframe = "0.35"
 ```
+
+The `eframe` feature enables `egui_cha::run` / `RunConfig` (the native runtime). `eframe` itself is also needed as a direct dependency because the Quick Start's `main` returns `eframe::Result`.
 
 ## Quick Start
 
