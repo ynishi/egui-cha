@@ -34,6 +34,39 @@ are released in lock-step and share the same version number.
 - **README**: the Installation section now enables the `eframe` feature,
   which the Quick Start requires (#6).
 
+## [0.9.0] - 2026-07-17
+
+### Changed
+- Support egui 0.35: bump `egui` / `egui_extras` / `eframe` to 0.35,
+  `egui_dock` to 0.20, `egui-snarl` to 0.11, `egui_tiles` to 0.16 and
+  `egui_plot` to 0.36.
+- Migrate to the unified egui 0.35 Panel API (`egui::Panel::{left, right,
+  top, bottom}`, `show(&mut Ui, ...)`, `exact_size` / `min_size`), the
+  per-theme style accessors (`style_of` / `all_styles_mut`), `Frame::NONE`,
+  `corner_radius`, `UiBuilder`-based child UIs and `Context::run_ui`.
+- Helpers taking `id: impl Hash` now require `impl Hash + Debug` (egui 0.35
+  `Id::new` bound).
+
+### Removed
+- The module-level `#![allow(deprecated)]` shims added in 0.8.0 for the
+  Panel API (view_ctx / runtime / vibrancy_demo / vj-mock).
+
+## [0.8.0] - 2026-07-17
+
+### Changed
+- Support egui 0.34: bump `egui` / `egui_extras` / `eframe` to 0.34,
+  `egui_dock` to 0.19, `egui-snarl` to 0.10, `egui_tiles` to 0.15 and
+  `egui_plot` to 0.35.
+- Adapt to egui 0.34 breaking changes: `eframe::App::update` split into
+  `logic` + `ui`, `TextEdit::frame` takes an `egui::Frame`, and
+  `egui_dock` tab lookups use `TabPath` / `NodePath`.
+- Fill in the previously missing workspace package metadata (description,
+  documentation, authors, readme) via workspace inheritance.
+
+### Fixed
+- **ci**: allow the egui 0.34 Panel API deprecation warnings module-wide so
+  the `-D warnings` CI stays green until the 0.9.0 migration.
+
 ## [0.7.2] - 2026-07-17
 
 ### Fixed
@@ -202,6 +235,8 @@ utilities.
 
 [Unreleased]: https://github.com/ynishi/egui-cha/compare/egui-cha-v0.10.0...HEAD
 [0.10.0]: https://github.com/ynishi/egui-cha/compare/egui-cha-v0.9.0...egui-cha-v0.10.0
+[0.9.0]: https://github.com/ynishi/egui-cha/compare/egui-cha-v0.8.0...egui-cha-v0.9.0
+[0.8.0]: https://github.com/ynishi/egui-cha/compare/egui-cha-v0.7.2...egui-cha-v0.8.0
 [0.6.0]: https://github.com/ynishi/egui-cha/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/ynishi/egui-cha/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/ynishi/egui-cha/compare/v0.3.0...v0.4.0
