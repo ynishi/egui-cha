@@ -46,6 +46,16 @@ pub use view_ctx::ViewCtx;
 #[cfg(feature = "eframe")]
 pub use runtime::{run, RepaintMode, RunConfig};
 
+/// Re-export of the `eframe` crate used by the native runtime.
+///
+/// Available with the `eframe` feature. Lets applications write
+/// `fn main() -> eframe::Result<()>` (via the prelude) or reach
+/// `egui_cha::eframe::NativeOptions` without adding `eframe` as a direct
+/// dependency, which also keeps the `eframe` version in lock-step with
+/// the one `egui-cha` is built against.
+#[cfg(feature = "eframe")]
+pub use eframe;
+
 /// Prelude for convenient imports
 pub mod prelude {
     pub use crate::bindings::{ActionBindings, DynamicShortcut, InputBinding, ShortcutGroup};
@@ -60,7 +70,7 @@ pub mod prelude {
     pub use egui::{Key, KeyboardShortcut, Modifiers};
 
     #[cfg(feature = "eframe")]
-    pub use crate::{RepaintMode, RunConfig};
+    pub use crate::{eframe, RepaintMode, RunConfig};
 }
 
 /// Testing utilities prelude

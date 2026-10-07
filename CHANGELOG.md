@@ -10,6 +10,16 @@ are released in lock-step and share the same version number.
 
 ## [Unreleased]
 
+### Added
+- **egui-cha**: re-export the `eframe` crate as `egui_cha::eframe` (and from
+  the prelude) when the `eframe` feature is enabled, so applications no
+  longer need a direct `eframe` dependency to write
+  `fn main() -> eframe::Result<()>` (#7).
+
+### Fixed
+- **README**: the Installation section now enables the `eframe` feature,
+  which the Quick Start requires (#6).
+
 ## [0.7.2] - 2026-07-17
 
 ### Fixed
